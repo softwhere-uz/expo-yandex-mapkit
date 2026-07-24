@@ -236,3 +236,24 @@ publisher" for both package names in npm settings so no long-lived token exists 
 - **2026-07-25** — Naming decided (evidence + judge panel): unscoped primary + scoped alias.
   This handover written and pushed as the repo's first commit. npm names still unclaimed —
   **reserving them is the next action.**
+- **2026-07-24** — v0 skeleton implemented end-to-end (multi-agent: 5 implementers + build gate +
+  4 adversarial reviewers, then a fix round + independent re-verification). Shipped: TS API
+  (`initialize()`, `<YandexMapView>` with `cameraPosition`/`animated`/`nightMode` and
+  `onMapReady`/`onCameraPositionChanged`/`onMapPress`/`onMapLongPress`); Android + iOS native
+  bindings (strong listener retention, MapKitFactory start/stop refcounting, recovery of views
+  mounted before `initialize()` resolves, batched camera-prop application via
+  `OnViewDidUpdateProps` on both platforms); config plugin using only standard mods
+  (`withGradleProperties` + `withPodfileProperties` — the SDK 57 Podfile reads
+  `Podfile.properties.json`, so no dangerous Podfile edits; options: version/flavor with
+  per-platform overrides, minSdk-26 floor); CNG example app; `alias/` scoped package;
+  README/CHANGELOG/LICENSE. Verified locally: tsc + eslint + plugin build green; `npm pack`
+  ships a working plugin twice in a row (caught and fixed a tsbuildinfo-staleness bug that
+  would have broken every publish after the first — `tsBuildInfoFile` now lives inside
+  `plugin/build`); `expo prebuild` smoke test passes and is idempotent on both platforms
+  (exact keys land in `gradle.properties` / `Podfile.properties.json`); **Android Kotlin
+  compiles against the real `4.42.0-lite` artifact** — which caught that MapKit ≥4.41 changed
+  Android `add*Listener` to take an explicit `java.lang.ref.WeakReference` (fixed; the §4
+  weak-listener warning is now a hard compile-time contract). Not yet verified: iOS Swift
+  compile (needs macOS/Xcode), on-device rendering on either platform, and the §5 yamap-plus
+  competitive benchmark. npm names remain unclaimed — publishing the 0.0.1 placeholder is
+  still the next action (playbook in §7).
