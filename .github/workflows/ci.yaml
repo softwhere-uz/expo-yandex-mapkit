@@ -1,0 +1,149 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    name: Lint, build, plugin checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run build
+      - run: npm run build plugin
+      - name: Plugin behavior checks
+        run: node scripts/check-plugin.mjs
+      # Pack twice: the second pack catches stale-incremental-build bugs where
+      # `prepare` deletes plugin/build but tsc thinks it is still up to date.
+      - name: Tarball guard (x2)
+        run: |
+          for i in 1 2; do
+            npm pack --dry-run --json --foreground-scripts=false | node -e "
+              const files = JSON.parse(require('fs').readFileSync(0, 'utf8'))[0].files.map((f) => f.path);
+              const required = ['app.plugin.js', 'build/index.js', 'plugin/build/index.js', 'README.md', 'README.ru.md', 'LICENSE'];
+              const missing = required.filter((p) => !files.includes(p));
+              const banned = files.filter((p) => p === 'HANDOVER.md' || p.endsWith('.tsbuildinfo') || p.startsWith('alias/'));
+              if (missing.length || banned.length) {
+                console.error('tarball check failed', { missing, banned });
+                process.exit(1);
+              }
+              console.log('tarball OK:', files.length, 'files');
+            "
+          done
+
+  prebuild-smoke:
+    name: Config plugin prebuild smoke test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            example/package-lock.json
+      - run: npm ci
+      - run: npm ci
+        working-directory: example
+      - run: npx expo prebuild --platform android --no-install
+        working-directory: example
+      - run: npx expo prebuild --platform ios --no-install
+        working-directory: example
+      - name: Assert the plugin injected the native build properties
+        run: |
+          set -euo pipefail
+          VERSION=$(grep -oP "DEFAULT_VERSION = '\K[0-9.]+" plugin/src/index.ts)
+          FLAVOR=$(grep -oP "DEFAULT_FLAVOR = '\K[a-z]+" plugin/src/index.ts)
+          grep -Fx "expoYandexMapKit.version=${VERSION}" example/android/gradle.properties
+          grep -Fx "expoYandexMapKit.flavor=${FLAVOR}" example/android/gradle.properties
+          grep -Fx "android.minSdkVersion=26" example/android/gradle.properties
+          node -e "
+            const p = require('./example/ios/Podfile.properties.json');
+            const [version, flavor] = [process.argv[1], process.argv[2]];
+            if (p['expoYandexMapKit.version'] !== version || p['expoYandexMapKit.flavor'] !== flavor) {
+              throw new Error('Podfile.properties.json missing plugin keys: ' + JSON.stringify(p));
+            }
+          " "$VERSION" "$FLAVOR"
+      - name: Assert prebuild idempotency (no duplicated keys on re-run)
+        run: |
+          set -euo pipefail
+          (cd example && npx expo prebuild --platform android --no-install)
+          test "$(grep -c 'expoYandexMapKit.version' example/android/gradle.properties)" = "1"
+          test "$(grep -c 'android.minSdkVersion' example/android/gradle.properties)" = "1"
+
+  android:
+    name: Android build (Kotlin vs real MapKit)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            example/package-lock.json
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@v6
+      - run: npm ci
+      - run: npm ci
+        working-directory: example
+      - run: npx expo prebuild --platform android --no-install
+        working-directory: example
+      - name: Compile module Kotlin against the pinned MapKit artifact
+        run: ./gradlew :expo-yandex-mapkit:compileDebugKotlin
+        working-directory: example/android
+
+  ios:
+    name: iOS build (Swift vs real MapKit)
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            example/package-lock.json
+      - run: npm ci
+      - run: npm ci
+        working-directory: example
+      - run: npx expo prebuild --platform ios --no-install
+        working-directory: example
+      - name: Pod install (pulls the pinned YandexMapsMobile pod)
+        run: pod install
+        working-directory: example/ios
+      - name: Build for iOS Simulator
+        working-directory: example/ios
+        run: |
+          set -o pipefail
+          xcodebuild -workspace expoyandexmapkitexample.xcworkspace \
+            -scheme expoyandexmapkitexample \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            > xcodebuild.log 2>&1 || { tail -n 200 xcodebuild.log; exit 1; }
+          tail -n 5 xcodebuild.log

@@ -1,0 +1,75 @@
+# Yandex releases MapKit roughly monthly. This weekly check compares the newest
+# published SDK version (Maven Central for Android, CocoaPods for iOS) against the
+# default pinned in plugin/src/index.ts and opens a bump issue when we fall behind.
+#
+# NOTE: GitHub auto-disables scheduled workflows in public repos after 60 days
+# without repository activity — it emails a warning and shows a re-enable button
+# under Actions. If the repo goes quiet, re-enable this watch manually.
+name: MapKit version watch
+
+on:
+  schedule:
+    - cron: '0 6 * * 1' # Mondays 06:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Compare latest MapKit vs pinned default
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          PINNED=$(grep -oP "DEFAULT_VERSION = '\K[0-9.]+" plugin/src/index.ts)
+
+          LATEST_ANDROID=$(curl -fsSL https://repo1.maven.org/maven2/com/yandex/android/maps.mobile/maven-metadata.xml \
+            | grep -oP '<version>\K[0-9.]+(?=-lite</version>)' | sort -V | tail -1)
+
+          LATEST_IOS=$(curl -fsSL https://trunk.cocoapods.org/api/v1/pods/YandexMapsMobile \
+            | jq -r '.versions[].name' | grep -- '-lite$' | sed 's/-lite$//' | sort -V | tail -1)
+
+          echo "pinned=$PINNED android=$LATEST_ANDROID ios=$LATEST_IOS"
+
+          # The newest version available on BOTH platforms (we pin one version for both).
+          LATEST=$(printf '%s\n%s\n' "$LATEST_ANDROID" "$LATEST_IOS" | sort -V | head -1)
+          NEWEST=$(printf '%s\n%s\n' "$PINNED" "$LATEST" | sort -V | tail -1)
+
+          if [ "$NEWEST" = "$PINNED" ]; then
+            echo "Pinned default $PINNED is current."
+            exit 0
+          fi
+
+          TITLE="Bump Yandex MapKit default to $LATEST"
+          if gh issue list --state open --limit 200 --json title --jq '.[].title' | grep -Fxq "$TITLE"; then
+            echo "Issue already open: $TITLE"
+            exit 0
+          fi
+
+          BODY=$(cat <<EOF
+          The weekly version watch found a newer MapKit than our pinned default.
+
+          - Pinned default: \`$PINNED\`
+          - Latest on Maven Central (Android): \`$LATEST_ANDROID\`
+          - Latest on CocoaPods (iOS): \`$LATEST_IOS\`
+          - Proposed new default (newest available on both platforms): \`$LATEST\`
+
+          Checklist (see [Yandex changelog](https://yandex.com/maps-api/docs/mapkit/versions.html) first — listener/bridging internals have changed before):
+
+          - [ ] Read the changelog for breaking changes between \`$PINNED\` and \`$LATEST\`
+          - [ ] Bump the default in the three synced pin sites: \`plugin/src/index.ts\`, \`android/build.gradle\`, \`ios/ExpoYandexMapKit.podspec\`
+          - [ ] Update the version mentioned in \`README.md\` + \`README.ru.md\` (plugin snippet, compatibility table)
+          - [ ] CI green (Android + iOS builds compile against the new artifact)
+          - [ ] CHANGELOG entry
+
+          _Opened automatically by the MapKit version watch workflow._
+          EOF
+          )
+          gh label create enhancement --force 2>/dev/null || true
+          gh issue create --title "$TITLE" --body "$BODY" --label enhancement

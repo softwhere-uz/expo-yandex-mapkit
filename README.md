@@ -6,6 +6,7 @@ Yandex Maps (MapKit) for Expo — built on the Expo Modules API, configured by a
 
 [![npm version](https://img.shields.io/npm/v/expo-yandex-mapkit.svg)](https://www.npmjs.com/package/expo-yandex-mapkit)
 [![license](https://img.shields.io/npm/l/expo-yandex-mapkit.svg)](./LICENSE)
+[![CI](https://github.com/softwhere-uz/expo-yandex-mapkit/actions/workflows/ci.yaml/badge.svg)](https://github.com/softwhere-uz/expo-yandex-mapkit/actions/workflows/ci.yaml)
 
 ## Features
 

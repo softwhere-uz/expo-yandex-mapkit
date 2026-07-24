@@ -21,12 +21,13 @@ jobs:
   release:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      # No registry-url here: it would write an _authToken line into .npmrc, which
+      # makes npm skip the OIDC trusted-publishing token exchange (setup-node#1551).
+      - uses: actions/setup-node@v6
         with:
           node-version: 22
-          registry-url: 'https://registry.npmjs.org'
 
       # OIDC trusted publishing requires npm >= 11.5.1
       - run: npm install -g npm@latest
@@ -53,7 +54,7 @@ jobs:
       # app.plugin.js points at a missing plugin/build.
       - name: Verify tarball contents
         run: |
-          npm pack --dry-run --json | node -e "
+          npm pack --dry-run --json --foreground-scripts=false | node -e "
             const files = JSON.parse(require('fs').readFileSync(0, 'utf8'))[0].files.map((f) => f.path);
             const required = ['app.plugin.js', 'build/index.js', 'plugin/build/index.js'];
             const missing = required.filter((p) => !files.includes(p));

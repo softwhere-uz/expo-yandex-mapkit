@@ -66,6 +66,24 @@ cd example/android && ./gradlew :expo-yandex-mapkit:compileDebugKotlin
 `README.md` (English) and `README.ru.md` (Russian) are maintained as a pair — mirror every
 change in both. If they ever diverge, the English version is canonical.
 
+## CI
+
+Every PR and push to `main` runs `.github/workflows/ci.yaml`:
+
+- **quality** — eslint, `tsc` build, plugin build, plugin behavior checks
+  (`npm run check:plugin`), and a double `npm pack` tarball guard (the compiled plugin must ship;
+  internal files must not).
+- **prebuild-smoke** — `expo prebuild` on both platforms asserting the config plugin actually
+  injects `expoYandexMapKit.*` + `android.minSdkVersion` into the generated projects, idempotently.
+- **android** — compiles the module Kotlin against the real pinned MapKit artifact.
+- **ios** — full example build on a macOS runner (pod install pulls the real YandexMapsMobile pod,
+  `xcodebuild` compiles the Swift for the iOS Simulator).
+
+`.github/workflows/mapkit-version-watch.yaml` runs weekly and opens a bump issue when Yandex
+publishes a MapKit newer than our pinned default on both Maven Central and CocoaPods.
+
+PRs should be green across all four CI jobs before merge.
+
 ## Commit style
 
 Conventional commits (`feat(android): …`, `fix(plugin): …`, `docs: …`, `ci: …`). Put what was
