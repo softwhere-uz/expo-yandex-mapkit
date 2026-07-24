@@ -17,6 +17,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   class. The runtime `initialize(apiKey)` path is unchanged and still the default when the key
   is only known at runtime; a build-time `locale` is applied on that path too. Both keys are
   optional, so existing setups are unaffected.
+- **`onMapLoaded` event** (`YandexMapView`, #1 → Events): fires once the map finishes loading, with a
+  `MapLoadStatistics` payload (`renderObjectCount`, `tileMemoryUsage`, and per-zoom load timings).
+- **Imperative ref methods** (`YandexMapViewRef`, #1 → Imperative ref methods): `setCenter(position, options)`, `setZoom(zoom, options)`,
+  `fitMarkers(points, options)`, `getCameraPosition()`, `getVisibleRegion()`, and world↔screen projection `getScreenPoints(points)` /
+  `getWorldPoints(points)`. Called through a ref (`useRef<YandexMapViewRef>`), each returns a Promise. `YandexMapView` is now a
+  `forwardRef` component. (`fitMarkers` edge-padding and `fitAllMarkers` are follow-ups.)
+- **Map gesture controls** (`YandexMapView` props, first slice of #1 → Map view props): `scrollGesturesEnabled`,
+  `zoomGesturesEnabled`, `tiltGesturesEnabled`, `rotateGesturesEnabled`, `fastTapEnabled` — all default `true`
+  (MapKit's own defaults) and are applied on map creation, so a value set before `initialize()` resolves is
+  honoured once the map appears. Plus `interactiveDisabled` — a shorthand that forces all four movement
+  gestures off (overriding the individual toggles) for a non-interactive map.
+- **Map appearance** (`YandexMapView` props, #1 → Map view props): `mapType`
+  (`'none' | 'map' | 'satellite' | 'hybrid' | 'vector'`) and `mapStyle` (a Yandex JSON style string that
+  only affects the vector and hybrid layers; pass `''` to clear, invalid JSON is ignored with a warning). Each is
+  applied only when explicitly set, so an unset value keeps MapKit's own default. Both are applied on map
+  creation so a value set before `initialize()` resolves is honoured once the map appears.
+- **Yandex logo placement** (`YandexMapView` props, #1 → Map view props): `logoPosition`
+  (`{ horizontal: 'left' | 'center' | 'right', vertical: 'top' | 'bottom' }`) and `logoPadding`
+  (`{ horizontal, vertical }` in px, negatives clamped to 0) — applied only when set, so an unset
+  value keeps MapKit's default logo position.
 
 ## [0.0.3] - 2026-07-25
 

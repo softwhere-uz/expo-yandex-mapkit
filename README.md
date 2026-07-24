@@ -239,7 +239,19 @@ Initializes the native MapKit SDK. Call it once, before rendering any `YandexMap
 | `cameraPosition` | `CameraPosition` | — | Declarative camera: changing the prop moves the native camera. Values equal to the current position (within 1e-6) are ignored, so echoing `onCameraPositionChanged` back does not loop. |
 | `animated` | `boolean` | `true` | Animate declarative camera moves (0.3 s); instant when `false`. |
 | `nightMode` | `boolean` | `false` | MapKit night colour scheme. |
+| `scrollGesturesEnabled` | `boolean` | `true` | Allow panning the map by dragging. |
+| `zoomGesturesEnabled` | `boolean` | `true` | Allow pinch / double-tap / two-finger-tap zoom. |
+| `tiltGesturesEnabled` | `boolean` | `true` | Allow the two-finger vertical drag that tilts the camera. |
+| `rotateGesturesEnabled` | `boolean` | `true` | Allow the two-finger twist that rotates the map. |
+| `fastTapEnabled` | `boolean` | `true` | Report a tap immediately instead of waiting to see if it becomes a double-tap. |
+| `interactiveDisabled` | `boolean` | `false` | When `true`, disables all four movement gestures at once — a shorthand that overrides the individual `*GesturesEnabled` props. Tap events (`onMapPress`/`onMapLongPress`) still fire. |
+| `mapType` | `'none' \| 'map' \| 'satellite' \| 'hybrid' \| 'vector'` | — (SDK default) | Base map layer. `'map'`, `'satellite'` and `'hybrid'` are raster; `'vector'` is the styleable vector scheme. Left unset, the map keeps MapKit's own default (vector). `'satellite'` / `'hybrid'` may require a Yandex-app API key. |
+| `mapStyle` | `string` | — | A [Yandex JSON map style](https://yandex.com/dev/mapkit/doc/en/android/generated/style) applied to the map. **Only affects the `'vector'` and `'hybrid'` layers** — leave `mapType` unset (the default is vector) or set `mapType='vector'`; it is a silent no-op on the raster `'map'` / `'satellite'` layers. Pass `''` to clear a previously applied style. Invalid JSON is ignored with a warning. |
+| `logoPosition` | `{ horizontal: 'left' \| 'center' \| 'right'; vertical: 'top' \| 'bottom' }` | — | Corner the mandatory Yandex logo is aligned to. |
+| `logoPadding` | `{ horizontal: number; vertical: number }` | — | Logo padding, in px, from the aligned edges (negatives are clamped to `0`). |
 | `style` | `StyleProp<ViewStyle>` | — | Standard React Native view styling. |
+
+> For a non-interactive map (e.g. a static preview) set `interactiveDisabled` (shorthand for disabling all four movement gestures); toggle `rotateGesturesEnabled` / `tiltGesturesEnabled` off to keep the map flat and north-up.
 
 Events:
 
@@ -249,6 +261,7 @@ Events:
 | `onCameraPositionChanged` | `CameraPositionChangeEvent` | While the camera moves; `reason` distinguishes user gestures from programmatic moves, `finished` marks the end of a movement. |
 | `onMapPress` | `MapPressEvent` | On a single tap on the map. |
 | `onMapLongPress` | `MapPressEvent` | On a long press on the map. |
+| `onMapLoaded` | `MapLoadStatistics` | Once the map finishes loading — carries render stats (`renderObjectCount`, `tileMemoryUsage`, load timings). |
 
 ### Types
 
@@ -270,9 +283,45 @@ type CameraPositionChangeEvent = {
 };
 
 type MapPressEvent = { point: Point };
+
+type MapLoadStatistics = {
+  renderObjectCount: number;      // number of map objects rendered
+  tileMemoryUsage: number;        // tile cache memory usage, in bytes
+  curZoomModelsLoaded: number;    // load timings — SDK-native units, differ by platform (iOS seconds / Android integer)
+  curZoomPlacemarksLoaded: number;
+  curZoomLabelsLoaded: number;
+  curZoomGeometryLoaded: number;
+  delayedGeometryLoaded: number;
+  fullyLoaded: number;
+  fullyAppeared: number;
+};
 ```
 
 The raw native module is also exported as `ExpoYandexMapKitModule` as an escape hatch; its shape is not part of the stable API.
+
+### Imperative methods
+
+Call these through a ref (`const mapRef = useRef<YandexMapViewRef>(null)`). All return Promises and run on the UI thread:
+
+| Method | Returns | Notes |
+| --- | --- | --- |
+| `setCenter(position, options?)` | `Promise<void>` | Move / animate the camera. `options.durationSeconds` (default `0.3`, `0` = instant) and `options.animation` (`'smooth' \| 'linear'`). Sets the full camera — omitting `azimuth`/`tilt` resets them to `0` (flat, north-up). No-op until the map is ready. |
+| `setZoom(zoom, options?)` | `Promise<void>` | Animate the zoom, keeping the current center / azimuth / tilt. |
+| `fitMarkers(points, options?)` | `Promise<void>` | Move the camera so every point is visible. A single point recenters at the current zoom. |
+| `getCameraPosition()` | `Promise<CameraPosition \| null>` | Current camera; `null` until the map is ready. |
+| `getVisibleRegion()` | `Promise<VisibleRegion \| null>` | The visible geographic quad (`topLeft` / `topRight` / `bottomLeft` / `bottomRight`). |
+| `getScreenPoints(points)` | `Promise<(ScreenPoint \| null)[]>` | Project world coordinates to screen pixels; `null` per point that can't be projected (off-globe / behind the camera). |
+| `getWorldPoints(points)` | `Promise<(Point \| null)[]>` | Project screen pixels back to world coordinates. |
+
+```tsx
+const mapRef = useRef<YandexMapViewRef>(null);
+// ...
+<YandexMapView ref={mapRef} style={StyleSheet.absoluteFill} cameraPosition={{ latitude: 41.31, longitude: 69.24, zoom: 12 }} />;
+
+await mapRef.current?.setCenter({ latitude: 41.31, longitude: 69.24, zoom: 14 }, { durationSeconds: 0.4 });
+const region = await mapRef.current?.getVisibleRegion();
+const [screen] = await mapRef.current?.getScreenPoints([{ latitude: 41.31, longitude: 69.24 }]) ?? [];
+```
 
 ## lite vs full
 

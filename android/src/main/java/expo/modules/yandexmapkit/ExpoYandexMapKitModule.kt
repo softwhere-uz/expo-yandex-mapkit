@@ -63,7 +63,7 @@ class ExpoYandexMapKitModule : Module() {
     }
 
     View(ExpoYandexMapKitView::class) {
-      Events("onMapReady", "onCameraPositionChanged", "onMapPress", "onMapLongPress")
+      Events("onMapReady", "onCameraPositionChanged", "onMapPress", "onMapLongPress", "onMapLoaded")
 
       Prop("cameraPosition") { view: ExpoYandexMapKitView, cameraPosition: CameraPositionRecord? ->
         view.setCameraPosition(cameraPosition)
@@ -77,8 +77,76 @@ class ExpoYandexMapKitModule : Module() {
         view.setNightMode(nightMode)
       }
 
+      Prop("scrollGesturesEnabled") { view: ExpoYandexMapKitView, enabled: Boolean ->
+        view.setScrollGesturesEnabled(enabled)
+      }
+
+      Prop("zoomGesturesEnabled") { view: ExpoYandexMapKitView, enabled: Boolean ->
+        view.setZoomGesturesEnabled(enabled)
+      }
+
+      Prop("tiltGesturesEnabled") { view: ExpoYandexMapKitView, enabled: Boolean ->
+        view.setTiltGesturesEnabled(enabled)
+      }
+
+      Prop("rotateGesturesEnabled") { view: ExpoYandexMapKitView, enabled: Boolean ->
+        view.setRotateGesturesEnabled(enabled)
+      }
+
+      Prop("fastTapEnabled") { view: ExpoYandexMapKitView, enabled: Boolean ->
+        view.setFastTapEnabled(enabled)
+      }
+
+      Prop("interactiveDisabled") { view: ExpoYandexMapKitView, disabled: Boolean ->
+        view.setInteractiveDisabled(disabled)
+      }
+
+      Prop("mapType") { view: ExpoYandexMapKitView, mapType: MapTypeOption ->
+        view.setMapType(mapType.toYandex())
+      }
+
+      Prop("mapStyle") { view: ExpoYandexMapKitView, mapStyle: String? ->
+        view.setMapStyle(mapStyle)
+      }
+
+      Prop("logoPosition") { view: ExpoYandexMapKitView, logoPosition: LogoPositionRecord? ->
+        view.setLogoPosition(logoPosition)
+      }
+
+      Prop("logoPadding") { view: ExpoYandexMapKitView, logoPadding: LogoPaddingRecord? ->
+        view.setLogoPadding(logoPadding)
+      }
+
       OnViewDidUpdateProps { view: ExpoYandexMapKitView ->
         view.applyPendingCameraPosition()
+      }
+
+      AsyncFunction("setCenter") { view: ExpoYandexMapKitView, position: CameraPositionRecord, options: CameraMoveOptionsRecord ->
+        view.moveCamera(position, options)
+      }
+
+      AsyncFunction("setZoom") { view: ExpoYandexMapKitView, zoom: Double, options: CameraMoveOptionsRecord ->
+        view.setZoom(zoom, options)
+      }
+
+      AsyncFunction("fitMarkers") { view: ExpoYandexMapKitView, points: List<PointRecord>, options: CameraMoveOptionsRecord ->
+        view.fitMarkers(points, options)
+      }
+
+      AsyncFunction("getCameraPosition") { view: ExpoYandexMapKitView ->
+        view.currentCameraPosition()
+      }
+
+      AsyncFunction("getVisibleRegion") { view: ExpoYandexMapKitView ->
+        view.currentVisibleRegion()
+      }
+
+      AsyncFunction("getScreenPoints") { view: ExpoYandexMapKitView, points: List<PointRecord> ->
+        view.screenPoints(points)
+      }
+
+      AsyncFunction("getWorldPoints") { view: ExpoYandexMapKitView, points: List<ScreenPointRecord> ->
+        view.worldPoints(points)
       }
     }
   }
