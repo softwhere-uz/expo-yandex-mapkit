@@ -9,9 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Imperative ref methods** (`YandexMapViewRef`, #1 → Imperative ref methods): `setCenter(position, { durationSeconds, animation })`,
-  `getCameraPosition()`, `getVisibleRegion()`, and world↔screen projection `getScreenPoints(points)` / `getWorldPoints(points)`.
-  Called through a ref (`useRef<YandexMapViewRef>`), each returns a Promise. `YandexMapView` is now a `forwardRef` component.
+- **Imperative ref methods** (`YandexMapViewRef`, #1 → Imperative ref methods): `setCenter(position, options)`, `setZoom(zoom, options)`,
+  `fitMarkers(points, options)`, `getCameraPosition()`, `getVisibleRegion()`, and world↔screen projection `getScreenPoints(points)` /
+  `getWorldPoints(points)`. Called through a ref (`useRef<YandexMapViewRef>`), each returns a Promise. `YandexMapView` is now a
+  `forwardRef` component. (`fitMarkers` edge-padding and `fitAllMarkers` are follow-ups.)
 - **Map gesture controls** (`YandexMapView` props, first slice of #1 → Map view props): `scrollGesturesEnabled`,
   `zoomGesturesEnabled`, `tiltGesturesEnabled`, `rotateGesturesEnabled`, `fastTapEnabled` — all default `true`
   (MapKit's own defaults) and are applied on map creation, so a value set before `initialize()` resolves is

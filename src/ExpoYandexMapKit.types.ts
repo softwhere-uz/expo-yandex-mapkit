@@ -66,6 +66,10 @@ export type YandexMapViewRef = {
   // Animate/move the camera to `position`. Sets the FULL camera — omitting `azimuth`/`tilt`
   // resets them to 0 (flat, north-up), same as the `cameraPosition` prop. No-op until ready.
   setCenter(position: CameraPosition, options?: CameraMoveOptions): Promise<void>;
+  // Animate the zoom, keeping the current center / azimuth / tilt.
+  setZoom(zoom: number, options?: CameraMoveOptions): Promise<void>;
+  // Move the camera so every point is visible. A single point recenters at the current zoom.
+  fitMarkers(points: Point[], options?: CameraMoveOptions): Promise<void>;
   // Current camera position, or null if the map is not ready.
   getCameraPosition(): Promise<Required<CameraPosition> | null>;
   // The geographic quad currently visible, or null if the map is not ready.

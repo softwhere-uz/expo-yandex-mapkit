@@ -4,6 +4,8 @@ import android.content.Context
 import android.util.Log
 import com.yandex.mapkit.Animation
 import com.yandex.mapkit.ScreenPoint
+import com.yandex.mapkit.geometry.BoundingBox
+import com.yandex.mapkit.geometry.Geometry
 import com.yandex.mapkit.geometry.Point
 import com.yandex.mapkit.logo.Alignment as LogoAlignment
 import com.yandex.mapkit.logo.HorizontalAlignment
@@ -402,6 +404,42 @@ class ExpoYandexMapKitView(context: Context, appContext: AppContext) : ExpoView(
       position.azimuth.toFloat(),
       position.tilt.toFloat()
     )
+    moveCameraTo(target, options, map)
+  }
+
+  internal fun setZoom(zoom: Double, options: CameraMoveOptionsRecord) {
+    val map = mapView?.mapWindow?.map ?: return
+    val current = map.cameraPosition
+    val target = CameraPosition(current.target, zoom.toFloat(), current.azimuth, current.tilt)
+    moveCameraTo(target, options, map)
+  }
+
+  // Fit the camera so every point is visible. A single point just recenters at the
+  // current zoom (a degenerate bounding box would otherwise snap to max zoom).
+  internal fun fitMarkers(points: List<PointRecord>, options: CameraMoveOptionsRecord) {
+    val map = mapView?.mapWindow?.map ?: return
+    if (points.isEmpty()) {
+      return
+    }
+    val current = map.cameraPosition
+    val target = if (points.size == 1) {
+      CameraPosition(
+        Point(points[0].latitude, points[0].longitude),
+        current.zoom,
+        current.azimuth,
+        current.tilt
+      )
+    } else {
+      val boundingBox = BoundingBox(
+        Point(points.minOf { it.latitude }, points.minOf { it.longitude }),
+        Point(points.maxOf { it.latitude }, points.maxOf { it.longitude })
+      )
+      map.cameraPosition(Geometry.fromBoundingBox(boundingBox))
+    }
+    moveCameraTo(target, options, map)
+  }
+
+  private fun moveCameraTo(target: CameraPosition, options: CameraMoveOptionsRecord, map: YandexMap) {
     val duration = options.durationSeconds.toFloat().coerceAtLeast(0f)
     if (duration > 0f) {
       map.move(target, Animation(options.animation.toYandex(), duration), null)

@@ -106,6 +106,14 @@ public class ExpoYandexMapKitModule: Module {
         view.moveCamera(position, options: options)
       }
 
+      AsyncFunction("setZoom") { (view: ExpoYandexMapKitView, zoom: Double, options: CameraMoveOptionsRecord) in
+        view.setZoom(zoom, options: options)
+      }
+
+      AsyncFunction("fitMarkers") { (view: ExpoYandexMapKitView, points: [PointRecord], options: CameraMoveOptionsRecord) in
+        view.fitMarkers(points, options: options)
+      }
+
       AsyncFunction("getCameraPosition") { (view: ExpoYandexMapKitView) -> [String: Any]? in
         view.currentCameraPosition()
       }

@@ -315,6 +315,51 @@ class ExpoYandexMapKitView: ExpoView {
       azimuth: Float(position.azimuth),
       tilt: Float(position.tilt)
     )
+    moveCamera(to: target, options: options, on: map)
+  }
+
+  func setZoom(_ zoom: Double, options: CameraMoveOptionsRecord) {
+    guard let map = mapView?.mapWindow.map else {
+      return
+    }
+    let current = map.cameraPosition
+    let target = YMKCameraPosition(
+      target: current.target,
+      zoom: Float(zoom),
+      azimuth: current.azimuth,
+      tilt: current.tilt
+    )
+    moveCamera(to: target, options: options, on: map)
+  }
+
+  // Fit the camera so every point is visible. A single point just recenters at the
+  // current zoom (a degenerate bounding box would otherwise snap to max zoom).
+  func fitMarkers(_ points: [PointRecord], options: CameraMoveOptionsRecord) {
+    guard let map = mapView?.mapWindow.map, !points.isEmpty else {
+      return
+    }
+    let current = map.cameraPosition
+    let target: YMKCameraPosition
+    if points.count == 1 {
+      target = YMKCameraPosition(
+        target: YMKPoint(latitude: points[0].latitude, longitude: points[0].longitude),
+        zoom: current.zoom,
+        azimuth: current.azimuth,
+        tilt: current.tilt
+      )
+    } else {
+      let latitudes = points.map { $0.latitude }
+      let longitudes = points.map { $0.longitude }
+      let boundingBox = YMKBoundingBox(
+        southWest: YMKPoint(latitude: latitudes.min() ?? 0, longitude: longitudes.min() ?? 0),
+        northEast: YMKPoint(latitude: latitudes.max() ?? 0, longitude: longitudes.max() ?? 0)
+      )
+      target = map.cameraPosition(with: YMKGeometry(boundingBox: boundingBox))
+    }
+    moveCamera(to: target, options: options, on: map)
+  }
+
+  private func moveCamera(to target: YMKCameraPosition, options: CameraMoveOptionsRecord, on map: YMKMap) {
     let duration = Float(max(0, options.durationSeconds))
     if duration > 0 {
       map.move(with: target, animation: YMKAnimation(type: options.animation.ymkValue, duration: duration))

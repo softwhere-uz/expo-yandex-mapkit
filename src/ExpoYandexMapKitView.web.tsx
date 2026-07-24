@@ -13,6 +13,8 @@ export const YandexMapView = React.forwardRef<YandexMapViewRef, YandexMapViewPro
         Promise.reject(new Error('expo-yandex-mapkit: YandexMapView is not supported on web'));
       return {
         setCenter: unsupported,
+        setZoom: unsupported,
+        fitMarkers: unsupported,
         getCameraPosition: unsupported,
         getVisibleRegion: unsupported,
         getScreenPoints: unsupported,
