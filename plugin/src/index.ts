@@ -2,21 +2,35 @@ import {
   AndroidConfig,
   ConfigPlugin,
   createRunOncePlugin,
+  withAndroidManifest,
   withGradleProperties,
+  withInfoPlist,
   withPodfileProperties,
   withXcodeProject,
 } from 'expo/config-plugins';
 
 type PropertiesItem = AndroidConfig.Properties.PropertiesItem;
 
-type FlavorOptions = {
+type PlatformOptions = {
   version?: string;
   flavor?: 'lite' | 'full';
+  apiKey?: string;
+  locale?: string;
 };
 
-export type ExpoYandexMapKitPluginProps = FlavorOptions & {
-  android?: FlavorOptions;
-  ios?: FlavorOptions;
+export type ExpoYandexMapKitPluginProps = PlatformOptions & {
+  android?: PlatformOptions;
+  ios?: PlatformOptions;
+};
+
+// `version`/`flavor` always resolve to a concrete value; `apiKey`/`locale` stay optional.
+// When they are absent the plugin injects nothing — the API key is then supplied at runtime
+// via `initialize(apiKey)` exactly as before.
+type ResolvedPlatformOptions = {
+  version: string;
+  flavor: 'lite' | 'full';
+  apiKey?: string;
+  locale?: string;
 };
 
 // Default MapKit pin — keep in sync with android/build.gradle and ios/ExpoYandexMapKit.podspec.
@@ -27,10 +41,23 @@ const MIN_SDK_VERSION = 26;
 // MapKit requires iOS 16.4+ — keep in sync with ios/ExpoYandexMapKit.podspec's platform.
 const MIN_IOS_DEPLOYMENT_TARGET = '16.4';
 
+// Where the optional build-time API key / locale are written so the native modules can read
+// them at startup and initialize MapKit automatically. Keep in sync with the reader constants:
+//   Android — android/src/main/java/expo/modules/yandexmapkit/ExpoYandexMapKitModule.kt
+//   iOS     — ios/ExpoYandexMapKitModule.swift
+// (scripts/check-plugin.mjs asserts the native files reference these exact strings.)
+const ANDROID_API_KEY_METADATA = 'expo.modules.yandexmapkit.API_KEY';
+const ANDROID_LOCALE_METADATA = 'expo.modules.yandexmapkit.LOCALE';
+const IOS_API_KEY_INFO_PLIST_KEY = 'ExpoYandexMapKitApiKey';
+const IOS_LOCALE_INFO_PLIST_KEY = 'ExpoYandexMapKitLocale';
+
 const VALID_FLAVORS = ['lite', 'full'];
 const VERSION_PATTERN = /^\d+\.\d+\.\d+$/;
+// MapKit locales are an ISO 639-1 language, optionally with an ISO 3166-1 region:
+// "en", "ru", "en_US", "ru_RU", "uz_UZ", "tr_TR".
+const LOCALE_PATTERN = /^[a-z]{2}(_[A-Z]{2})?$/;
 
-function validateFlavorOptions(options: FlavorOptions, scope: string): void {
+function validatePlatformOptions(options: PlatformOptions, scope: string): void {
   if (options.version !== undefined && !VERSION_PATTERN.test(options.version)) {
     throw new Error(
       `expo-yandex-mapkit config plugin: invalid ${scope}version "${options.version}" — expected a MapKit version like "4.42.0" (major.minor.patch).`
@@ -41,22 +68,47 @@ function validateFlavorOptions(options: FlavorOptions, scope: string): void {
       `expo-yandex-mapkit config plugin: invalid ${scope}flavor "${options.flavor}" — must be "lite" or "full".`
     );
   }
+  // Config plugin props arrive as untyped JSON (app.config.js is plain JS), so guard the type
+  // as well as emptiness — a blank key is the common footgun and MapKit rejects it at runtime.
+  if (
+    options.apiKey !== undefined &&
+    (typeof options.apiKey !== 'string' || options.apiKey.trim() === '')
+  ) {
+    throw new Error(
+      `expo-yandex-mapkit config plugin: invalid ${scope}apiKey — must be a non-empty MapKit API key string.`
+    );
+  }
+  // Guard the type as well (see apiKey above): RegExp.test coerces its argument, so an array like
+  // ["en_US"] would otherwise slip through via toString() and be injected as a non-string value.
+  if (
+    options.locale !== undefined &&
+    (typeof options.locale !== 'string' || !LOCALE_PATTERN.test(options.locale))
+  ) {
+    throw new Error(
+      `expo-yandex-mapkit config plugin: invalid ${scope}locale "${options.locale}" — expected a MapKit locale like "en_US" or "ru_RU" (language, optionally language_REGION).`
+    );
+  }
 }
 
 function validateProps(props: ExpoYandexMapKitPluginProps): void {
-  validateFlavorOptions(props, '');
-  validateFlavorOptions(props.android ?? {}, 'android.');
-  validateFlavorOptions(props.ios ?? {}, 'ios.');
+  validatePlatformOptions(props, '');
+  validatePlatformOptions(props.android ?? {}, 'android.');
+  validatePlatformOptions(props.ios ?? {}, 'ios.');
 }
 
 function resolvePlatformOptions(
   props: ExpoYandexMapKitPluginProps,
   platform: 'android' | 'ios'
-): Required<FlavorOptions> {
+): ResolvedPlatformOptions {
   const override = props[platform] ?? {};
   return {
     version: override.version ?? props.version ?? DEFAULT_VERSION,
     flavor: override.flavor ?? props.flavor ?? DEFAULT_FLAVOR,
+    // Trim the key so a whitespace-padded value (e.g. a dashboard copy-paste with a trailing
+    // newline) is stored canonically in the manifest/plist — otherwise the native SDK receives the
+    // padded string and a later runtime initialize() with the clean key would compare as different.
+    apiKey: (override.apiKey ?? props.apiKey)?.trim(),
+    locale: override.locale ?? props.locale,
   };
 }
 
@@ -92,7 +144,7 @@ function upsertGradleProperty(items: PropertiesItem[], key: string, value: strin
   }
 }
 
-const withAndroidProps: ConfigPlugin<Required<FlavorOptions>> = (config, { version, flavor }) => {
+const withAndroidProps: ConfigPlugin<ResolvedPlatformOptions> = (config, { version, flavor }) => {
   return withGradleProperties(config, (config) => {
     upsertGradleProperty(config.modResults, 'expoYandexMapKit.version', version);
     upsertGradleProperty(config.modResults, 'expoYandexMapKit.flavor', flavor);
@@ -109,7 +161,36 @@ const withAndroidProps: ConfigPlugin<Required<FlavorOptions>> = (config, { versi
   });
 };
 
-const withIosProps: ConfigPlugin<Required<FlavorOptions>> = (config, { version, flavor }) => {
+// Optional build-time API key / locale → AndroidManifest <meta-data>. The native module reads
+// them in OnCreate and initializes MapKit automatically, so an app that sets `apiKey` here never
+// has to call initialize(apiKey) from JS. Injects nothing when both are absent, leaving the
+// runtime path untouched. addMetaDataItemToMainApplication upserts by name, so re-runs (prebuild
+// is not clean by default) do not duplicate the entries.
+const withAndroidApiKey: ConfigPlugin<ResolvedPlatformOptions> = (config, { apiKey, locale }) => {
+  if (apiKey === undefined && locale === undefined) {
+    return config;
+  }
+  return withAndroidManifest(config, (config) => {
+    const mainApplication = AndroidConfig.Manifest.getMainApplicationOrThrow(config.modResults);
+    if (apiKey !== undefined) {
+      AndroidConfig.Manifest.addMetaDataItemToMainApplication(
+        mainApplication,
+        ANDROID_API_KEY_METADATA,
+        apiKey
+      );
+    }
+    if (locale !== undefined) {
+      AndroidConfig.Manifest.addMetaDataItemToMainApplication(
+        mainApplication,
+        ANDROID_LOCALE_METADATA,
+        locale
+      );
+    }
+    return config;
+  });
+};
+
+const withIosProps: ConfigPlugin<ResolvedPlatformOptions> = (config, { version, flavor }) => {
   return withPodfileProperties(config, (config) => {
     // The ExpoYandexMapKit.podspec reads these keys from Podfile.properties.json.
     config.modResults['expoYandexMapKit.version'] = version;
@@ -121,6 +202,23 @@ const withIosProps: ConfigPlugin<Required<FlavorOptions>> = (config, { version, 
     // `pod install` fails on SDKs whose default target is below 16.4 (e.g. SDK 55/56).
     if (isBelowIosTarget(config.modResults['ios.deploymentTarget'], MIN_IOS_DEPLOYMENT_TARGET)) {
       config.modResults['ios.deploymentTarget'] = MIN_IOS_DEPLOYMENT_TARGET;
+    }
+    return config;
+  });
+};
+
+// Optional build-time API key / locale → iOS Info.plist. The native module reads them in
+// OnCreate and initializes MapKit automatically. Injects nothing when both are absent.
+const withIosApiKey: ConfigPlugin<ResolvedPlatformOptions> = (config, { apiKey, locale }) => {
+  if (apiKey === undefined && locale === undefined) {
+    return config;
+  }
+  return withInfoPlist(config, (config) => {
+    if (apiKey !== undefined) {
+      config.modResults[IOS_API_KEY_INFO_PLIST_KEY] = apiKey;
+    }
+    if (locale !== undefined) {
+      config.modResults[IOS_LOCALE_INFO_PLIST_KEY] = locale;
     }
     return config;
   });
@@ -203,8 +301,12 @@ const withExpoYandexMapKit: ConfigPlugin<ExpoYandexMapKitPluginProps | undefined
   props = {}
 ) => {
   validateProps(props);
-  config = withAndroidProps(config, resolvePlatformOptions(props, 'android'));
-  config = withIosProps(config, resolvePlatformOptions(props, 'ios'));
+  const android = resolvePlatformOptions(props, 'android');
+  const ios = resolvePlatformOptions(props, 'ios');
+  config = withAndroidProps(config, android);
+  config = withAndroidApiKey(config, android);
+  config = withIosProps(config, ios);
+  config = withIosApiKey(config, ios);
   config = withIosDeploymentTarget(config);
   return config;
 };

@@ -14,8 +14,8 @@
 - 🎥 Декларативное управление камерой с опциональной анимацией (`cameraPosition` + `animated`)
 - 👆 События камеры, нажатий и долгих нажатий — одинаковые payload'ы на обеих платформах
 - 🌙 Ночной режим
-- 🔑 API-ключ задаётся в рантайме через `initialize(apiKey)` — **никаких** правок `AndroidManifest.xml` / `AppDelegate`
-- 🔧 Конфиг-плагин: версия MapKit и flavor `lite`/`full` (с переопределением по платформам), автоматическое поднятие minSdk на Android — вся настройка сводится к `npx expo prebuild`
+- 🔑 API-ключ задаётся в **рантайме** через `initialize(apiKey)` **или** на этапе **сборки** через конфиг-плагин (`apiKey`) — в обоих случаях без правок `AndroidManifest.xml` / `AppDelegate`; ключ, заданный при сборке, инициализирует MapKit автоматически при старте, так что нет ни ритуала инициализации, ни проблемы порядка инициализации
+- 🔧 Конфиг-плагин: версия MapKit и flavor `lite`/`full`, API-ключ и `locale` карты на этапе сборки (всё — с переопределением по платформам), автоматическое поднятие minSdk на Android — вся настройка сводится к `npx expo prebuild`
 - 📦 Доступен и под scoped-алиасом [`@softwhere-uz/expo-yandex-mapkit`](https://www.npmjs.com/package/@softwhere-uz/expo-yandex-mapkit)
 - 🌍 Документация на [английском](./README.md) и [русском](./README.ru.md)
 
@@ -23,7 +23,7 @@
 
 ## Статус
 
-**Ранняя стадия разработки (v0.0.x).** Что есть уже сейчас: нативный `YandexMapView` для Android и iOS с декларативной камерой, событиями камеры/нажатий и ночным режимом, `initialize(apiKey)` на стороне JS (без правок нативных файлов) и конфиг-плагин, выбирающий версию и flavor MapKit и принудительно поднимающий Android minSdk до 26. Между релизами 0.0.x возможны ломающие изменения.
+**Ранняя стадия разработки (v0.0.x).** Что есть уже сейчас: нативный `YandexMapView` для Android и iOS с декларативной камерой, событиями камеры/нажатий и ночным режимом, `initialize(apiKey)` на стороне JS (без правок нативных файлов) и конфиг-плагин, который выбирает версию и flavor MapKit, при желании внедряет API-ключ и локаль карты на этапе сборки и принудительно поднимает Android minSdk до 26. Между релизами 0.0.x возможны ломающие изменения.
 
 | Этап | Объём | Статус |
 | --- | --- | --- |
@@ -49,7 +49,7 @@
 | Активно поддерживается | ✓ | ✓ | ✓ | — (нет релизов с ноября 2024) |
 | Открытый исходный код | ✓ MIT | ✓ MIT | — (репозиторий недоступен) | код открыт, лицензия не указана |
 | Expo Modules API | ✓ | — (TurboModules) | ✓ | — (старый bridge) |
-| Конфиг-плагин Expo | ✓ (версия, flavor, minSdk) | ✓ (flavor) | — (ручная настройка) | — (ручные правки нативных файлов) |
+| Конфиг-плагин Expo | ✓ (версия, flavor, minSdk, API-ключ, локаль) | ✓ (flavor) | — (ручная настройка) | — (ручные правки нативных файлов) |
 | Новая архитектура | ✓ | ✓ (v5+) | ✓ | — |
 | Документация | EN + RU | RU | частично EN | частично |
 | Дополнительные peer-зависимости | нет | нет | `react-native-reanimated ^4` | нет |
@@ -76,7 +76,10 @@ npx expo install expo-yandex-mapkit
 
 ### 1. Получите API-ключ
 
-Создайте API-ключ для **MapKit Mobile SDK** в [кабинете разработчика Яндекса](https://developer.tech.yandex.ru/services/) (см. [документацию MapKit](https://yandex.ru/maps-api/docs/mapkit/index.html)). Ключ передаётся в рантайме через [`initialize`](#initializeapikey-string-promisevoid) — править `AndroidManifest.xml` или `AppDelegate` не нужно.
+Создайте API-ключ для **MapKit Mobile SDK** в [кабинете разработчика Яндекса](https://developer.tech.yandex.ru/services/) (см. [документацию MapKit](https://yandex.ru/maps-api/docs/mapkit/index.html)). Задать ключ можно двумя способами — править `AndroidManifest.xml` или `AppDelegate` не нужно ни в одном:
+
+- **На этапе сборки** — передайте `apiKey` в конфиг-плагин (ниже). MapKit инициализируется автоматически при старте, так что [`initialize`](#initializeapikey-string-promisevoid) можно вообще не вызывать и рендерить `<YandexMapView />` без гейтинга готовности. Самый простой путь, к тому же без проблемы порядка инициализации.
+- **В рантайме** — вызовите [`initialize(apiKey)`](#initializeapikey-string-promisevoid) один раз до рендера. Подходит, когда ключ известен только в рантайме (получен с бэкенда, выбран под окружение и т. п.).
 
 ### 2. Добавьте конфиг-плагин
 
@@ -85,7 +88,12 @@ npx expo install expo-yandex-mapkit
 ```json
 {
   "expo": {
-    "plugins": [["expo-yandex-mapkit", { "flavor": "lite", "version": "4.42.0" }]]
+    "plugins": [
+      [
+        "expo-yandex-mapkit",
+        { "apiKey": "YOUR_MAPKIT_API_KEY", "locale": "ru_RU", "flavor": "lite", "version": "4.42.0" }
+      ]
+    ]
   }
 }
 ```
@@ -94,12 +102,16 @@ npx expo install expo-yandex-mapkit
 
 | Опция | Тип | По умолчанию | Описание |
 | --- | --- | --- | --- |
+| `apiKey` | `string` | — | API-ключ MapKit на этапе сборки. Если задан, MapKit инициализируется автоматически при старте и вызывать [`initialize`](#initializeapikey-string-promisevoid) не нужно. Опустите, чтобы задавать ключ в рантайме. |
+| `locale` | `string` | — | Язык карты в формате `language` или `language_REGION` (например, `"ru_RU"`, `"en_US"`, `"tr_TR"`). Опустите, чтобы следовать локали устройства. Применяется и на рантайм-пути. |
 | `version` | `string` | `"4.42.0"` | Версия нативного MapKit SDK (`x.y.z`). |
 | `flavor` | `"lite" \| "full"` | `"lite"` | Flavor MapKit — см. [lite и full](#lite-и-full). |
-| `android` | `{ version?, flavor? }` | — | Переопределения только для Android; имеют приоритет над значениями верхнего уровня. |
-| `ios` | `{ version?, flavor? }` | — | Переопределения только для iOS; имеют приоритет над значениями верхнего уровня. |
+| `android` | `{ version?, flavor?, apiKey?, locale? }` | — | Переопределения только для Android; имеют приоритет над значениями верхнего уровня. |
+| `ios` | `{ version?, flavor?, apiKey?, locale? }` | — | Переопределения только для iOS; имеют приоритет над значениями верхнего уровня. |
 
 Плагин также поднимает `android.minSdkVersion` до 26, если он не задан или ниже — MapKit требует Android API 26. Уже заданное большее значение никогда не понижается.
+
+> **Куда попадает ключ.** `apiKey`/`locale` записываются в `<meta-data>` `AndroidManifest.xml` и в `Info.plist` на iOS; нативный модуль читает их при старте. Ключ MapKit — это клиентский credential (в кабинете Яндекса он ограничивается по id/подписи приложения, а не является секретом), поэтому коммитить его — тот же компромисс, что и с ключом Google Maps в манифесте. Если предпочитаете не хранить ключ в исходниках, используйте [`app.config.js`](https://docs.expo.dev/workflow/configuration/), читающий `apiKey` из `process.env`, либо рантайм-путь `initialize(apiKey)`.
 
 ### 3. Соберите проект
 
@@ -192,6 +204,22 @@ export default function App() {
 }
 ```
 
+С `apiKey`, заданным **на этапе сборки** (конфиг-плагин), шага инициализации нет — рендерите карту напрямую:
+
+```tsx
+import { YandexMapView } from 'expo-yandex-mapkit';
+import { StyleSheet } from 'react-native';
+
+export default function App() {
+  return (
+    <YandexMapView
+      style={StyleSheet.absoluteFill}
+      cameraPosition={{ latitude: 41.311081, longitude: 69.240562, zoom: 12 }}
+    />
+  );
+}
+```
+
 Полная версия (с переключателем ночного режима) — в [`example/`](./example).
 
 ## Справочник API
@@ -200,7 +228,8 @@ export default function App() {
 
 Инициализирует нативный MapKit SDK. Вызывайте один раз, до рендера любого `YandexMapView` — карта, отрендеренная до инициализации, остаётся пустой и пишет предупреждение (без падения), а после успешного `initialize` восстанавливается автоматически.
 
-- Идемпотентность: повторный вызов с тем же ключом молча резолвится.
+- **Необязателен**, если на конфиг-плагине задан `apiKey` на этапе сборки: MapKit уже инициализирован при старте, и можно рендерить `<YandexMapView />`, не вызывая этот метод.
+- Идемпотентность: повторный вызов с тем же ключом молча резолвится (в том числе когда этот ключ пришёл из конфиг-плагина).
 - Вызов с *другим* ключом после успешной инициализации реджектится с кодом `ERR_YANDEX_MAPKIT_REINIT` (нативный SDK принимает ключ один раз, до инициализации).
 
 ### `<YandexMapView />`
@@ -263,7 +292,7 @@ type MapPressEvent = { point: Point };
 ## Устранение неполадок и FAQ
 
 **Карта пустая.**
-Две типичные причины: `initialize(apiKey)` не был вызван (или завершился с ошибкой — повесьте `.catch` и посмотрите сообщение) либо API-ключ невалиден / не включён для MapKit Mobile SDK. Смотрите нативные логи: `adb logcat | grep -i -E 'mapkit|yandex'` на Android, консоль Xcode на iOS. View, смонтированный до завершения `initialize`, восстановится автоматически.
+Две типичные причины: `initialize(apiKey)` не был вызван (или завершился с ошибкой — повесьте `.catch` и посмотрите сообщение) и при этом на конфиг-плагине не задан `apiKey` на этапе сборки, либо API-ключ невалиден / не включён для MapKit Mobile SDK. Смотрите нативные логи: `adb logcat | grep -i -E 'mapkit|yandex'` на Android, консоль Xcode на iOS. View, смонтированный до завершения `initialize`, восстановится автоматически.
 
 **«…не работает в Expo Go» / падает в Expo Go.**
 Ожидаемо — нативные модули в Expo Go не загружаются. Используйте `npx expo run:android|ios` или development build через EAS. DOM-фолбэк для Expo Go — в дорожной карте (v3).

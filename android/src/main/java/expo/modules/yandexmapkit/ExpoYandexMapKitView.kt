@@ -192,7 +192,7 @@ class ExpoYandexMapKitView(context: Context, appContext: AppContext) : ExpoView(
     if (!ExpoYandexMapKitModule.isInitialized) {
       if (!warnedNotInitialized) {
         warnedNotInitialized = true
-        Log.w(TAG, "MapKit is not initialized — call initialize(apiKey) before rendering YandexMapView. The view stays empty.")
+        Log.w(TAG, "MapKit is not initialized yet — set a build-time apiKey via the config plugin, or call initialize(apiKey). The view stays empty until MapKit initializes, then recovers automatically.")
       }
       return
     }

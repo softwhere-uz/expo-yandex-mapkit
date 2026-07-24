@@ -101,8 +101,9 @@ class ExpoYandexMapKitView: ExpoView {
       if !didWarnAboutMissingInit {
         didWarnAboutMissingInit = true
         log.warn(
-          "expo-yandex-mapkit: YandexMapView was rendered before initialize(apiKey) resolved — " +
-          "the map stays empty. Call initialize() and only render the map after it resolves."
+          "expo-yandex-mapkit: MapKit is not initialized yet — set a build-time apiKey via the " +
+          "config plugin, or call initialize(apiKey). The map stays empty until MapKit " +
+          "initializes, then recovers automatically."
         )
       }
       return
