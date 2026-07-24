@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Config plugin no longer aborts `expo prebuild` on an empty `apiKey`** (#15). A blank or
+  whitespace-only `apiKey` — the common result of `process.env.YANDEX_MAPKIT_API_KEY ?? ''` when
+  the env var is unset — previously threw `invalid apiKey — must be a non-empty MapKit API key
+string` and failed prebuild entirely, blocking keyless CI and local builds. It is now treated as
+  "not provided": the plugin warns, injects no build-time key (the app can still supply it at
+  runtime via `initialize(apiKey)`), and generates the native projects normally. A present but
+  non-string `apiKey` (number/array/object) still throws.
+
 ## [0.0.4] - 2026-07-25
 
 ### Added
