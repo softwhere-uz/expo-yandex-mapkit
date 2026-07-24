@@ -18,6 +18,7 @@ export type ExpoYandexMapKitPluginProps = FlavorOptions & {
   ios?: FlavorOptions;
 };
 
+// Default MapKit pin — keep in sync with android/build.gradle and ios/ExpoYandexMapKit.podspec.
 const DEFAULT_VERSION = '4.42.0';
 const DEFAULT_FLAVOR = 'lite';
 // MapKit requires Android API 26+.

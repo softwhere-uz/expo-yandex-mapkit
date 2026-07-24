@@ -19,6 +19,7 @@ android {
   }
 }
 
+// Default MapKit pin — keep in sync with plugin/src/index.ts and ios/ExpoYandexMapKit.podspec.
 def mapkitVersion = findProperty('expoYandexMapKit.version') ?: '4.42.0'
 def mapkitFlavor  = findProperty('expoYandexMapKit.flavor')  ?: 'lite'
 

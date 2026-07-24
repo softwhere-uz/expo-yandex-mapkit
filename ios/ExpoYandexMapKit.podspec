@@ -6,7 +6,7 @@ package = JSON.parse(File.read(File.join(__dir__, '..', 'package.json')))
 #   1. ENV `EXPO_YANDEX_MAPKIT_VERSION` / `EXPO_YANDEX_MAPKIT_FLAVOR` (bare React Native escape hatch),
 #   2. the app's `Podfile.properties.json` keys `expoYandexMapKit.version` / `expoYandexMapKit.flavor`
 #      (written by the config plugin),
-#   3. defaults `4.42.0` / `lite`.
+#   3. defaults `4.42.0` / `lite` — keep in sync with plugin/src/index.ts and android/build.gradle.
 podfile_properties = begin
   JSON.parse(File.read(File.join(Pod::Config.instance.installation_root.to_s, 'Podfile.properties.json')))
 rescue
