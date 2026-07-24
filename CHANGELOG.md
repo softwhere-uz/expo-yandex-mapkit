@@ -13,9 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `zoomGesturesEnabled`, `tiltGesturesEnabled`, `rotateGesturesEnabled`, `fastTapEnabled` — all default `true`
   (MapKit's own defaults) and are applied on map creation, so a value set before `initialize()` resolves is
   honoured once the map appears. Set all four gesture toggles to `false` for a non-interactive map.
-- **Map appearance** (`YandexMapView` props, first slice of #1 → Map view props): `mapType`
-  (`'none' | 'map' | 'satellite' | 'hybrid' | 'vector'`, default `'map'`) and `mapStyle` (a Yandex JSON
-  style string; pass `''` to clear, invalid JSON is ignored with a warning). Both are applied on map
+- **Map appearance** (`YandexMapView` props, #1 → Map view props): `mapType`
+  (`'none' | 'map' | 'satellite' | 'hybrid' | 'vector'`) and `mapStyle` (a Yandex JSON style string that
+  only affects vector map types; pass `''` to clear, invalid JSON is ignored with a warning). Each is
+  applied only when explicitly set, so an unset value keeps MapKit's own default. Both are applied on map
   creation so a value set before `initialize()` resolves is honoured once the map appears.
 
 ## [0.0.2] - 2026-07-24

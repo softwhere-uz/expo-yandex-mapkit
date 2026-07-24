@@ -69,9 +69,10 @@ class ExpoYandexMapKitView: ExpoView {
   private var tiltGesturesEnabled = true
   private var rotateGesturesEnabled = true
   private var fastTapEnabled = true
-  // Base map layer defaults to MapKit's own default (the vector scheme map). mapStyle
-  // is nil until set, so an unset style never touches the map.
-  private var mapType: YMKMapType = .map
+  // mapType and mapStyle are nil until explicitly set, so an unset value never overrides
+  // MapKit's own default (the vector scheme map — the only base layer that honours mapStyle;
+  // `.map`/satellite/hybrid are raster and ignore styling).
+  private var mapType: YMKMapType?
   private var mapStyle: String?
   private var mapReadyEmitted = false
   private var didWarnAboutMissingInit = false
@@ -207,7 +208,9 @@ class ExpoYandexMapKitView: ExpoView {
     map.isTiltGesturesEnabled = tiltGesturesEnabled
     map.isRotateGesturesEnabled = rotateGesturesEnabled
     map.isFastTapEnabled = fastTapEnabled
-    map.mapType = mapType
+    if let mapType = mapType {
+      map.mapType = mapType
+    }
     applyMapStyle(to: map)
     // The initial camera position is applied instantly — the map has not been shown yet.
     applyPendingCameraPosition(allowAnimation: false)
