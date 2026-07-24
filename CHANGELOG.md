@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Map gesture controls** (`YandexMapView` props, first slice of #1 → Map view props): `scrollGesturesEnabled`,
+  `zoomGesturesEnabled`, `tiltGesturesEnabled`, `rotateGesturesEnabled`, `fastTapEnabled` — all default `true`
+  (MapKit's own defaults) and are applied on map creation, so a value set before `initialize()` resolves is
+  honoured once the map appears. Plus `interactiveDisabled` — a shorthand that forces all four movement
+  gestures off (overriding the individual toggles) for a non-interactive map.
+- **Map appearance** (`YandexMapView` props, #1 → Map view props): `mapType`
+  (`'none' | 'map' | 'satellite' | 'hybrid' | 'vector'`) and `mapStyle` (a Yandex JSON style string that
+  only affects the vector and hybrid layers; pass `''` to clear, invalid JSON is ignored with a warning). Each is
+  applied only when explicitly set, so an unset value keeps MapKit's own default. Both are applied on map
+  creation so a value set before `initialize()` resolves is honoured once the map appears.
+- **Yandex logo placement** (`YandexMapView` props, #1 → Map view props): `logoPosition`
+  (`{ horizontal: 'left' | 'center' | 'right', vertical: 'top' | 'bottom' }`) and `logoPadding`
+  (`{ horizontal, vertical }` in px, negatives clamped to 0) — applied only when set, so an unset
+  value keeps MapKit's default logo position.
+
 ## [0.0.3] - 2026-07-25
 
 ### Added

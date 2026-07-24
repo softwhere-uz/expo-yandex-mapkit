@@ -10,6 +10,63 @@ internal struct CameraPositionRecord: Record {
   @Field var tilt: Double = 0
 }
 
+// The `mapType` prop options. Mirrors the JS `mapType` union; mapped to `YMKMapType`.
+internal enum MapTypeOption: String, Enumerable {
+  case none
+  case map
+  case satellite
+  case hybrid
+  case vector
+
+  var ymkValue: YMKMapType {
+    switch self {
+    case .none: return YMKMapType.none
+    case .map: return YMKMapType.map
+    case .satellite: return YMKMapType.satellite
+    case .hybrid: return YMKMapType.hybrid
+    case .vector: return YMKMapType.vectorMap
+    }
+  }
+}
+
+// The `logoPosition` prop shape: where the mandatory Yandex logo sits in the map.
+internal enum LogoHorizontalOption: String, Enumerable {
+  case left
+  case center
+  case right
+
+  var ymkValue: YMKLogoHorizontalAlignment {
+    switch self {
+    case .left: return .left
+    case .center: return .center
+    case .right: return .right
+    }
+  }
+}
+
+internal enum LogoVerticalOption: String, Enumerable {
+  case top
+  case bottom
+
+  var ymkValue: YMKLogoVerticalAlignment {
+    switch self {
+    case .top: return .top
+    case .bottom: return .bottom
+    }
+  }
+}
+
+internal struct LogoPositionRecord: Record {
+  @Field var horizontal: LogoHorizontalOption = .right
+  @Field var vertical: LogoVerticalOption = .bottom
+}
+
+// Logo padding in points from the aligned edges. Negative values are clamped to 0.
+internal struct LogoPaddingRecord: Record {
+  @Field var horizontal: Double = 0
+  @Field var vertical: Double = 0
+}
+
 // This view will be used as a native component. Make sure to inherit from `ExpoView`
 // to apply the proper styling (e.g. border radius and shadows).
 class ExpoYandexMapKitView: ExpoView {
@@ -43,6 +100,25 @@ class ExpoYandexMapKitView: ExpoView {
   private var inputListener: InputListener?
   private var pendingCameraPosition: CameraPositionRecord?
   private var nightMode = false
+  // Gesture toggles default to MapKit's own defaults (all enabled). Stored so a
+  // value set before the map exists is applied on map creation, mirroring nightMode.
+  private var scrollGesturesEnabled = true
+  private var zoomGesturesEnabled = true
+  private var tiltGesturesEnabled = true
+  private var rotateGesturesEnabled = true
+  private var fastTapEnabled = true
+  // Master override: when true, all four movement gestures are forced off regardless
+  // of the individual toggles above.
+  private var interactiveDisabled = false
+  // mapType and mapStyle are nil until explicitly set, so an unset value never overrides
+  // MapKit's own default (the vector scheme map — the only base layer that honours mapStyle;
+  // `.map`/satellite/hybrid are raster and ignore styling).
+  private var mapType: YMKMapType?
+  private var mapStyle: String?
+  // Logo placement is nil until first set; a never-set value keeps MapKit's default. Once set,
+  // the value persists — passing undefined later does not revert it (matches mapType/mapStyle).
+  private var logoPosition: LogoPositionRecord?
+  private var logoPadding: LogoPaddingRecord?
   private var mapReadyEmitted = false
   private var didWarnAboutMissingInit = false
 
@@ -91,6 +167,112 @@ class ExpoYandexMapKitView: ExpoView {
     mapView?.mapWindow.map.isNightModeEnabled = enabled
   }
 
+  func setScrollGesturesEnabled(_ enabled: Bool) {
+    scrollGesturesEnabled = enabled
+    applyGestureState()
+  }
+
+  func setZoomGesturesEnabled(_ enabled: Bool) {
+    zoomGesturesEnabled = enabled
+    applyGestureState()
+  }
+
+  func setTiltGesturesEnabled(_ enabled: Bool) {
+    tiltGesturesEnabled = enabled
+    applyGestureState()
+  }
+
+  func setRotateGesturesEnabled(_ enabled: Bool) {
+    rotateGesturesEnabled = enabled
+    applyGestureState()
+  }
+
+  func setInteractiveDisabled(_ disabled: Bool) {
+    interactiveDisabled = disabled
+    applyGestureState()
+  }
+
+  // Applies the effective movement-gesture state. Reads every stored value so the
+  // result is order-independent within a prop batch: interactiveDisabled forces all
+  // four off, otherwise each individual toggle applies.
+  private func applyGestureState() {
+    guard let map = mapView?.mapWindow.map else {
+      return
+    }
+    let interactive = !interactiveDisabled
+    map.isScrollGesturesEnabled = interactive && scrollGesturesEnabled
+    map.isZoomGesturesEnabled = interactive && zoomGesturesEnabled
+    map.isTiltGesturesEnabled = interactive && tiltGesturesEnabled
+    map.isRotateGesturesEnabled = interactive && rotateGesturesEnabled
+  }
+
+  func setFastTapEnabled(_ enabled: Bool) {
+    fastTapEnabled = enabled
+    mapView?.mapWindow.map.isFastTapEnabled = enabled
+  }
+
+  func setMapType(_ type: YMKMapType) {
+    mapType = type
+    mapView?.mapWindow.map.mapType = type
+  }
+
+  func setMapStyle(_ style: String?) {
+    mapStyle = style
+    applyMapStyle(to: mapView?.mapWindow.map)
+  }
+
+  // Empty string clears the applied style; a non-empty string is a Yandex JSON style.
+  // Both platforms clear via the same empty-string id-0 form (Android: setMapStyle("")).
+  // setMapStyleWithStyle returns false only when the JSON is invalid.
+  private func applyMapStyle(to map: YMKMap?) {
+    guard let map = map, let style = mapStyle else {
+      return
+    }
+    if style.isEmpty {
+      _ = map.setMapStyleWithStyle("")
+    } else if !map.setMapStyleWithStyle(style) {
+      log.warn("expo-yandex-mapkit: mapStyle was rejected as invalid Yandex style JSON; it was not applied")
+    }
+  }
+
+  func setLogoPosition(_ position: LogoPositionRecord?) {
+    logoPosition = position
+    applyLogo(to: mapView?.mapWindow.map)
+  }
+
+  func setLogoPadding(_ padding: LogoPaddingRecord?) {
+    logoPadding = padding
+    applyLogo(to: mapView?.mapWindow.map)
+  }
+
+  private func applyLogo(to map: YMKMap?) {
+    guard let map = map else {
+      return
+    }
+    if let position = logoPosition {
+      map.logo.setAlignmentWith(YMKLogoAlignment(
+        horizontalAlignment: position.horizontal.ymkValue,
+        verticalAlignment: position.vertical.ymkValue
+      ))
+    }
+    if let padding = logoPadding {
+      map.logo.setPaddingWith(YMKLogoPadding(
+        horizontalPadding: Self.logoPaddingValue(padding.horizontal),
+        verticalPadding: Self.logoPaddingValue(padding.vertical)
+      ))
+    }
+  }
+
+  // Converts a JS padding number to MapKit's NSUInteger without crashing on NaN /
+  // Infinity / out-of-range input. Matches Android's saturating
+  // `Double.toInt().coerceAtLeast(0)`: NaN and negatives -> 0, values above Int32.max saturate.
+  private static func logoPaddingValue(_ value: Double) -> UInt {
+    if value.isNaN {
+      return 0
+    }
+    return UInt(min(max(value, 0), Double(Int32.max)))
+  }
+
   // MARK: - Map creation
 
   private func createMapViewIfReady() {
@@ -124,6 +306,13 @@ class ExpoYandexMapKitView: ExpoView {
     map.addInputListener(with: inputListener)
 
     map.isNightModeEnabled = nightMode
+    applyGestureState()
+    map.isFastTapEnabled = fastTapEnabled
+    if let mapType = mapType {
+      map.mapType = mapType
+    }
+    applyMapStyle(to: map)
+    applyLogo(to: map)
     // The initial camera position is applied instantly — the map has not been shown yet.
     applyPendingCameraPosition(allowAnimation: false)
   }

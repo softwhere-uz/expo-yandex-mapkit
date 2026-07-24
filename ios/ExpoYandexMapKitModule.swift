@@ -58,6 +58,46 @@ public class ExpoYandexMapKitModule: Module {
         view.setNightMode(nightMode)
       }
 
+      Prop("scrollGesturesEnabled") { (view: ExpoYandexMapKitView, enabled: Bool) in
+        view.setScrollGesturesEnabled(enabled)
+      }
+
+      Prop("zoomGesturesEnabled") { (view: ExpoYandexMapKitView, enabled: Bool) in
+        view.setZoomGesturesEnabled(enabled)
+      }
+
+      Prop("tiltGesturesEnabled") { (view: ExpoYandexMapKitView, enabled: Bool) in
+        view.setTiltGesturesEnabled(enabled)
+      }
+
+      Prop("rotateGesturesEnabled") { (view: ExpoYandexMapKitView, enabled: Bool) in
+        view.setRotateGesturesEnabled(enabled)
+      }
+
+      Prop("fastTapEnabled") { (view: ExpoYandexMapKitView, enabled: Bool) in
+        view.setFastTapEnabled(enabled)
+      }
+
+      Prop("interactiveDisabled") { (view: ExpoYandexMapKitView, disabled: Bool) in
+        view.setInteractiveDisabled(disabled)
+      }
+
+      Prop("mapType") { (view: ExpoYandexMapKitView, mapType: MapTypeOption) in
+        view.setMapType(mapType.ymkValue)
+      }
+
+      Prop("mapStyle") { (view: ExpoYandexMapKitView, mapStyle: String?) in
+        view.setMapStyle(mapStyle)
+      }
+
+      Prop("logoPosition") { (view: ExpoYandexMapKitView, logoPosition: LogoPositionRecord?) in
+        view.setLogoPosition(logoPosition)
+      }
+
+      Prop("logoPadding") { (view: ExpoYandexMapKitView, logoPadding: LogoPaddingRecord?) in
+        view.setLogoPadding(logoPadding)
+      }
+
       OnViewDidUpdateProps { (view: ExpoYandexMapKitView) in
         view.applyPendingCameraPosition()
       }

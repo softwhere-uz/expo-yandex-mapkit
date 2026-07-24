@@ -27,6 +27,16 @@ export type YandexMapViewProps = {
   cameraPosition?: CameraPosition; // declarative: prop change moves the native camera
   animated?: boolean; // animate declarative moves, default true
   nightMode?: boolean; // default false
+  scrollGesturesEnabled?: boolean; // pan the map by dragging, default true
+  zoomGesturesEnabled?: boolean; // pinch / double-tap / two-finger tap zoom, default true
+  tiltGesturesEnabled?: boolean; // two-finger vertical drag to tilt, default true
+  rotateGesturesEnabled?: boolean; // two-finger twist to rotate, default true
+  fastTapEnabled?: boolean; // report taps immediately instead of waiting for a possible double-tap, default true
+  interactiveDisabled?: boolean; // when true, disable all four movement gestures at once (overrides the individual *GesturesEnabled), default false
+  mapType?: 'none' | 'map' | 'satellite' | 'hybrid' | 'vector'; // base map layer; unset = SDK default (vector). 'satellite'/'hybrid' may need a Yandex-app key
+  mapStyle?: string; // Yandex JSON style; only affects 'vector'/'hybrid' layers (no-op on raster 'map'/'satellite'); pass '' to clear
+  logoPosition?: { horizontal: 'left' | 'center' | 'right'; vertical: 'top' | 'bottom' }; // corner the mandatory Yandex logo aligns to
+  logoPadding?: { horizontal: number; vertical: number }; // logo padding in px from the aligned edges (negatives clamped to 0)
   onMapReady?: (event: { nativeEvent: Record<string, never> }) => void;
   onCameraPositionChanged?: (event: { nativeEvent: CameraPositionChangeEvent }) => void;
   onMapPress?: (event: { nativeEvent: MapPressEvent }) => void;
