@@ -32,6 +32,7 @@ export type YandexMapViewProps = {
   tiltGesturesEnabled?: boolean; // two-finger vertical drag to tilt, default true
   rotateGesturesEnabled?: boolean; // two-finger twist to rotate, default true
   fastTapEnabled?: boolean; // report taps immediately instead of waiting for a possible double-tap, default true
+  interactiveDisabled?: boolean; // when true, disable all four movement gestures at once (overrides the individual *GesturesEnabled), default false
   mapType?: 'none' | 'map' | 'satellite' | 'hybrid' | 'vector'; // base map layer; unset = SDK default (vector). 'satellite'/'hybrid' may need a Yandex-app key
   mapStyle?: string; // Yandex JSON style; only affects 'vector'/'hybrid' layers (no-op on raster 'map'/'satellite'); pass '' to clear
   onMapReady?: (event: { nativeEvent: Record<string, never> }) => void;

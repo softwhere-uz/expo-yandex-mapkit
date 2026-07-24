@@ -69,6 +69,9 @@ class ExpoYandexMapKitView: ExpoView {
   private var tiltGesturesEnabled = true
   private var rotateGesturesEnabled = true
   private var fastTapEnabled = true
+  // Master override: when true, all four movement gestures are forced off regardless
+  // of the individual toggles above.
+  private var interactiveDisabled = false
   // mapType and mapStyle are nil until explicitly set, so an unset value never overrides
   // MapKit's own default (the vector scheme map — the only base layer that honours mapStyle;
   // `.map`/satellite/hybrid are raster and ignore styling).
@@ -124,22 +127,41 @@ class ExpoYandexMapKitView: ExpoView {
 
   func setScrollGesturesEnabled(_ enabled: Bool) {
     scrollGesturesEnabled = enabled
-    mapView?.mapWindow.map.isScrollGesturesEnabled = enabled
+    applyGestureState()
   }
 
   func setZoomGesturesEnabled(_ enabled: Bool) {
     zoomGesturesEnabled = enabled
-    mapView?.mapWindow.map.isZoomGesturesEnabled = enabled
+    applyGestureState()
   }
 
   func setTiltGesturesEnabled(_ enabled: Bool) {
     tiltGesturesEnabled = enabled
-    mapView?.mapWindow.map.isTiltGesturesEnabled = enabled
+    applyGestureState()
   }
 
   func setRotateGesturesEnabled(_ enabled: Bool) {
     rotateGesturesEnabled = enabled
-    mapView?.mapWindow.map.isRotateGesturesEnabled = enabled
+    applyGestureState()
+  }
+
+  func setInteractiveDisabled(_ disabled: Bool) {
+    interactiveDisabled = disabled
+    applyGestureState()
+  }
+
+  // Applies the effective movement-gesture state. Reads every stored value so the
+  // result is order-independent within a prop batch: interactiveDisabled forces all
+  // four off, otherwise each individual toggle applies.
+  private func applyGestureState() {
+    guard let map = mapView?.mapWindow.map else {
+      return
+    }
+    let interactive = !interactiveDisabled
+    map.isScrollGesturesEnabled = interactive && scrollGesturesEnabled
+    map.isZoomGesturesEnabled = interactive && zoomGesturesEnabled
+    map.isTiltGesturesEnabled = interactive && tiltGesturesEnabled
+    map.isRotateGesturesEnabled = interactive && rotateGesturesEnabled
   }
 
   func setFastTapEnabled(_ enabled: Bool) {
@@ -204,10 +226,7 @@ class ExpoYandexMapKitView: ExpoView {
     map.addInputListener(with: inputListener)
 
     map.isNightModeEnabled = nightMode
-    map.isScrollGesturesEnabled = scrollGesturesEnabled
-    map.isZoomGesturesEnabled = zoomGesturesEnabled
-    map.isTiltGesturesEnabled = tiltGesturesEnabled
-    map.isRotateGesturesEnabled = rotateGesturesEnabled
+    applyGestureState()
     map.isFastTapEnabled = fastTapEnabled
     if let mapType = mapType {
       map.mapType = mapType

@@ -215,11 +215,12 @@ Initializes the native MapKit SDK. Call it once, before rendering any `YandexMap
 | `tiltGesturesEnabled` | `boolean` | `true` | Allow the two-finger vertical drag that tilts the camera. |
 | `rotateGesturesEnabled` | `boolean` | `true` | Allow the two-finger twist that rotates the map. |
 | `fastTapEnabled` | `boolean` | `true` | Report a tap immediately instead of waiting to see if it becomes a double-tap. |
+| `interactiveDisabled` | `boolean` | `false` | When `true`, disables all four movement gestures at once — a shorthand that overrides the individual `*GesturesEnabled` props. Tap events (`onMapPress`/`onMapLongPress`) still fire. |
 | `mapType` | `'none' \| 'map' \| 'satellite' \| 'hybrid' \| 'vector'` | — (SDK default) | Base map layer. `'map'`, `'satellite'` and `'hybrid'` are raster; `'vector'` is the styleable vector scheme. Left unset, the map keeps MapKit's own default (vector). `'satellite'` / `'hybrid'` may require a Yandex-app API key. |
 | `mapStyle` | `string` | — | A [Yandex JSON map style](https://yandex.com/dev/mapkit/doc/en/android/generated/style) applied to the map. **Only affects the `'vector'` and `'hybrid'` layers** — leave `mapType` unset (the default is vector) or set `mapType='vector'`; it is a silent no-op on the raster `'map'` / `'satellite'` layers. Pass `''` to clear a previously applied style. Invalid JSON is ignored with a warning. |
 | `style` | `StyleProp<ViewStyle>` | — | Standard React Native view styling. |
 
-> Set all four gesture toggles to `false` for a non-interactive map (e.g. a static preview); toggle `rotateGesturesEnabled` / `tiltGesturesEnabled` off to keep the map flat and north-up.
+> For a non-interactive map (e.g. a static preview) set `interactiveDisabled` (shorthand for disabling all four movement gestures); toggle `rotateGesturesEnabled` / `tiltGesturesEnabled` off to keep the map flat and north-up.
 
 Events:
 

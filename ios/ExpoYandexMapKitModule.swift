@@ -78,6 +78,10 @@ public class ExpoYandexMapKitModule: Module {
         view.setFastTapEnabled(enabled)
       }
 
+      Prop("interactiveDisabled") { (view: ExpoYandexMapKitView, disabled: Bool) in
+        view.setInteractiveDisabled(disabled)
+      }
+
       Prop("mapType") { (view: ExpoYandexMapKitView, mapType: MapTypeOption) in
         view.setMapType(mapType.ymkValue)
       }
