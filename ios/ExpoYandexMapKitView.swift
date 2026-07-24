@@ -67,6 +67,36 @@ internal struct LogoPaddingRecord: Record {
   @Field var vertical: Double = 0
 }
 
+// A geographic coordinate argument for getScreenPoints().
+internal struct PointRecord: Record {
+  @Field var latitude: Double = 0
+  @Field var longitude: Double = 0
+}
+
+// A screen coordinate (in points) argument for getWorldPoints().
+internal struct ScreenPointRecord: Record {
+  @Field var x: Double = 0
+  @Field var y: Double = 0
+}
+
+internal enum CameraAnimationOption: String, Enumerable {
+  case smooth
+  case linear
+
+  var ymkValue: YMKAnimationType {
+    switch self {
+    case .smooth: return .smooth
+    case .linear: return .linear
+    }
+  }
+}
+
+// Options for the imperative setCenter() move.
+internal struct CameraMoveOptionsRecord: Record {
+  @Field var durationSeconds: Double = 0.3
+  @Field var animation: CameraAnimationOption = .smooth
+}
+
 // This view will be used as a native component. Make sure to inherit from `ExpoView`
 // to apply the proper styling (e.g. border radius and shadows).
 class ExpoYandexMapKitView: ExpoView {
@@ -271,6 +301,90 @@ class ExpoYandexMapKitView: ExpoView {
       return 0
     }
     return UInt(min(max(value, 0), Double(Int32.max)))
+  }
+
+  // MARK: - Imperative functions (called from JS via the view ref)
+
+  func moveCamera(_ position: CameraPositionRecord, options: CameraMoveOptionsRecord) {
+    guard let map = mapView?.mapWindow.map else {
+      return
+    }
+    let target = YMKCameraPosition(
+      target: YMKPoint(latitude: position.latitude, longitude: position.longitude),
+      zoom: Float(position.zoom),
+      azimuth: Float(position.azimuth),
+      tilt: Float(position.tilt)
+    )
+    let duration = Float(max(0, options.durationSeconds))
+    if duration > 0 {
+      map.move(with: target, animation: YMKAnimation(type: options.animation.ymkValue, duration: duration))
+    } else {
+      map.move(with: target)
+    }
+  }
+
+  func currentCameraPosition() -> [String: Any]? {
+    guard let map = mapView?.mapWindow.map else {
+      return nil
+    }
+    return cameraPositionPayload(map.cameraPosition)
+  }
+
+  func currentVisibleRegion() -> [String: Any]? {
+    guard let region = mapView?.mapWindow.map.visibleRegion else {
+      return nil
+    }
+    return [
+      "topLeft": coordinatePayload(region.topLeft),
+      "topRight": coordinatePayload(region.topRight),
+      "bottomLeft": coordinatePayload(region.bottomLeft),
+      "bottomRight": coordinatePayload(region.bottomRight),
+    ]
+  }
+
+  // world -> screen. A point that cannot be projected (behind the camera / off the
+  // globe) becomes NSNull, surfacing as `null` in the returned JS array.
+  func screenPoints(forWorldPoints worldPoints: [PointRecord]) -> [Any] {
+    guard let window = mapView?.mapWindow else {
+      return worldPoints.map { _ in NSNull() }
+    }
+    return worldPoints.map { point in
+      guard let screen = window.worldToScreen(
+        withWorldPoint: YMKPoint(latitude: point.latitude, longitude: point.longitude)
+      ) else {
+        return NSNull()
+      }
+      return ["x": Double(screen.x), "y": Double(screen.y)]
+    }
+  }
+
+  // screen -> world. An unprojectable screen point becomes NSNull (JS `null`).
+  func worldPoints(forScreenPoints screenPoints: [ScreenPointRecord]) -> [Any] {
+    guard let window = mapView?.mapWindow else {
+      return screenPoints.map { _ in NSNull() }
+    }
+    return screenPoints.map { point in
+      guard let world = window.screenToWorld(
+        with: YMKScreenPoint(x: Float(point.x), y: Float(point.y))
+      ) else {
+        return NSNull()
+      }
+      return coordinatePayload(world)
+    }
+  }
+
+  private func coordinatePayload(_ point: YMKPoint) -> [String: Any] {
+    return ["latitude": point.latitude, "longitude": point.longitude]
+  }
+
+  private func cameraPositionPayload(_ cameraPosition: YMKCameraPosition) -> [String: Any] {
+    return [
+      "latitude": cameraPosition.target.latitude,
+      "longitude": cameraPosition.target.longitude,
+      "zoom": Double(cameraPosition.zoom),
+      "azimuth": Double(cameraPosition.azimuth),
+      "tilt": Double(cameraPosition.tilt),
+    ]
   }
 
   // MARK: - Map creation
