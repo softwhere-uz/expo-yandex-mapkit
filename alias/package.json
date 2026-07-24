@@ -21,7 +21,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/softwhere-uz/expo-yandex-mapkit",
+    "url": "git+https://github.com/softwhere-uz/expo-yandex-mapkit.git",
     "directory": "alias"
   },
   "bugs": {

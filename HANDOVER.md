@@ -69,8 +69,12 @@ are fragmented across ~20 forks of a dead upstream.
 
 ## Open items (as of 2026-07-24)
 
-1. **Reserve the npm names** — first publish of root + alias, then configure trusted publishing.
-   Steps in [CONTRIBUTING.md → Releasing](./CONTRIBUTING.md#releasing).
+1. ~~Reserve the npm names~~ — **done 2026-07-24**: `expo-yandex-mapkit@0.0.1` and
+   `@softwhere-uz/expo-yandex-mapkit@0.0.1` published and verified. Remaining follow-ups:
+   configure the trusted publisher for the root package on npmjs.com (so
+   `.github/workflows/release.yaml` publishes with provenance) and revoke the manual token.
+   Feature planning now lives in issues [#1](https://github.com/softwhere-uz/expo-yandex-mapkit/issues/1)
+   (yamap-plus parity) and [#2](https://github.com/softwhere-uz/expo-yandex-mapkit/issues/2) (beyond parity).
 2. **iOS verification** — the Swift has never been compiled (no macOS in the dev environment):
    `cd example && npx expo prebuild --platform ios && npx expo run:ios` on a Mac.
 3. **On-device rendering test** on both platforms (Android compiles against the real
