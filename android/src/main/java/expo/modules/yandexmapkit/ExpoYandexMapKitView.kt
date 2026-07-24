@@ -251,8 +251,9 @@ class ExpoYandexMapKitView(context: Context, appContext: AppContext) : ExpoView(
     applyMapStyle(mapView?.mapWindow?.map)
   }
 
-  // Empty string clears a previously applied style; a non-empty string is a Yandex
-  // JSON style. setMapStyle returns false when the JSON is invalid.
+  // Empty string clears the applied style; a non-empty string is a Yandex JSON style.
+  // Matches iOS, which clears via the same empty-string id-0 form. setMapStyle returns
+  // false only when the JSON is invalid.
   private fun applyMapStyle(map: YandexMap?) {
     val target = map ?: return
     val style = mapStyle ?: return

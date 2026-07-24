@@ -157,14 +157,15 @@ class ExpoYandexMapKitView: ExpoView {
     applyMapStyle(to: mapView?.mapWindow.map)
   }
 
-  // Empty string clears a previously applied style; a non-empty string is a Yandex
-  // JSON style. `setMapStyleWithStyle` returns false when the JSON is invalid.
+  // Empty string clears the applied style; a non-empty string is a Yandex JSON style.
+  // Both platforms clear via the same empty-string id-0 form (Android: setMapStyle("")).
+  // setMapStyleWithStyle returns false only when the JSON is invalid.
   private func applyMapStyle(to map: YMKMap?) {
     guard let map = map, let style = mapStyle else {
       return
     }
     if style.isEmpty {
-      map.resetMapStyles()
+      _ = map.setMapStyleWithStyle("")
     } else if !map.setMapStyleWithStyle(style) {
       log.warn("expo-yandex-mapkit: mapStyle was rejected as invalid Yandex style JSON; it was not applied")
     }
