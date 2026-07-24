@@ -1,15 +1,28 @@
 # expo-yandex-mapkit
 
+**English** | [Русский](./README.ru.md)
+
 Yandex Maps (MapKit) for Expo — built on the Expo Modules API, configured by a config plugin, New Architecture ready.
 
 [![npm version](https://img.shields.io/npm/v/expo-yandex-mapkit.svg)](https://www.npmjs.com/package/expo-yandex-mapkit)
 [![license](https://img.shields.io/npm/l/expo-yandex-mapkit.svg)](./LICENSE)
 
+## Features
+
+- 🗺️ Native Yandex MapKit map view on Android and iOS (Fabric / New Architecture)
+- 🎥 Declarative camera with optional animation (`cameraPosition` + `animated`)
+- 👆 Camera, press, and long-press events with identical payloads on both platforms
+- 🌙 Night mode
+- 🔑 Runtime API key via `initialize(apiKey)` — **zero** `AndroidManifest.xml` / `AppDelegate` edits
+- 🔧 Config plugin: MapKit version and `lite`/`full` flavor (per-platform overrides), Android minSdk floor — `npx expo prebuild` is the whole setup
+- 📦 Also installable as the scoped alias [`@softwhere-uz/expo-yandex-mapkit`](https://www.npmjs.com/package/@softwhere-uz/expo-yandex-mapkit)
+- 🌍 Documentation in [English](./README.md) and [Russian](./README.ru.md)
+
+Planned: markers (including React-children icons), polylines/polygons/circles, clustering, user location, traffic, JSON styling, search/geocoding/routing (`full` flavor), [Mappable](https://github.com/mappable-world) dual-brand support, and a DOM-component fallback for Expo Go and web. See the roadmap below.
+
 ## Status
 
 **Early development (v0.0.x).** What ships today: a native `YandexMapView` for Android and iOS with declarative camera control, camera/press events and night mode, a JS-side `initialize(apiKey)` (no native file edits), and a config plugin that selects the MapKit version and flavor and enforces Android minSdk 26. Expect breaking changes between 0.0.x releases.
-
-Roadmap:
 
 | Phase | Scope | Status |
 | --- | --- | --- |
@@ -22,15 +35,42 @@ Roadmap:
 
 - Yandex does not officially support React Native (Flutter gets a first-party plugin; React Native does not).
 - Expo's own [`expo-maps`](https://docs.expo.dev/versions/latest/sdk/maps/) supports Apple Maps and Google Maps only, with no mechanism for third-party providers.
-- The existing community wrappers each fall short in some way — no longer maintained, source unavailable, or documented only in Russian. All of them did valuable groundwork; none covers the whole intersection.
+- The existing community wrappers each fall short in some way — no longer maintained, source unavailable, or documented in a single language. All of them did valuable groundwork; none covers the whole intersection.
 
-This project aims to be the maintained, open-source, English-documented option: Expo Modules API, a real config plugin, both React Native architectures, and a current MapKit pin.
+This project aims to be the maintained, open-source option documented in both English and Russian: Expo Modules API, a real config plugin, both React Native architectures, and a current MapKit pin.
+
+## Alternatives
+
+An honest comparison, as of July 2026. If you need markers, routing, or clustering **today**, the incumbents below are more feature-complete than this library's v0 — the trade-offs are in the other rows.
+
+| | `expo-yandex-mapkit` (this) | [`react-native-yamap-plus`](https://github.com/Qudaeo/react-native-yamap-plus) | `@yoyomobility/expo-yandex-maps` | [`react-native-yamap`](https://github.com/volga-volga/react-native-yamap) |
+| --- | --- | --- | --- | --- |
+| Actively maintained | ✓ | ✓ | ✓ | — (no release since Nov 2024) |
+| Open source | ✓ MIT | ✓ MIT | — (source repo unavailable) | source public, no license declared |
+| Expo Modules API | ✓ | — (TurboModules) | ✓ | — (legacy bridge) |
+| Expo config plugin | ✓ (version, flavor, minSdk) | ✓ (flavor) | — (manual setup) | — (manual native edits) |
+| New Architecture | ✓ | ✓ (v5+) | ✓ | — |
+| Documentation | English + Russian | Russian | partial English | partial |
+| Extra peer dependencies | none | none | `react-native-reanimated ^4` | none |
+| Feature depth today | map, camera, events, night mode | deep (markers, shapes, routing…) | deep (clustering, routing…) | deepest, but broken on current Expo SDKs |
+
+## Compatibility
+
+| | Requirement |
+| --- | --- |
+| Expo SDK | Developed and tested against **SDK 57** (RN 0.86, New Architecture). Older SDKs are untested. |
+| Android | minSdk **26** (Android 8.0) — enforced by the config plugin. |
+| iOS | iOS **16.4+** (the SDK 57 default deployment target). CocoaPods only — MapKit ships no SPM package. |
+| MapKit | Defaults to **4.42.0**; override via the [config plugin](#2-add-the-config-plugin). Yandex recommends staying current. |
+| Expo Go | Not supported (native code) — use a [development build](https://docs.expo.dev/develop/development-builds/introduction/). |
 
 ## Installation
 
 ```sh
 npx expo install expo-yandex-mapkit
 ```
+
+Prefer scoped installs? `@softwhere-uz/expo-yandex-mapkit` is the official alias — it re-exports this package (including the config plugin) and tracks it automatically.
 
 ### 1. Get an API key
 
@@ -109,7 +149,7 @@ The full version (night-mode toggle included) lives in [`example/`](./example).
 
 ### `initialize(apiKey: string): Promise<void>`
 
-Initializes the native MapKit SDK. Call it once, before rendering any `YandexMapView` — a map view rendered before initialization stays empty and logs a warning (it does not crash).
+Initializes the native MapKit SDK. Call it once, before rendering any `YandexMapView` — a map view rendered before initialization stays empty and logs a warning (it does not crash), then recovers automatically once `initialize` resolves.
 
 - Idempotent: calling again with the same key resolves silently.
 - Calling with a *different* key after successful initialization rejects with error code `ERR_YANDEX_MAPKIT_REINIT` (the native SDK takes its key once, before initialization).
@@ -171,9 +211,38 @@ Yandex ships MapKit in two flavors. This library defaults to `lite`; select `ful
 
 Offline maps exist in both flavors but require a paid MapKit license. For usage limits and pricing, refer to [Yandex's terms and conditions](https://yandex.com/maps-api) — the numbers change and depend on your plan, so this README deliberately does not state them.
 
+## Troubleshooting & FAQ
+
+**The map is blank.**
+The two usual causes: `initialize(apiKey)` was never called (or rejected — attach a `.catch` and look at the message), or the API key is invalid / not enabled for the MapKit Mobile SDK. Check the native logs for MapKit errors: `adb logcat | grep -i -E 'mapkit|yandex'` on Android, the Xcode console on iOS. A view mounted before `initialize` resolves recovers automatically once it does.
+
+**"…does not run in Expo Go" / crashes in Expo Go.**
+Expected — native modules cannot load in Expo Go. Use `npx expo run:android|ios` or an EAS development build. A DOM-component fallback for Expo Go is on the roadmap (v3).
+
+**Android build fails with a manifest-merger / minSdkVersion error.**
+MapKit requires Android API 26. The config plugin raises `android.minSdkVersion` automatically — make sure `expo-yandex-mapkit` is actually listed in `app.json` → `plugins` and re-run `npx expo prebuild`.
+
+**The map renders black or empty in the iOS Simulator.**
+MapKit's GPU rendering has known Simulator quirks (reported across the Yandex-wrapper ecosystem). Try a physical device before assuming a configuration problem.
+
+**Which MapKit version should I pin?**
+By default you get this release's tested version (4.42.0). Yandex recommends staying on the latest MapKit; override via the plugin's `version` option if you need a newer one before we bump the default.
+
+**Can I change the API key at runtime?**
+No — the native SDK accepts its key once. A second `initialize` with a different key rejects with `ERR_YANDEX_MAPKIT_REINIT`.
+
+**Does it work on web?**
+Not yet: the web build warns once and renders nothing (deliberately, instead of crashing). A `ymaps3`-based DOM component is planned (v3).
+
 ## Migrating from react-native-yamap
 
 Many prospective users come from `react-native-yamap` (no npm release since 2024). Honestly: v0's surface is far smaller — map view, camera, press events, night mode — so there is no complete migration path yet. A proper migration guide with a prop-mapping table is planned once markers and shapes land; where sensible, prop names will mirror `react-native-yamap`'s to keep the move mechanical.
+
+## Contributing
+
+Contributions are welcome — see [CONTRIBUTING.md](./CONTRIBUTING.md) for the development setup (the example app is CNG: `npx expo prebuild` generates its native projects and exercises the config plugin), native-code gotchas (MapKit's weak-listener contract, the three synced version pins), and commit conventions.
+
+**Maintainers / releasing:** the npm publishing playbook — one-time org + trusted-publisher setup, then `npm version && git push --follow-tags` driving [`release.yaml`](./.github/workflows/release.yaml) with provenance — lives in [CONTRIBUTING.md → Releasing](./CONTRIBUTING.md#releasing).
 
 ## Disclaimer
 
