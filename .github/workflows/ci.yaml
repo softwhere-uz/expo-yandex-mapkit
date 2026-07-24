@@ -131,6 +131,73 @@ jobs:
         run: ./gradlew :expo-yandex-mapkit:compileDebugKotlin
         working-directory: example/android
 
+  # The bare jobs consume the library the way a real bare-RN user does: pack the
+  # tarball, install it --no-save into the committed bare-example fixture (a manually
+  # wired RN 0.86 community-template app), and build.
+  bare-android:
+    name: Bare RN Android build (tarball consumer)
+    runs-on: ubuntu-latest
+    if: github.event_name != 'push' || !startsWith(github.event.head_commit.message, 'chore(release):')
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            bare-example/package-lock.json
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@v6
+      - run: npm ci
+      - run: npm pack --foreground-scripts=false
+      - run: npm ci
+        working-directory: bare-example
+      - name: Install the packed library
+        run: npm install --no-save "$(ls ../expo-yandex-mapkit-*.tgz)"
+        working-directory: bare-example
+      - name: Build the bare app (single ABI)
+        run: ./gradlew :app:assembleDebug -PreactNativeArchitectures=arm64-v8a
+        working-directory: bare-example/android
+
+  bare-ios:
+    name: Bare RN iOS build (tarball consumer)
+    runs-on: macos-26
+    if: github.event_name != 'push' || !startsWith(github.event.head_commit.message, 'chore(release):')
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            bare-example/package-lock.json
+      - run: npm ci
+      - run: npm pack --foreground-scripts=false
+      - run: npm ci
+        working-directory: bare-example
+      - name: Install the packed library
+        run: npm install --no-save "$(ls ../expo-yandex-mapkit-*.tgz)"
+        working-directory: bare-example
+      - run: pod install
+        working-directory: bare-example/ios
+      - name: Build for iOS Simulator
+        working-directory: bare-example/ios
+        run: |
+          set -o pipefail
+          xcodebuild -workspace BareYandexMapkit.xcworkspace \
+            -scheme BareYandexMapkit \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            > xcodebuild.log 2>&1 || { tail -n 200 xcodebuild.log; exit 1; }
+          tail -n 5 xcodebuild.log
+
   ios:
     name: iOS build (Swift vs real MapKit)
     runs-on: macos-26

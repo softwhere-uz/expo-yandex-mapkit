@@ -21,3 +21,6 @@ __tests__
 
 # Internal CI/dev scripts
 /scripts/
+
+# Bare CI fixture is excluded from the npm package
+/bare-example/

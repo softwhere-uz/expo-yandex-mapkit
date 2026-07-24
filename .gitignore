@@ -65,3 +65,6 @@ plugin/build/
 
 # TypeScript incremental build state
 *.tsbuildinfo
+
+# npm pack artifacts (created by the bare CI jobs)
+/*.tgz

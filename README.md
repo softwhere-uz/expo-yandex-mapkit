@@ -157,7 +157,7 @@ or export `EXPO_YANDEX_MAPKIT_VERSION` / `EXPO_YANDEX_MAPKIT_FLAVOR` when runnin
 
 **7. Build and run.** `npx pod-install`, then `npx react-native run-android` / `run-ios` (or `npx expo run:*` if you accepted the Expo CLI integration). Then [`initialize`](#initializeapikey-string-promisevoid) and render as usual — the runtime API key needs no native edits in bare apps either.
 
-The Android path above is compile-verified against a fresh RN 0.86 community-template app with this library installed from the npm tarball. If anything in your setup deviates, [Expo's bare guide](https://docs.expo.dev/bare/installing-expo-modules/) is the authority for step 1.
+A complete, manually wired reference app lives in [`bare-example/`](./bare-example) — every edit above as real code, built by CI on both platforms against the packed npm tarball on every change. If anything in your setup deviates, [Expo's bare guide](https://docs.expo.dev/bare/installing-expo-modules/) is the authority for step 1.
 
 ## Usage
 
