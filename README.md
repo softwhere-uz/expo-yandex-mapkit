@@ -59,9 +59,9 @@ An honest comparison, as of July 2026. If you need markers, routing, or clusteri
 
 | | Requirement |
 | --- | --- |
-| Expo SDK | Developed and tested against **SDK 57** (RN 0.86, New Architecture). Older SDKs are untested. |
+| Expo SDK | Built and CI-tested on **SDK 57 (RN 0.86, New Architecture)**. Supports **SDK 55+ (RN 0.83+)** — the floor declared in `peerDependencies`. |
 | Android | minSdk **26** (Android 8.0) — enforced by the config plugin. |
-| iOS | iOS **16.4+** (the SDK 57 default deployment target). CocoaPods only — MapKit ships no SPM package. |
+| iOS | iOS **16.4+** — the config plugin raises the deployment target automatically (SDK 55/56 default lower). CocoaPods only — MapKit ships no SPM package. |
 | MapKit | Defaults to **4.42.0**; override via the [config plugin](#2-add-the-config-plugin). Yandex recommends staying current. |
 | Expo Go | Not supported (native code) — use a [development build](https://docs.expo.dev/develop/development-builds/introduction/). |
 | Bare React Native | Supported via Expo Modules — see [Bare React Native](#bare-react-native). |
@@ -122,7 +122,7 @@ This library is built on the [Expo Modules API](https://docs.expo.dev/modules/ov
 npx install-expo-modules@latest
 ```
 
-For React Native **0.86**, `install-expo-modules` does not support your RN version yet (as of July 2026 it exits with "Unable to find compatible Expo SDK version") — follow Expo's [manual installation steps](https://docs.expo.dev/bare/installing-expo-modules/) instead, then `npm install expo@^57.0.0`. Keep the pairing exact: SDK 57 ↔ RN 0.86, SDK 56 ↔ RN 0.85 — do not mix.
+For React Native **0.86**, `install-expo-modules` does not support your RN version yet (as of July 2026 it exits with "Unable to find compatible Expo SDK version") — follow Expo's [manual installation steps](https://docs.expo.dev/bare/installing-expo-modules/) instead, then `npm install expo@^57.0.0`. Keep the pairing exact: SDK 57 ↔ RN 0.86, SDK 56 ↔ RN 0.85, SDK 55 ↔ RN 0.83 — do not mix.
 
 > The tool is optional on any RN version: it is only a codemod over those documented manual edits (`use_expo_modules!` in the Podfile, `ExpoAppDelegate`, the `expo-autolinking-settings`/`expo-root-project` Gradle plugins, the `MainApplication`/`MainActivity` wrappers), and applying them by hand is equally supported — that is exactly how this library's bare-RN verification app was wired. The one thing you cannot skip is the `expo` package dependency itself.
 

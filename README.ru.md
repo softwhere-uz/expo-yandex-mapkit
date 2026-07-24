@@ -59,9 +59,9 @@
 
 | | Требование |
 | --- | --- |
-| Expo SDK | Разработано и проверено на **SDK 57** (RN 0.86, Новая архитектура). Старые SDK не тестировались. |
+| Expo SDK | Собирается и тестируется в CI на **SDK 57 (RN 0.86, Новая архитектура)**. Поддерживает **SDK 55+ (RN 0.83+)** — минимум указан в `peerDependencies`. |
 | Android | minSdk **26** (Android 8.0) — гарантируется конфиг-плагином. |
-| iOS | iOS **16.4+** (дефолтный deployment target в SDK 57). Только CocoaPods — MapKit не публикует SPM-пакет. |
+| iOS | iOS **16.4+** — конфиг-плагин автоматически поднимает deployment target (в SDK 55/56 дефолт ниже). Только CocoaPods — MapKit не публикует SPM-пакет. |
 | MapKit | По умолчанию **4.42.0**; переопределяется через [конфиг-плагин](#2-добавьте-конфиг-плагин). Яндекс рекомендует использовать актуальную версию. |
 | Expo Go | Не поддерживается (нативный код) — нужен [development build](https://docs.expo.dev/develop/development-builds/introduction/). |
 | Bare React Native | Поддерживается через Expo Modules — см. [Bare React Native](#bare-react-native). |
@@ -122,7 +122,7 @@ npx expo run:android   # или: npx expo run:ios
 npx install-expo-modules@latest
 ```
 
-Для React Native **0.86** утилита `install-expo-modules` вашу версию RN пока не поддерживает (на июль 2026 она завершается ошибкой «Unable to find compatible Expo SDK version») — выполните [ручные шаги установки из документации Expo](https://docs.expo.dev/bare/installing-expo-modules/), затем `npm install expo@^57.0.0`. Соблюдайте точное соответствие версий: SDK 57 ↔ RN 0.86, SDK 56 ↔ RN 0.85 — не смешивайте.
+Для React Native **0.86** утилита `install-expo-modules` вашу версию RN пока не поддерживает (на июль 2026 она завершается ошибкой «Unable to find compatible Expo SDK version») — выполните [ручные шаги установки из документации Expo](https://docs.expo.dev/bare/installing-expo-modules/), затем `npm install expo@^57.0.0`. Соблюдайте точное соответствие версий: SDK 57 ↔ RN 0.86, SDK 56 ↔ RN 0.85, SDK 55 ↔ RN 0.83 — не смешивайте.
 
 > Утилита необязательна на любой версии RN: это всего лишь кодмод поверх задокументированных ручных правок (`use_expo_modules!` в Podfile, `ExpoAppDelegate`, Gradle-плагины `expo-autolinking-settings`/`expo-root-project`, обёртки в `MainApplication`/`MainActivity`), и внести их вручную — столь же поддерживаемый путь: именно так было собрано bare-RN-приложение, на котором проверялась эта библиотека. Единственное, от чего отказаться нельзя, — сама зависимость от пакета `expo`.
 
