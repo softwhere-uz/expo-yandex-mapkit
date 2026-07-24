@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Build-time API key and map locale in the config plugin.** New `apiKey` and `locale`
+  options (top-level and per-platform) are written to `AndroidManifest.xml` `<meta-data>` and
+  iOS `Info.plist`; the native modules read them on startup and initialize MapKit
+  automatically. An app that sets `apiKey` never has to call `initialize(apiKey)` from JS and
+  can render `<YandexMapView />` with no ready-gating — removing the lineage's init-order crash
+  class. The runtime `initialize(apiKey)` path is unchanged and still the default when the key
+  is only known at runtime; a build-time `locale` is applied on that path too. Both keys are
+  optional, so existing setups are unaffected.
 - **`onMapLoaded` event** (`YandexMapView`, #1 → Events): fires once the map finishes loading, with a
   `MapLoadStatistics` payload (`renderObjectCount`, `tileMemoryUsage`, and per-zoom load timings).
 - **Imperative ref methods** (`YandexMapViewRef`, #1 → Imperative ref methods): `setCenter(position, options)`, `setZoom(zoom, options)`,

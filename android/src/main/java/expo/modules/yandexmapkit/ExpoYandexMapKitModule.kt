@@ -1,5 +1,10 @@
 package expo.modules.yandexmapkit
 
+import android.content.Context
+import android.content.pm.PackageManager
+import android.os.Handler
+import android.os.Looper
+import android.util.Log
 import com.yandex.mapkit.MapKitFactory
 import expo.modules.kotlin.exception.CodedException
 import expo.modules.kotlin.exception.Exceptions
@@ -7,6 +12,14 @@ import expo.modules.kotlin.functions.Queues
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
 import java.util.concurrent.CopyOnWriteArrayList
+
+private const val TAG = "ExpoYandexMapKit"
+
+// AndroidManifest <meta-data> names the config plugin writes the optional build-time API key /
+// locale into. Keep in sync with plugin/src/index.ts (ANDROID_API_KEY_METADATA /
+// ANDROID_LOCALE_METADATA); scripts/check-plugin.mjs asserts the two match.
+private const val META_API_KEY = "expo.modules.yandexmapkit.API_KEY"
+private const val META_LOCALE = "expo.modules.yandexmapkit.LOCALE"
 
 private class MapKitReinitException : CodedException(
   "ERR_YANDEX_MAPKIT_REINIT",
@@ -18,30 +31,27 @@ class ExpoYandexMapKitModule : Module() {
   override fun definition() = ModuleDefinition {
     Name("ExpoYandexMapKit")
 
-    AsyncFunction("initialize") { apiKey: String ->
-      if (isInitialized) {
-        // Idempotent: the same key resolves silently, a different key rejects.
-        if (apiKey != initializedApiKey) {
-          throw MapKitReinitException()
-        }
-      } else {
-        val context = appContext.reactContext ?: throw Exceptions.ReactContextLost()
-        MapKitFactory.setApiKey(apiKey)
-        MapKitFactory.initialize(context)
-        initializedApiKey = apiKey
-        isInitialized = true
-        // Recover views that mounted before initialize() resolved — they stayed empty because
-        // the platform MapView is only created after MapKit is initialized. This function runs
-        // on Queues.MAIN, so iterating the registry here is main-thread-safe. One view failing
-        // to recover must not starve its siblings or reject the already-successful initialize.
-        liveViews.forEach {
-          try {
-            it.onMapKitInitialized()
-          } catch (e: Throwable) {
-            android.util.Log.w("ExpoYandexMapKit", "Failed to recover a map view after initialize", e)
-          }
+    // If the config plugin wrote a build-time API key into AndroidManifest metadata, initialize
+    // MapKit at startup so the app never has to call initialize(apiKey) from JS (and cannot get
+    // the init order wrong). Absent key → this is a no-op and the runtime path is used instead.
+    OnCreate {
+      val context = appContext.reactContext ?: return@OnCreate
+      val apiKey = readManifestMetadata(context, META_API_KEY)?.takeIf { it.isNotBlank() }
+        ?: return@OnCreate
+      // MapKit init + the view-recovery broadcast must run on the main thread, matching the
+      // initialize() AsyncFunction below. A reinit conflict cannot happen here (this is the first
+      // initializer) except on a dev reload with a changed key — log rather than crash.
+      Handler(Looper.getMainLooper()).post {
+        try {
+          initializeMapKit(apiKey)
+        } catch (e: Throwable) {
+          Log.w(TAG, "Failed to auto-initialize MapKit from AndroidManifest metadata", e)
         }
       }
+    }
+
+    AsyncFunction("initialize") { apiKey: String ->
+      initializeMapKit(apiKey)
     }.runOnQueue(Queues.MAIN)
 
     OnActivityEntersForeground {
@@ -138,6 +148,59 @@ class ExpoYandexMapKitModule : Module() {
       AsyncFunction("getWorldPoints") { view: ExpoYandexMapKitView, points: List<ScreenPointRecord> ->
         view.worldPoints(points)
       }
+    }
+  }
+
+  // Shared initialization for both the JS initialize() call and the build-time auto-init. Runs on
+  // the main thread (the AsyncFunction is on Queues.MAIN, the OnCreate path posts to the main
+  // looper), so iterating the view registry here is main-thread-safe. Idempotent for the same
+  // key; a different key throws MapKitReinitException — the native SDK takes its key once. The
+  // idempotent/reinit check runs before the React context or manifest metadata are touched, so a
+  // repeat same-key call stays a cheap no-op and never fails on a momentarily-lost context.
+  private fun initializeMapKit(apiKey: String) {
+    if (isInitialized) {
+      if (apiKey != initializedApiKey) {
+        throw MapKitReinitException()
+      }
+      return
+    }
+    val context = appContext.reactContext ?: throw Exceptions.ReactContextLost()
+    MapKitFactory.setApiKey(apiKey)
+    // A build-time locale (AndroidManifest metadata, written by the config plugin) applies whether
+    // the key came from the manifest or from a runtime initialize(). Read it only here, on the
+    // one-time init path, and set it before initialize() so it takes effect.
+    val locale = readManifestMetadata(context, META_LOCALE)
+    if (!locale.isNullOrBlank()) {
+      MapKitFactory.setLocale(locale)
+    }
+    MapKitFactory.initialize(context)
+    initializedApiKey = apiKey
+    isInitialized = true
+    // Recover views that mounted before initialization — they stayed empty because the platform
+    // MapView is only created after MapKit is initialized. One view failing to recover must not
+    // starve its siblings or reject the already-successful initialize.
+    liveViews.forEach {
+      try {
+        it.onMapKitInitialized()
+      } catch (e: Throwable) {
+        Log.w(TAG, "Failed to recover a map view after initialize", e)
+      }
+    }
+  }
+
+  // The plugin writes the key/locale as manifest <meta-data> string values; getString returns
+  // null for a missing key (or a non-string value, which the plugin never writes). Trimmed so a
+  // stray whitespace/newline (e.g. a hand-edited manifest) can't reach setApiKey/setLocale verbatim.
+  private fun readManifestMetadata(context: Context, key: String): String? {
+    return try {
+      val appInfo = context.packageManager.getApplicationInfo(
+        context.packageName,
+        PackageManager.GET_META_DATA
+      )
+      appInfo.metaData?.getString(key)?.trim()
+    } catch (e: Exception) {
+      Log.w(TAG, "Failed to read AndroidManifest metadata \"$key\"", e)
+      null
     }
   }
 

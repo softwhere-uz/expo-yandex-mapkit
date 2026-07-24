@@ -14,8 +14,8 @@ Yandex Maps (MapKit) for Expo — built on the Expo Modules API, configured by a
 - 🎥 Declarative camera with optional animation (`cameraPosition` + `animated`)
 - 👆 Camera, press, and long-press events with identical payloads on both platforms
 - 🌙 Night mode
-- 🔑 Runtime API key via `initialize(apiKey)` — **zero** `AndroidManifest.xml` / `AppDelegate` edits
-- 🔧 Config plugin: MapKit version and `lite`/`full` flavor (per-platform overrides), Android minSdk floor — `npx expo prebuild` is the whole setup
+- 🔑 API key at **runtime** via `initialize(apiKey)` **or** at **build time** via the config plugin (`apiKey`) — no `AndroidManifest.xml` / `AppDelegate` edits either way; a build-time key auto-initializes at startup, so there is no init ceremony and no init-order footgun
+- 🔧 Config plugin: MapKit version and `lite`/`full` flavor, build-time API key and map `locale` (all with per-platform overrides), Android minSdk floor — `npx expo prebuild` is the whole setup
 - 📦 Also installable as the scoped alias [`@softwhere-uz/expo-yandex-mapkit`](https://www.npmjs.com/package/@softwhere-uz/expo-yandex-mapkit)
 - 🌍 Documentation in [English](./README.md) and [Russian](./README.ru.md)
 
@@ -23,7 +23,7 @@ Planned: markers (including React-children icons), polylines/polygons/circles, c
 
 ## Status
 
-**Early development (v0.0.x).** What ships today: a native `YandexMapView` for Android and iOS with declarative camera control, camera/press events and night mode, a JS-side `initialize(apiKey)` (no native file edits), and a config plugin that selects the MapKit version and flavor and enforces Android minSdk 26. Expect breaking changes between 0.0.x releases.
+**Early development (v0.0.x).** What ships today: a native `YandexMapView` for Android and iOS with declarative camera control, camera/press events and night mode, a JS-side `initialize(apiKey)` (no native file edits), and a config plugin that selects the MapKit version and flavor, optionally injects a build-time API key and map locale, and enforces Android minSdk 26. Expect breaking changes between 0.0.x releases.
 
 | Phase | Scope | Status |
 | --- | --- | --- |
@@ -49,7 +49,7 @@ An honest comparison, as of July 2026. If you need markers, routing, or clusteri
 | Actively maintained | ✓ | ✓ | ✓ | — (no release since Nov 2024) |
 | Open source | ✓ MIT | ✓ MIT | — (source repo unavailable) | source public, no license declared |
 | Expo Modules API | ✓ | — (TurboModules) | ✓ | — (legacy bridge) |
-| Expo config plugin | ✓ (version, flavor, minSdk) | ✓ (flavor) | — (manual setup) | — (manual native edits) |
+| Expo config plugin | ✓ (version, flavor, minSdk, API key, locale) | ✓ (flavor) | — (manual setup) | — (manual native edits) |
 | New Architecture | ✓ | ✓ (v5+) | ✓ | — |
 | Documentation | English + Russian | Russian | partial English | partial |
 | Extra peer dependencies | none | none | `react-native-reanimated ^4` | none |
@@ -76,7 +76,10 @@ Prefer scoped installs? `@softwhere-uz/expo-yandex-mapkit` is the official alias
 
 ### 1. Get an API key
 
-Create an API key for the **MapKit Mobile SDK** in the [Yandex Developer Dashboard](https://developer.tech.yandex.ru/services/) (see the [MapKit documentation](https://yandex.com/dev/mapkit/doc/en/)). The key is supplied at runtime via [`initialize`](#initializeapikey-string-promisevoid) — no `AndroidManifest.xml` or `AppDelegate` edits are needed.
+Create an API key for the **MapKit Mobile SDK** in the [Yandex Developer Dashboard](https://developer.tech.yandex.ru/services/) (see the [MapKit documentation](https://yandex.com/dev/mapkit/doc/en/)). Supply it either way — no `AndroidManifest.xml` or `AppDelegate` edits are needed:
+
+- **Build-time** — pass `apiKey` to the config plugin (below). MapKit initializes automatically at app startup, so you skip [`initialize`](#initializeapikey-string-promisevoid) entirely and render `<YandexMapView />` without any ready-gating. Simplest, and it removes the init-order footgun.
+- **Runtime** — call [`initialize(apiKey)`](#initializeapikey-string-promisevoid) once before rendering. Use this when the key is only known at runtime (fetched from your backend, chosen per-environment, etc.).
 
 ### 2. Add the config plugin
 
@@ -85,7 +88,12 @@ In `app.json` / `app.config.js`:
 ```json
 {
   "expo": {
-    "plugins": [["expo-yandex-mapkit", { "flavor": "lite", "version": "4.42.0" }]]
+    "plugins": [
+      [
+        "expo-yandex-mapkit",
+        { "apiKey": "YOUR_MAPKIT_API_KEY", "locale": "en_US", "flavor": "lite", "version": "4.42.0" }
+      ]
+    ]
   }
 }
 ```
@@ -94,12 +102,16 @@ All options are optional:
 
 | Option | Type | Default | Description |
 | --- | --- | --- | --- |
+| `apiKey` | `string` | — | Build-time MapKit API key. When set, MapKit initializes automatically at startup and calling [`initialize`](#initializeapikey-string-promisevoid) is unnecessary. Omit it to supply the key at runtime instead. |
+| `locale` | `string` | — | Map display language as `language` or `language_REGION` (e.g. `"en_US"`, `"ru_RU"`, `"tr_TR"`). Omit to follow the device locale. Applied on the runtime path too. |
 | `version` | `string` | `"4.42.0"` | Native MapKit SDK version (`x.y.z`). |
 | `flavor` | `"lite" \| "full"` | `"lite"` | MapKit flavor — see [lite vs full](#lite-vs-full). |
-| `android` | `{ version?, flavor? }` | — | Android-only overrides; take precedence over the top-level values. |
-| `ios` | `{ version?, flavor? }` | — | iOS-only overrides; take precedence over the top-level values. |
+| `android` | `{ version?, flavor?, apiKey?, locale? }` | — | Android-only overrides; take precedence over the top-level values. |
+| `ios` | `{ version?, flavor?, apiKey?, locale? }` | — | iOS-only overrides; take precedence over the top-level values. |
 
 The plugin also raises `android.minSdkVersion` to 26 if it is missing or lower — MapKit requires Android API 26. It never lowers an existing higher value.
+
+> **Where the key goes.** `apiKey`/`locale` are written to `AndroidManifest.xml` `<meta-data>` and iOS `Info.plist`; the native module reads them at startup. A MapKit key is a client-side credential (restricted by app id / signature in the Yandex dashboard, not a secret), so committing it is the same trade-off as Google Maps' manifest key. If you would rather keep it out of source, use an [`app.config.js`](https://docs.expo.dev/workflow/configuration/) that reads `process.env` for `apiKey`, or the runtime `initialize(apiKey)` path.
 
 ### 3. Build
 
@@ -192,6 +204,22 @@ export default function App() {
 }
 ```
 
+With a **build-time** `apiKey` (config plugin), there is no initialization step — render the map directly:
+
+```tsx
+import { YandexMapView } from 'expo-yandex-mapkit';
+import { StyleSheet } from 'react-native';
+
+export default function App() {
+  return (
+    <YandexMapView
+      style={StyleSheet.absoluteFill}
+      cameraPosition={{ latitude: 41.311081, longitude: 69.240562, zoom: 12 }}
+    />
+  );
+}
+```
+
 The full version (night-mode toggle included) lives in [`example/`](./example).
 
 ## API reference
@@ -200,7 +228,8 @@ The full version (night-mode toggle included) lives in [`example/`](./example).
 
 Initializes the native MapKit SDK. Call it once, before rendering any `YandexMapView` — a map view rendered before initialization stays empty and logs a warning (it does not crash), then recovers automatically once `initialize` resolves.
 
-- Idempotent: calling again with the same key resolves silently.
+- **Optional** when a build-time `apiKey` is set on the config plugin: MapKit is already initialized at startup, so you can render `<YandexMapView />` without calling this at all.
+- Idempotent: calling again with the same key resolves silently (including when that key came from the config plugin).
 - Calling with a *different* key after successful initialization rejects with error code `ERR_YANDEX_MAPKIT_REINIT` (the native SDK takes its key once, before initialization).
 
 ### `<YandexMapView />`
@@ -312,7 +341,7 @@ Offline maps exist in both flavors but require a paid MapKit license. For usage 
 ## Troubleshooting & FAQ
 
 **The map is blank.**
-The two usual causes: `initialize(apiKey)` was never called (or rejected — attach a `.catch` and look at the message), or the API key is invalid / not enabled for the MapKit Mobile SDK. Check the native logs for MapKit errors: `adb logcat | grep -i -E 'mapkit|yandex'` on Android, the Xcode console on iOS. A view mounted before `initialize` resolves recovers automatically once it does.
+The two usual causes: `initialize(apiKey)` was never called (or rejected — attach a `.catch` and look at the message) and no build-time `apiKey` was set on the config plugin, or the API key is invalid / not enabled for the MapKit Mobile SDK. Check the native logs for MapKit errors: `adb logcat | grep -i -E 'mapkit|yandex'` on Android, the Xcode console on iOS. A view mounted before `initialize` resolves recovers automatically once it does.
 
 **"…does not run in Expo Go" / crashes in Expo Go.**
 Expected — native modules cannot load in Expo Go. Use `npx expo run:android|ios` or an EAS development build. A DOM-component fallback for Expo Go is on the roadmap (v3).

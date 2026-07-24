@@ -26,6 +26,55 @@ const MIN_IOS_DEPLOYMENT_TARGET = extract(
   /MIN_IOS_DEPLOYMENT_TARGET = '([\d.]+)'/
 );
 
+// Build-time key/locale destination names — the plugin writes them, the native modules read
+// them, so they are a cross-file contract like the podspec iOS floor below.
+const ANDROID_API_KEY_METADATA = extract(
+  'ANDROID_API_KEY_METADATA',
+  /ANDROID_API_KEY_METADATA = '([^']+)'/
+);
+const ANDROID_LOCALE_METADATA = extract(
+  'ANDROID_LOCALE_METADATA',
+  /ANDROID_LOCALE_METADATA = '([^']+)'/
+);
+const IOS_API_KEY_INFO_PLIST_KEY = extract(
+  'IOS_API_KEY_INFO_PLIST_KEY',
+  /IOS_API_KEY_INFO_PLIST_KEY = '([^']+)'/
+);
+const IOS_LOCALE_INFO_PLIST_KEY = extract(
+  'IOS_LOCALE_INFO_PLIST_KEY',
+  /IOS_LOCALE_INFO_PLIST_KEY = '([^']+)'/
+);
+
+// Assert the native modules actually read the same names the plugin writes — a rename on one
+// side without the other would silently disable build-time auto-init.
+const androidModuleSource = readFileSync(
+  new URL(
+    '../android/src/main/java/expo/modules/yandexmapkit/ExpoYandexMapKitModule.kt',
+    import.meta.url
+  ),
+  'utf8'
+);
+const iosModuleSource = readFileSync(
+  new URL('../ios/ExpoYandexMapKitModule.swift', import.meta.url),
+  'utf8'
+);
+assert.ok(
+  androidModuleSource.includes(`"${ANDROID_API_KEY_METADATA}"`),
+  `Android module must read the API key metadata "${ANDROID_API_KEY_METADATA}"`
+);
+assert.ok(
+  androidModuleSource.includes(`"${ANDROID_LOCALE_METADATA}"`),
+  `Android module must read the locale metadata "${ANDROID_LOCALE_METADATA}"`
+);
+assert.ok(
+  iosModuleSource.includes(`"${IOS_API_KEY_INFO_PLIST_KEY}"`),
+  `iOS module must read the Info.plist key "${IOS_API_KEY_INFO_PLIST_KEY}"`
+);
+assert.ok(
+  iosModuleSource.includes(`"${IOS_LOCALE_INFO_PLIST_KEY}"`),
+  `iOS module must read the Info.plist key "${IOS_LOCALE_INFO_PLIST_KEY}"`
+);
+
 // Single source of truth for the iOS floor: the podspec's platform pin must match the
 // plugin constant, since CI and this script both derive their assertion from the plugin.
 const podspecSource = readFileSync(
@@ -171,6 +220,143 @@ const gradleValue = (items, key) =>
   assert.equal(dt('omitInheritsHigh'), undefined); // inherits Debug 17.0 -> not lowered
   assert.equal(dt('omitInheritsLow'), MIN_IOS_DEPLOYMENT_TARGET); // inherits Release 15.1 -> floored
   assert.equal(dt('omitNoProjectConfig'), MIN_IOS_DEPLOYMENT_TARGET); // no project fallback -> floored
+}
+
+// Minimal AndroidManifest whose main <application> the manifest mod can locate.
+const manifestInit = () => ({
+  manifest: { application: [{ $: { 'android:name': '.MainApplication' } }] },
+});
+const mainApplicationOf = (modResults) => modResults.manifest.application[0];
+const metaValues = (application, name) =>
+  (application['meta-data'] ?? [])
+    .filter((item) => item.$['android:name'] === name)
+    .map((item) => item.$['android:value']);
+
+// 8. Build-time API key + locale injection: AndroidManifest <meta-data> + iOS Info.plist.
+{
+  const config = withPlugin(baseConfig(), { apiKey: 'test-key', locale: 'en_US' });
+
+  const manifest = await config.mods.android.manifest({ ...config, modResults: manifestInit() });
+  const app = mainApplicationOf(manifest.modResults);
+  assert.deepEqual(metaValues(app, ANDROID_API_KEY_METADATA), ['test-key']);
+  assert.deepEqual(metaValues(app, ANDROID_LOCALE_METADATA), ['en_US']);
+
+  const plist = await config.mods.ios.infoPlist({ ...config, modResults: {} });
+  assert.equal(plist.modResults[IOS_API_KEY_INFO_PLIST_KEY], 'test-key');
+  assert.equal(plist.modResults[IOS_LOCALE_INFO_PLIST_KEY], 'en_US');
+}
+
+// 9. No apiKey/locale → the manifest/infoPlist mods are not registered at all, so the runtime
+//    initialize(apiKey) path is completely untouched.
+{
+  const config = withPlugin(baseConfig(), { flavor: 'lite' });
+  assert.equal(
+    config.mods.android.manifest,
+    undefined,
+    'manifest mod must not be registered without apiKey/locale'
+  );
+  assert.equal(
+    config.mods.ios.infoPlist,
+    undefined,
+    'infoPlist mod must not be registered without apiKey/locale'
+  );
+}
+
+// 10. Per-platform override: android key overrides the top-level key; ios inherits it.
+//     A shared top-level locale reaches both platforms.
+{
+  const config = withPlugin(baseConfig(), {
+    apiKey: 'top-key',
+    locale: 'ru_RU',
+    android: { apiKey: 'android-key' },
+  });
+
+  const manifest = await config.mods.android.manifest({ ...config, modResults: manifestInit() });
+  const app = mainApplicationOf(manifest.modResults);
+  assert.deepEqual(metaValues(app, ANDROID_API_KEY_METADATA), ['android-key']);
+  assert.deepEqual(metaValues(app, ANDROID_LOCALE_METADATA), ['ru_RU']);
+
+  const plist = await config.mods.ios.infoPlist({ ...config, modResults: {} });
+  assert.equal(plist.modResults[IOS_API_KEY_INFO_PLIST_KEY], 'top-key');
+  assert.equal(plist.modResults[IOS_LOCALE_INFO_PLIST_KEY], 'ru_RU');
+}
+
+// 11. Manifest injection is idempotent: applying the mod to its own output must not duplicate
+//     the <meta-data> entries (prebuild is not clean by default and re-runs the mods).
+{
+  const config = withPlugin(baseConfig(), { apiKey: 'k1', locale: 'en_US' });
+  const once = await config.mods.android.manifest({ ...config, modResults: manifestInit() });
+  const twice = await config.mods.android.manifest({ ...config, modResults: once.modResults });
+  const app = mainApplicationOf(twice.modResults);
+  assert.deepEqual(metaValues(app, ANDROID_API_KEY_METADATA), ['k1']);
+  assert.deepEqual(metaValues(app, ANDROID_LOCALE_METADATA), ['en_US']);
+}
+
+// 12. Only a locale (no apiKey) still injects on BOTH platforms — the native runtime-key path
+//     reads and applies it, so neither the manifest nor the Info.plist may drop it.
+{
+  const config = withPlugin(baseConfig(), { locale: 'tr_TR' });
+  const manifest = await config.mods.android.manifest({ ...config, modResults: manifestInit() });
+  const app = mainApplicationOf(manifest.modResults);
+  assert.deepEqual(metaValues(app, ANDROID_API_KEY_METADATA), []);
+  assert.deepEqual(metaValues(app, ANDROID_LOCALE_METADATA), ['tr_TR']);
+
+  const plist = await config.mods.ios.infoPlist({ ...config, modResults: {} });
+  assert.equal(plist.modResults[IOS_API_KEY_INFO_PLIST_KEY], undefined);
+  assert.equal(plist.modResults[IOS_LOCALE_INFO_PLIST_KEY], 'tr_TR');
+}
+
+// 13. A whitespace-padded apiKey is trimmed before injection, so the stored value is canonical and
+//     matches a later runtime initialize() with the clean key (native readers trim too).
+{
+  const config = withPlugin(baseConfig(), { apiKey: '  spaced-key  ' });
+  const manifest = await config.mods.android.manifest({ ...config, modResults: manifestInit() });
+  assert.deepEqual(
+    metaValues(mainApplicationOf(manifest.modResults), ANDROID_API_KEY_METADATA),
+    ['spaced-key']
+  );
+  const plist = await config.mods.ios.infoPlist({ ...config, modResults: {} });
+  assert.equal(plist.modResults[IOS_API_KEY_INFO_PLIST_KEY], 'spaced-key');
+}
+
+// 14. Platform-scoped-only injection: a key set under `ios`/`android` only registers that one
+//     platform's mod and leaves the other's undefined. This is the asymmetric path most likely to
+//     regress — each of withAndroidApiKey/withIosApiKey short-circuits on its own resolved values.
+{
+  const iosOnly = withPlugin(baseConfig(), { ios: { apiKey: 'ios-only', locale: 'en_US' } });
+  assert.equal(
+    iosOnly.mods.android.manifest,
+    undefined,
+    'ios-scoped key must not register the Android manifest mod'
+  );
+  const iosPlist = await iosOnly.mods.ios.infoPlist({ ...iosOnly, modResults: {} });
+  assert.equal(iosPlist.modResults[IOS_API_KEY_INFO_PLIST_KEY], 'ios-only');
+  assert.equal(iosPlist.modResults[IOS_LOCALE_INFO_PLIST_KEY], 'en_US');
+
+  const androidOnly = withPlugin(baseConfig(), { android: { apiKey: 'android-only', locale: 'ru_RU' } });
+  assert.equal(
+    androidOnly.mods.ios.infoPlist,
+    undefined,
+    'android-scoped key must not register the iOS infoPlist mod'
+  );
+  const androidManifest = await androidOnly.mods.android.manifest({
+    ...androidOnly,
+    modResults: manifestInit(),
+  });
+  const app = mainApplicationOf(androidManifest.modResults);
+  assert.deepEqual(metaValues(app, ANDROID_API_KEY_METADATA), ['android-only']);
+  assert.deepEqual(metaValues(app, ANDROID_LOCALE_METADATA), ['ru_RU']);
+}
+
+// 15. Validation: bad/non-string locale, blank/non-string apiKey throw scoped errors. The
+//     non-string locale case guards the RegExp.test coercion footgun (["en_US"] -> "en_US").
+{
+  assert.throws(() => withPlugin(baseConfig(), { locale: 'english' }), /locale/);
+  assert.throws(() => withPlugin(baseConfig(), { locale: 'e_US' }), /locale/);
+  assert.throws(() => withPlugin(baseConfig(), { locale: ['en_US'] }), /locale/);
+  assert.throws(() => withPlugin(baseConfig(), { apiKey: '   ' }), /apiKey/);
+  assert.throws(() => withPlugin(baseConfig(), { apiKey: 123 }), /apiKey/);
+  assert.throws(() => withPlugin(baseConfig(), { ios: { locale: 'e_US' } }), /ios\./);
 }
 
 console.log('plugin behavior checks: all passed');
