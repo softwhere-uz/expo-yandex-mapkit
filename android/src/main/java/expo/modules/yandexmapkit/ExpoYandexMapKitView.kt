@@ -4,6 +4,10 @@ import android.content.Context
 import android.util.Log
 import com.yandex.mapkit.Animation
 import com.yandex.mapkit.geometry.Point
+import com.yandex.mapkit.logo.Alignment as LogoAlignment
+import com.yandex.mapkit.logo.HorizontalAlignment
+import com.yandex.mapkit.logo.Padding as LogoPaddingNative
+import com.yandex.mapkit.logo.VerticalAlignment
 import com.yandex.mapkit.map.CameraListener
 import com.yandex.mapkit.map.CameraPosition
 import com.yandex.mapkit.map.CameraUpdateReason
@@ -58,6 +62,46 @@ enum class MapTypeOption(val value: String) : Enumerable {
   }
 }
 
+// The `logoPosition` prop shape: where the mandatory Yandex logo sits in the map.
+enum class LogoHorizontalOption(val value: String) : Enumerable {
+  left("left"),
+  center("center"),
+  right("right");
+
+  fun toYandex(): HorizontalAlignment = when (this) {
+    left -> HorizontalAlignment.LEFT
+    center -> HorizontalAlignment.CENTER
+    right -> HorizontalAlignment.RIGHT
+  }
+}
+
+enum class LogoVerticalOption(val value: String) : Enumerable {
+  top("top"),
+  bottom("bottom");
+
+  fun toYandex(): VerticalAlignment = when (this) {
+    top -> VerticalAlignment.TOP
+    bottom -> VerticalAlignment.BOTTOM
+  }
+}
+
+class LogoPositionRecord : Record {
+  @Field
+  var horizontal: LogoHorizontalOption = LogoHorizontalOption.right
+
+  @Field
+  var vertical: LogoVerticalOption = LogoVerticalOption.bottom
+}
+
+// Logo padding in pixels from the aligned edges. Negative values are clamped to 0.
+class LogoPaddingRecord : Record {
+  @Field
+  var horizontal: Double = 0.0
+
+  @Field
+  var vertical: Double = 0.0
+}
+
 class ExpoYandexMapKitView(context: Context, appContext: AppContext) : ExpoView(context, appContext) {
   private val onMapReady by EventDispatcher<Map<String, Any>>()
   private val onCameraPositionChanged by EventDispatcher<Map<String, Any>>()
@@ -86,6 +130,9 @@ class ExpoYandexMapKitView(context: Context, appContext: AppContext) : ExpoView(
   // MAP/satellite/hybrid are raster and ignore styling).
   private var mapType: YandexMapType? = null
   private var mapStyle: String? = null
+  // Logo placement is null until set, so an unset value keeps MapKit's default logo position.
+  private var logoPosition: LogoPositionRecord? = null
+  private var logoPadding: LogoPaddingRecord? = null
   private var pendingCameraPosition: CameraPositionRecord? = null
   private var cameraPositionDirty = false
 
@@ -284,6 +331,28 @@ class ExpoYandexMapKitView(context: Context, appContext: AppContext) : ExpoView(
     }
   }
 
+  internal fun setLogoPosition(position: LogoPositionRecord?) {
+    logoPosition = position
+    applyLogo(mapView?.mapWindow?.map)
+  }
+
+  internal fun setLogoPadding(padding: LogoPaddingRecord?) {
+    logoPadding = padding
+    applyLogo(mapView?.mapWindow?.map)
+  }
+
+  private fun applyLogo(map: YandexMap?) {
+    val target = map ?: return
+    logoPosition?.let {
+      target.logo.setAlignment(LogoAlignment(it.horizontal.toYandex(), it.vertical.toYandex()))
+    }
+    logoPadding?.let {
+      target.logo.setPadding(
+        LogoPaddingNative(it.horizontal.toInt().coerceAtLeast(0), it.vertical.toInt().coerceAtLeast(0))
+      )
+    }
+  }
+
   private fun maybeCreateMapView() {
     if (mapView != null) {
       return
@@ -308,6 +377,7 @@ class ExpoYandexMapKitView(context: Context, appContext: AppContext) : ExpoView(
     map.isFastTapEnabled = fastTapEnabled
     mapType?.let { map.mapType = it }
     applyMapStyle(map)
+    applyLogo(map)
     // The initial camera position is applied instantly — the map has not been shown yet.
     applyPendingCameraPosition(allowAnimation = false)
     if (isAttachedToWindow) {

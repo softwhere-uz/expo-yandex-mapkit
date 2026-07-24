@@ -99,6 +99,14 @@ class ExpoYandexMapKitModule : Module() {
         view.setMapStyle(mapStyle)
       }
 
+      Prop("logoPosition") { view: ExpoYandexMapKitView, logoPosition: LogoPositionRecord? ->
+        view.setLogoPosition(logoPosition)
+      }
+
+      Prop("logoPadding") { view: ExpoYandexMapKitView, logoPadding: LogoPaddingRecord? ->
+        view.setLogoPadding(logoPadding)
+      }
+
       OnViewDidUpdateProps { view: ExpoYandexMapKitView ->
         view.applyPendingCameraPosition()
       }

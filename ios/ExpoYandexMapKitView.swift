@@ -29,6 +29,44 @@ internal enum MapTypeOption: String, Enumerable {
   }
 }
 
+// The `logoPosition` prop shape: where the mandatory Yandex logo sits in the map.
+internal enum LogoHorizontalOption: String, Enumerable {
+  case left
+  case center
+  case right
+
+  var ymkValue: YMKLogoHorizontalAlignment {
+    switch self {
+    case .left: return .left
+    case .center: return .center
+    case .right: return .right
+    }
+  }
+}
+
+internal enum LogoVerticalOption: String, Enumerable {
+  case top
+  case bottom
+
+  var ymkValue: YMKLogoVerticalAlignment {
+    switch self {
+    case .top: return .top
+    case .bottom: return .bottom
+    }
+  }
+}
+
+internal struct LogoPositionRecord: Record {
+  @Field var horizontal: LogoHorizontalOption = .right
+  @Field var vertical: LogoVerticalOption = .bottom
+}
+
+// Logo padding in points from the aligned edges. Negative values are clamped to 0.
+internal struct LogoPaddingRecord: Record {
+  @Field var horizontal: Double = 0
+  @Field var vertical: Double = 0
+}
+
 // This view will be used as a native component. Make sure to inherit from `ExpoView`
 // to apply the proper styling (e.g. border radius and shadows).
 class ExpoYandexMapKitView: ExpoView {
@@ -77,6 +115,9 @@ class ExpoYandexMapKitView: ExpoView {
   // `.map`/satellite/hybrid are raster and ignore styling).
   private var mapType: YMKMapType?
   private var mapStyle: String?
+  // Logo placement is nil until set, so an unset value keeps MapKit's default logo position.
+  private var logoPosition: LogoPositionRecord?
+  private var logoPadding: LogoPaddingRecord?
   private var mapReadyEmitted = false
   private var didWarnAboutMissingInit = false
 
@@ -193,6 +234,34 @@ class ExpoYandexMapKitView: ExpoView {
     }
   }
 
+  func setLogoPosition(_ position: LogoPositionRecord?) {
+    logoPosition = position
+    applyLogo(to: mapView?.mapWindow.map)
+  }
+
+  func setLogoPadding(_ padding: LogoPaddingRecord?) {
+    logoPadding = padding
+    applyLogo(to: mapView?.mapWindow.map)
+  }
+
+  private func applyLogo(to map: YMKMap?) {
+    guard let map = map else {
+      return
+    }
+    if let position = logoPosition {
+      map.logo.setAlignmentWith(YMKLogoAlignment(
+        horizontalAlignment: position.horizontal.ymkValue,
+        verticalAlignment: position.vertical.ymkValue
+      ))
+    }
+    if let padding = logoPadding {
+      map.logo.setPaddingWith(YMKLogoPadding(
+        horizontalPadding: UInt(max(0, padding.horizontal)),
+        verticalPadding: UInt(max(0, padding.vertical))
+      ))
+    }
+  }
+
   // MARK: - Map creation
 
   private func createMapViewIfReady() {
@@ -232,6 +301,7 @@ class ExpoYandexMapKitView: ExpoView {
       map.mapType = mapType
     }
     applyMapStyle(to: map)
+    applyLogo(to: map)
     // The initial camera position is applied instantly — the map has not been shown yet.
     applyPendingCameraPosition(allowAnimation: false)
   }

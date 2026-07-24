@@ -19,6 +19,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   only affects the vector and hybrid layers; pass `''` to clear, invalid JSON is ignored with a warning). Each is
   applied only when explicitly set, so an unset value keeps MapKit's own default. Both are applied on map
   creation so a value set before `initialize()` resolves is honoured once the map appears.
+- **Yandex logo placement** (`YandexMapView` props, #1 → Map view props): `logoPosition`
+  (`{ horizontal: 'left' | 'center' | 'right', vertical: 'top' | 'bottom' }`) and `logoPadding`
+  (`{ horizontal, vertical }` in px, negatives clamped to 0) — applied only when set, so an unset
+  value keeps MapKit's default logo position.
 
 ## [0.0.2] - 2026-07-24
 
