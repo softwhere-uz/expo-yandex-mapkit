@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.5] - 2026-07-25
+
 ### Added
 
 - **`<Marker>` component** (#1 → Markers): image placemarks rendered as children of
@@ -117,7 +119,8 @@ Initial scaffold.
 - Web stubs that warn once and render nothing instead of crashing.
 - Official scoped alias package `@softwhere-uz/expo-yandex-mapkit`.
 
-[Unreleased]: https://github.com/softwhere-uz/expo-yandex-mapkit/compare/v0.0.4...HEAD
+[Unreleased]: https://github.com/softwhere-uz/expo-yandex-mapkit/compare/v0.0.5...HEAD
+[0.0.5]: https://github.com/softwhere-uz/expo-yandex-mapkit/releases/tag/v0.0.5
 [0.0.4]: https://github.com/softwhere-uz/expo-yandex-mapkit/releases/tag/v0.0.4
 [0.0.3]: https://github.com/softwhere-uz/expo-yandex-mapkit/releases/tag/v0.0.3
 [0.0.2]: https://github.com/softwhere-uz/expo-yandex-mapkit/releases/tag/v0.0.2
