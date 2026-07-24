@@ -1,4 +1,4 @@
-# Release flow (see HANDOVER.md §7):
+# Release flow (see CONTRIBUTING.md → Releasing):
 #   npm version patch|minor|major     # bumps package.json, commits, tags vX.Y.Z
 #   git push --follow-tags            # the v* tag triggers this workflow
 #
