@@ -26,8 +26,9 @@ export type MapPressEvent = {
 export type MapLoadStatistics = {
   renderObjectCount: number; // number of map objects rendered
   tileMemoryUsage: number; // tile cache memory usage, in bytes
-  // Load timings — the Yandex SDK's native values; treat as relative signals (units may
-  // differ slightly between platforms).
+  // Load timings in the SDK's native units, which DIFFER by platform (iOS: seconds as a
+  // float; Android: integer SDK units) — use as per-platform relative signals, not
+  // cross-platform values.
   curZoomModelsLoaded: number;
   curZoomPlacemarksLoaded: number;
   curZoomLabelsLoaded: number;

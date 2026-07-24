@@ -533,7 +533,7 @@ class ExpoYandexMapKitView(context: Context, appContext: AppContext) : ExpoView(
     // cameraListener/inputListener fields on this view keep the listeners alive.
     map.addCameraListener(WeakReference(cameraListener))
     map.addInputListener(WeakReference(inputListener))
-    map.setMapLoadedListener(mapLoadedListener)
+    map.setMapLoadedListener(WeakReference(mapLoadedListener))
     map.isNightModeEnabled = nightMode
     applyGestureState()
     map.isFastTapEnabled = fastTapEnabled

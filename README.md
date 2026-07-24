@@ -258,7 +258,7 @@ type MapPressEvent = { point: Point };
 type MapLoadStatistics = {
   renderObjectCount: number;      // number of map objects rendered
   tileMemoryUsage: number;        // tile cache memory usage, in bytes
-  curZoomModelsLoaded: number;    // load timings (Yandex-native units)
+  curZoomModelsLoaded: number;    // load timings — SDK-native units, differ by platform (iOS seconds / Android integer)
   curZoomPlacemarksLoaded: number;
   curZoomLabelsLoaded: number;
   curZoomGeometryLoaded: number;
