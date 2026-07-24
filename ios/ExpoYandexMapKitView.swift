@@ -10,6 +10,25 @@ internal struct CameraPositionRecord: Record {
   @Field var tilt: Double = 0
 }
 
+// The `mapType` prop options. Mirrors the JS `mapType` union; mapped to `YMKMapType`.
+internal enum MapTypeOption: String, Enumerable {
+  case none
+  case map
+  case satellite
+  case hybrid
+  case vector
+
+  var ymkValue: YMKMapType {
+    switch self {
+    case .none: return YMKMapType.none
+    case .map: return YMKMapType.map
+    case .satellite: return YMKMapType.satellite
+    case .hybrid: return YMKMapType.hybrid
+    case .vector: return YMKMapType.vectorMap
+    }
+  }
+}
+
 // This view will be used as a native component. Make sure to inherit from `ExpoView`
 // to apply the proper styling (e.g. border radius and shadows).
 class ExpoYandexMapKitView: ExpoView {
@@ -50,6 +69,10 @@ class ExpoYandexMapKitView: ExpoView {
   private var tiltGesturesEnabled = true
   private var rotateGesturesEnabled = true
   private var fastTapEnabled = true
+  // Base map layer defaults to MapKit's own default (the vector scheme map). mapStyle
+  // is nil until set, so an unset style never touches the map.
+  private var mapType: YMKMapType = .map
+  private var mapStyle: String?
   private var mapReadyEmitted = false
   private var didWarnAboutMissingInit = false
 
@@ -123,6 +146,29 @@ class ExpoYandexMapKitView: ExpoView {
     mapView?.mapWindow.map.isFastTapEnabled = enabled
   }
 
+  func setMapType(_ type: YMKMapType) {
+    mapType = type
+    mapView?.mapWindow.map.mapType = type
+  }
+
+  func setMapStyle(_ style: String?) {
+    mapStyle = style
+    applyMapStyle(to: mapView?.mapWindow.map)
+  }
+
+  // Empty string clears a previously applied style; a non-empty string is a Yandex
+  // JSON style. `setMapStyleWithStyle` returns false when the JSON is invalid.
+  private func applyMapStyle(to map: YMKMap?) {
+    guard let map = map, let style = mapStyle else {
+      return
+    }
+    if style.isEmpty {
+      map.resetMapStyles()
+    } else if !map.setMapStyleWithStyle(style) {
+      log.warn("expo-yandex-mapkit: mapStyle was rejected as invalid Yandex style JSON; it was not applied")
+    }
+  }
+
   // MARK: - Map creation
 
   private func createMapViewIfReady() {
@@ -161,6 +207,8 @@ class ExpoYandexMapKitView: ExpoView {
     map.isTiltGesturesEnabled = tiltGesturesEnabled
     map.isRotateGesturesEnabled = rotateGesturesEnabled
     map.isFastTapEnabled = fastTapEnabled
+    map.mapType = mapType
+    applyMapStyle(to: map)
     // The initial camera position is applied instantly — the map has not been shown yet.
     applyPendingCameraPosition(allowAnimation: false)
   }

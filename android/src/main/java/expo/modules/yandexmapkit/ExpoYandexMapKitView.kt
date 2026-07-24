@@ -9,10 +9,12 @@ import com.yandex.mapkit.map.CameraPosition
 import com.yandex.mapkit.map.CameraUpdateReason
 import com.yandex.mapkit.map.InputListener
 import com.yandex.mapkit.map.Map as YandexMap
+import com.yandex.mapkit.map.MapType as YandexMapType
 import com.yandex.mapkit.mapview.MapView
 import expo.modules.kotlin.AppContext
 import expo.modules.kotlin.records.Field
 import expo.modules.kotlin.records.Record
+import expo.modules.kotlin.types.Enumerable
 import expo.modules.kotlin.viewevent.EventDispatcher
 import expo.modules.kotlin.views.ExpoView
 import java.lang.ref.WeakReference
@@ -39,6 +41,23 @@ class CameraPositionRecord : Record {
   var tilt: Double = 0.0
 }
 
+// The `mapType` prop options. Mirrors the JS `mapType` union; mapped to Yandex `MapType`.
+enum class MapTypeOption(val value: String) : Enumerable {
+  none("none"),
+  map("map"),
+  satellite("satellite"),
+  hybrid("hybrid"),
+  vector("vector");
+
+  fun toYandex(): YandexMapType = when (this) {
+    none -> YandexMapType.NONE
+    map -> YandexMapType.MAP
+    satellite -> YandexMapType.SATELLITE
+    hybrid -> YandexMapType.HYBRID
+    vector -> YandexMapType.VECTOR_MAP
+  }
+}
+
 class ExpoYandexMapKitView(context: Context, appContext: AppContext) : ExpoView(context, appContext) {
   private val onMapReady by EventDispatcher<Map<String, Any>>()
   private val onCameraPositionChanged by EventDispatcher<Map<String, Any>>()
@@ -59,6 +78,10 @@ class ExpoYandexMapKitView(context: Context, appContext: AppContext) : ExpoView(
   private var tiltGesturesEnabled = true
   private var rotateGesturesEnabled = true
   private var fastTapEnabled = true
+  // Base map layer defaults to Yandex's own default (MAP); mapStyle is null until set,
+  // so an unset style never touches the map.
+  private var mapType: YandexMapType = YandexMapType.MAP
+  private var mapStyle: String? = null
   private var pendingCameraPosition: CameraPositionRecord? = null
   private var cameraPositionDirty = false
 
@@ -217,6 +240,28 @@ class ExpoYandexMapKitView(context: Context, appContext: AppContext) : ExpoView(
     mapView?.mapWindow?.map?.isFastTapEnabled = value
   }
 
+  internal fun setMapType(type: YandexMapType) {
+    mapType = type
+    mapView?.mapWindow?.map?.mapType = type
+  }
+
+  internal fun setMapStyle(style: String?) {
+    mapStyle = style
+    applyMapStyle(mapView?.mapWindow?.map)
+  }
+
+  // Empty string clears a previously applied style; a non-empty string is a Yandex
+  // JSON style. setMapStyle returns false when the JSON is invalid.
+  private fun applyMapStyle(map: YandexMap?) {
+    val target = map ?: return
+    val style = mapStyle ?: return
+    if (style.isEmpty()) {
+      target.setMapStyle("")
+    } else if (!target.setMapStyle(style)) {
+      Log.w(TAG, "mapStyle was rejected as invalid Yandex style JSON; it was not applied")
+    }
+  }
+
   private fun maybeCreateMapView() {
     if (mapView != null) {
       return
@@ -242,6 +287,8 @@ class ExpoYandexMapKitView(context: Context, appContext: AppContext) : ExpoView(
     map.isTiltGesturesEnabled = tiltGesturesEnabled
     map.isRotateGesturesEnabled = rotateGesturesEnabled
     map.isFastTapEnabled = fastTapEnabled
+    map.mapType = mapType
+    applyMapStyle(map)
     // The initial camera position is applied instantly — the map has not been shown yet.
     applyPendingCameraPosition(allowAnimation = false)
     if (isAttachedToWindow) {

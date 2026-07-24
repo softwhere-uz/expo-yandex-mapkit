@@ -78,6 +78,14 @@ public class ExpoYandexMapKitModule: Module {
         view.setFastTapEnabled(enabled)
       }
 
+      Prop("mapType") { (view: ExpoYandexMapKitView, mapType: MapTypeOption) in
+        view.setMapType(mapType.ymkValue)
+      }
+
+      Prop("mapStyle") { (view: ExpoYandexMapKitView, mapStyle: String?) in
+        view.setMapStyle(mapStyle)
+      }
+
       OnViewDidUpdateProps { (view: ExpoYandexMapKitView) in
         view.applyPendingCameraPosition()
       }
