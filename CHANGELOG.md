@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.3] - 2026-07-25
+
+### Added
+
+- **Expo SDK 55+ (RN 0.83+) support.** The config plugin now raises the iOS deployment
+  target to 16.4 (the MapKit minimum) in both `Podfile.properties.json` and the Xcode
+  project, so managed apps on SDK 55/56 — whose template default is 15.1 — build against
+  the YandexMapsMobile static framework with no manual edits. The Xcode floor is
+  inheritance-aware and raise-only: it never lowers a higher inherited target and preserves
+  `$(inherited)` / xcconfig macros. iOS parity with the existing Android `minSdkVersion` 26
+  auto-raise.
+
+### Changed
+
+- `peerDependencies` now declare honest floors (`expo >=55`, `react >=19.2`,
+  `react-native >=0.83`) instead of the previous `*` wildcards.
+- devDependencies aligned to the head SDK (React Native 0.86, `jest-expo` 57,
+  `babel-preset-expo` 57, `@types/react` 19.2).
+- Documentation: compatibility table and React Native pairing list updated for SDK 55+.
+
 ## [0.0.2] - 2026-07-24
 
 ### Fixed
@@ -42,6 +62,7 @@ Initial scaffold.
 - Web stubs that warn once and render nothing instead of crashing.
 - Official scoped alias package `@softwhere-uz/expo-yandex-mapkit`.
 
-[Unreleased]: https://github.com/softwhere-uz/expo-yandex-mapkit/compare/v0.0.2...HEAD
+[Unreleased]: https://github.com/softwhere-uz/expo-yandex-mapkit/compare/v0.0.3...HEAD
+[0.0.3]: https://github.com/softwhere-uz/expo-yandex-mapkit/releases/tag/v0.0.3
 [0.0.2]: https://github.com/softwhere-uz/expo-yandex-mapkit/releases/tag/v0.0.2
 [0.0.1]: https://github.com/softwhere-uz/expo-yandex-mapkit/releases/tag/v0.0.1
