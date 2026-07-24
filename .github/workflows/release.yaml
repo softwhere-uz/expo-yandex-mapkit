@@ -1,0 +1,70 @@
+# Release flow (see HANDOVER.md §7):
+#   npm version patch|minor|major     # bumps package.json, commits, tags vX.Y.Z
+#   git push --follow-tags            # the v* tag triggers this workflow
+#
+# Publishing uses npm OIDC trusted publishing — configure the "trusted publisher"
+# for expo-yandex-mapkit on npmjs.com (Settings → Publishing access) pointing at
+# this repo + workflow, so no long-lived npm token exists at all. The scoped alias
+# (alias/) tracks this package via a "*" range and is published manually once;
+# it never needs republishing.
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write # create the GitHub release
+  id-token: write # npm provenance attestation (OIDC)
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: 'https://registry.npmjs.org'
+
+      # OIDC trusted publishing requires npm >= 11.5.1
+      - run: npm install -g npm@latest
+
+      - run: npm ci
+
+      - run: npm run lint
+
+      - run: npm run build
+
+      - run: npm run build plugin
+
+      - name: Verify tag matches package.json version
+        run: |
+          PKG_VERSION=$(node -p "require('./package.json').version")
+          TAG_VERSION="${GITHUB_REF_NAME#v}"
+          if [ "$PKG_VERSION" != "$TAG_VERSION" ]; then
+            echo "Tag $GITHUB_REF_NAME does not match package.json version $PKG_VERSION" >&2
+            exit 1
+          fi
+
+      # The packed tarball must contain the compiled config plugin — guards the
+      # class of bug where stale tsc build state ships a package whose
+      # app.plugin.js points at a missing plugin/build.
+      - name: Verify tarball contents
+        run: |
+          npm pack --dry-run --json | node -e "
+            const files = JSON.parse(require('fs').readFileSync(0, 'utf8'))[0].files.map((f) => f.path);
+            const required = ['app.plugin.js', 'build/index.js', 'plugin/build/index.js'];
+            const missing = required.filter((p) => !files.includes(p));
+            if (missing.length) { console.error('Missing from tarball:', missing); process.exit(1); }
+            console.log('Tarball OK:', files.length, 'files');
+          "
+
+      - name: Publish to npm (with provenance)
+        run: npm publish --provenance --access public
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" --generate-notes
