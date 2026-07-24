@@ -1,0 +1,65 @@
+{
+  "name": "expo-yandex-mapkit",
+  "version": "0.0.1",
+  "description": "Yandex Maps (MapKit) for Expo — Expo Modules API, config plugin, New Architecture",
+  "main": "build/index.js",
+  "types": "build/index.d.ts",
+  "scripts": {
+    "build": "node internal/module_scripts/build.js",
+    "clean": "node internal/module_scripts/clean.js",
+    "lint": "eslint src/",
+    "test": "node internal/module_scripts/test.js",
+    "prepare": "node internal/module_scripts/prepare.js",
+    "open:ios": "node internal/module_scripts/open-ios.js",
+    "open:android": "node internal/module_scripts/open-android.js"
+  },
+  "keywords": [
+    "yandex",
+    "mapkit",
+    "yandex-mapkit",
+    "expo",
+    "react-native",
+    "maps",
+    "map",
+    "mapview",
+    "expo-yandex-maps",
+    "yamap",
+    "react-native-yamap",
+    "geocoder",
+    "яндекс",
+    "карты"
+  ],
+  "repository": "https://github.com/softwhere-uz/expo-yandex-mapkit",
+  "bugs": {
+    "url": "https://github.com/softwhere-uz/expo-yandex-mapkit/issues"
+  },
+  "author": "softwhere.uz <kamuranbek1998@gmail.com> (https://github.com/softwhere-uz)",
+  "license": "MIT",
+  "homepage": "https://github.com/softwhere-uz/expo-yandex-mapkit#readme",
+  "dependencies": {},
+  "devDependencies": {
+    "@babel/core": "^7.26.0",
+    "@types/jest": "^29.2.1",
+    "@types/react": "~19.1.1",
+    "babel-preset-expo": "~55.0.8",
+    "eslint": "~9.39.4",
+    "eslint-config-universe": "^15.0.3",
+    "expo": "^57.0.7",
+    "jest": "^29.7.0",
+    "jest-expo": "~55.0.9",
+    "prettier": "^3.0.0",
+    "react-native": "0.82.1",
+    "typescript": "^5.9.2"
+  },
+  "jest": {
+    "preset": "jest-expo",
+    "roots": [
+      "<rootDir>/src"
+    ]
+  },
+  "peerDependencies": {
+    "expo": "*",
+    "react": "*",
+    "react-native": "*"
+  }
+}
