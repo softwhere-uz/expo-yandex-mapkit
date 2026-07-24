@@ -85,7 +85,11 @@ Every PR and push to `main` runs `.github/workflows/ci.yaml`:
 `.github/workflows/mapkit-version-watch.yaml` runs weekly and opens a bump issue when Yandex
 publishes a MapKit newer than our pinned default on both Maven Central and CocoaPods.
 
-PRs should be green across all four CI jobs before merge.
+On pull requests, the four native-build jobs (android, ios, bare-android, bare-ios) wait in the
+`ci-heavy-approval` environment until a maintainer approves the deployment — the cheap quality and
+prebuild-smoke jobs run immediately. Pushes to `main` run everything automatically.
+
+PRs should be green across all CI jobs before merge.
 
 ## Commit style
 

@@ -113,6 +113,7 @@ jobs:
     name: Android build (Kotlin vs real MapKit)
     runs-on: ubuntu-latest
     if: github.event_name != 'push' || !startsWith(github.event.head_commit.message, 'chore(release):')
+    environment: ${{ github.event_name == 'pull_request' && 'ci-heavy-approval' || 'ci-auto' }}
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v6
@@ -143,6 +144,7 @@ jobs:
     name: Bare RN Android build (tarball consumer)
     runs-on: ubuntu-latest
     if: github.event_name != 'push' || !startsWith(github.event.head_commit.message, 'chore(release):')
+    environment: ${{ github.event_name == 'pull_request' && 'ci-heavy-approval' || 'ci-auto' }}
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v6
@@ -172,6 +174,7 @@ jobs:
     name: Bare RN iOS build (tarball consumer)
     runs-on: macos-26
     if: github.event_name != 'push' || !startsWith(github.event.head_commit.message, 'chore(release):')
+    environment: ${{ github.event_name == 'pull_request' && 'ci-heavy-approval' || 'ci-auto' }}
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v6
@@ -207,6 +210,7 @@ jobs:
     name: iOS build (Swift vs real MapKit)
     runs-on: macos-26
     if: github.event_name != 'push' || !startsWith(github.event.head_commit.message, 'chore(release):')
+    environment: ${{ github.event_name == 'pull_request' && 'ci-heavy-approval' || 'ci-auto' }}
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v6
