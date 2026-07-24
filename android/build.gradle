@@ -1,0 +1,27 @@
+plugins {
+  id 'com.android.library'
+  id 'expo-module-gradle-plugin'
+}
+
+group = 'expo.modules.yandexmapkit'
+version = '0.0.1'
+
+android {
+  namespace "expo.modules.yandexmapkit"
+  defaultConfig {
+    // Yandex MapKit requires API 26 — fail the manifest merger loudly if the app stays below it.
+    minSdkVersion 26
+    versionCode 1
+    versionName "0.0.1"
+  }
+  lintOptions {
+    abortOnError false
+  }
+}
+
+def mapkitVersion = findProperty('expoYandexMapKit.version') ?: '4.42.0'
+def mapkitFlavor  = findProperty('expoYandexMapKit.flavor')  ?: 'lite'
+
+dependencies {
+  api "com.yandex.android:maps.mobile:${mapkitVersion}-${mapkitFlavor}"
+}
