@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Map gesture controls** (`YandexMapView` props, first slice of #1 → Map view props): `scrollGesturesEnabled`,
+  `zoomGesturesEnabled`, `tiltGesturesEnabled`, `rotateGesturesEnabled`, `fastTapEnabled` — all default `true`
+  (MapKit's own defaults) and are applied on map creation, so a value set before `initialize()` resolves is
+  honoured once the map appears. Set all four gesture toggles to `false` for a non-interactive map.
+
 ## [0.0.2] - 2026-07-24
 
 ### Fixed

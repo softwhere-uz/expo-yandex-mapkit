@@ -43,6 +43,13 @@ class ExpoYandexMapKitView: ExpoView {
   private var inputListener: InputListener?
   private var pendingCameraPosition: CameraPositionRecord?
   private var nightMode = false
+  // Gesture toggles default to MapKit's own defaults (all enabled). Stored so a
+  // value set before the map exists is applied on map creation, mirroring nightMode.
+  private var scrollGesturesEnabled = true
+  private var zoomGesturesEnabled = true
+  private var tiltGesturesEnabled = true
+  private var rotateGesturesEnabled = true
+  private var fastTapEnabled = true
   private var mapReadyEmitted = false
   private var didWarnAboutMissingInit = false
 
@@ -91,6 +98,31 @@ class ExpoYandexMapKitView: ExpoView {
     mapView?.mapWindow.map.isNightModeEnabled = enabled
   }
 
+  func setScrollGesturesEnabled(_ enabled: Bool) {
+    scrollGesturesEnabled = enabled
+    mapView?.mapWindow.map.isScrollGesturesEnabled = enabled
+  }
+
+  func setZoomGesturesEnabled(_ enabled: Bool) {
+    zoomGesturesEnabled = enabled
+    mapView?.mapWindow.map.isZoomGesturesEnabled = enabled
+  }
+
+  func setTiltGesturesEnabled(_ enabled: Bool) {
+    tiltGesturesEnabled = enabled
+    mapView?.mapWindow.map.isTiltGesturesEnabled = enabled
+  }
+
+  func setRotateGesturesEnabled(_ enabled: Bool) {
+    rotateGesturesEnabled = enabled
+    mapView?.mapWindow.map.isRotateGesturesEnabled = enabled
+  }
+
+  func setFastTapEnabled(_ enabled: Bool) {
+    fastTapEnabled = enabled
+    mapView?.mapWindow.map.isFastTapEnabled = enabled
+  }
+
   // MARK: - Map creation
 
   private func createMapViewIfReady() {
@@ -124,6 +156,11 @@ class ExpoYandexMapKitView: ExpoView {
     map.addInputListener(with: inputListener)
 
     map.isNightModeEnabled = nightMode
+    map.isScrollGesturesEnabled = scrollGesturesEnabled
+    map.isZoomGesturesEnabled = zoomGesturesEnabled
+    map.isTiltGesturesEnabled = tiltGesturesEnabled
+    map.isRotateGesturesEnabled = rotateGesturesEnabled
+    map.isFastTapEnabled = fastTapEnabled
     // The initial camera position is applied instantly — the map has not been shown yet.
     applyPendingCameraPosition(allowAnimation: false)
   }

@@ -52,6 +52,13 @@ class ExpoYandexMapKitView(context: Context, appContext: AppContext) : ExpoView(
   private var mapReadyEmitted = false
   private var warnedNotInitialized = false
   private var nightMode = false
+  // Gesture toggles default to MapKit's own defaults (all enabled). Stored so a value
+  // set before the map exists is applied on map creation, mirroring nightMode.
+  private var scrollGesturesEnabled = true
+  private var zoomGesturesEnabled = true
+  private var tiltGesturesEnabled = true
+  private var rotateGesturesEnabled = true
+  private var fastTapEnabled = true
   private var pendingCameraPosition: CameraPositionRecord? = null
   private var cameraPositionDirty = false
 
@@ -185,6 +192,31 @@ class ExpoYandexMapKitView(context: Context, appContext: AppContext) : ExpoView(
     mapView?.mapWindow?.map?.isNightModeEnabled = value
   }
 
+  internal fun setScrollGesturesEnabled(value: Boolean) {
+    scrollGesturesEnabled = value
+    mapView?.mapWindow?.map?.isScrollGesturesEnabled = value
+  }
+
+  internal fun setZoomGesturesEnabled(value: Boolean) {
+    zoomGesturesEnabled = value
+    mapView?.mapWindow?.map?.isZoomGesturesEnabled = value
+  }
+
+  internal fun setTiltGesturesEnabled(value: Boolean) {
+    tiltGesturesEnabled = value
+    mapView?.mapWindow?.map?.isTiltGesturesEnabled = value
+  }
+
+  internal fun setRotateGesturesEnabled(value: Boolean) {
+    rotateGesturesEnabled = value
+    mapView?.mapWindow?.map?.isRotateGesturesEnabled = value
+  }
+
+  internal fun setFastTapEnabled(value: Boolean) {
+    fastTapEnabled = value
+    mapView?.mapWindow?.map?.isFastTapEnabled = value
+  }
+
   private fun maybeCreateMapView() {
     if (mapView != null) {
       return
@@ -205,6 +237,11 @@ class ExpoYandexMapKitView(context: Context, appContext: AppContext) : ExpoView(
     map.addCameraListener(WeakReference(cameraListener))
     map.addInputListener(WeakReference(inputListener))
     map.isNightModeEnabled = nightMode
+    map.isScrollGesturesEnabled = scrollGesturesEnabled
+    map.isZoomGesturesEnabled = zoomGesturesEnabled
+    map.isTiltGesturesEnabled = tiltGesturesEnabled
+    map.isRotateGesturesEnabled = rotateGesturesEnabled
+    map.isFastTapEnabled = fastTapEnabled
     // The initial camera position is applied instantly — the map has not been shown yet.
     applyPendingCameraPosition(allowAnimation = false)
     if (isAttachedToWindow) {

@@ -210,7 +210,14 @@ Initializes the native MapKit SDK. Call it once, before rendering any `YandexMap
 | `cameraPosition` | `CameraPosition` | — | Declarative camera: changing the prop moves the native camera. Values equal to the current position (within 1e-6) are ignored, so echoing `onCameraPositionChanged` back does not loop. |
 | `animated` | `boolean` | `true` | Animate declarative camera moves (0.3 s); instant when `false`. |
 | `nightMode` | `boolean` | `false` | MapKit night colour scheme. |
+| `scrollGesturesEnabled` | `boolean` | `true` | Allow panning the map by dragging. |
+| `zoomGesturesEnabled` | `boolean` | `true` | Allow pinch / double-tap / two-finger-tap zoom. |
+| `tiltGesturesEnabled` | `boolean` | `true` | Allow the two-finger vertical drag that tilts the camera. |
+| `rotateGesturesEnabled` | `boolean` | `true` | Allow the two-finger twist that rotates the map. |
+| `fastTapEnabled` | `boolean` | `true` | Report a tap immediately instead of waiting to see if it becomes a double-tap. |
 | `style` | `StyleProp<ViewStyle>` | — | Standard React Native view styling. |
+
+> Set all four gesture toggles to `false` for a non-interactive map (e.g. a static preview); toggle `rotateGesturesEnabled` / `tiltGesturesEnabled` off to keep the map flat and north-up.
 
 Events:
 

@@ -27,6 +27,11 @@ export type YandexMapViewProps = {
   cameraPosition?: CameraPosition; // declarative: prop change moves the native camera
   animated?: boolean; // animate declarative moves, default true
   nightMode?: boolean; // default false
+  scrollGesturesEnabled?: boolean; // pan the map by dragging, default true
+  zoomGesturesEnabled?: boolean; // pinch / double-tap / two-finger tap zoom, default true
+  tiltGesturesEnabled?: boolean; // two-finger vertical drag to tilt, default true
+  rotateGesturesEnabled?: boolean; // two-finger twist to rotate, default true
+  fastTapEnabled?: boolean; // report taps immediately instead of waiting for a possible double-tap, default true
   onMapReady?: (event: { nativeEvent: Record<string, never> }) => void;
   onCameraPositionChanged?: (event: { nativeEvent: CameraPositionChangeEvent }) => void;
   onMapPress?: (event: { nativeEvent: MapPressEvent }) => void;
