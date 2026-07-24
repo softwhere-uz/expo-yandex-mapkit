@@ -64,6 +64,7 @@ An honest comparison, as of July 2026. If you need markers, routing, or clusteri
 | iOS | iOS **16.4+** (the SDK 57 default deployment target). CocoaPods only — MapKit ships no SPM package. |
 | MapKit | Defaults to **4.42.0**; override via the [config plugin](#2-add-the-config-plugin). Yandex recommends staying current. |
 | Expo Go | Not supported (native code) — use a [development build](https://docs.expo.dev/develop/development-builds/introduction/). |
+| Bare React Native | Supported via Expo Modules — see [Bare React Native](#bare-react-native). |
 
 ## Installation
 
@@ -110,6 +111,53 @@ npx expo run:android   # or: npx expo run:ios
 or build a [development build](https://docs.expo.dev/develop/development-builds/introduction/) with EAS.
 
 > **This library does not run in Expo Go.** It contains native code, so you need a development build or `expo run:*`. A DOM-component fallback for Expo Go is planned (see the roadmap). On web, the current build warns once and renders nothing rather than crashing.
+
+## Bare React Native
+
+This library is built on the [Expo Modules API](https://docs.expo.dev/modules/overview/) and works in bare React Native apps — no `expo prebuild` required. The full `expo` package is a hard requirement (it provides the module system, the autolinking that discovers this library, and the `ExpoAppDelegate`/`ExpoReactHostFactory` wiring); `expo-modules-core` alone is not a supported path.
+
+**1. Install Expo modules.** For React Native **0.85 and older**:
+
+```sh
+npx install-expo-modules@latest
+```
+
+For React Native **0.86**, `install-expo-modules` does not support your RN version yet (as of July 2026 it exits with "Unable to find compatible Expo SDK version") — follow Expo's [manual installation steps](https://docs.expo.dev/bare/installing-expo-modules/) instead, then `npm install expo@^57.0.0`. Keep the pairing exact: SDK 57 ↔ RN 0.86, SDK 56 ↔ RN 0.85 — do not mix.
+
+> The tool is optional on any RN version: it is only a codemod over those documented manual edits (`use_expo_modules!` in the Podfile, `ExpoAppDelegate`, the `expo-autolinking-settings`/`expo-root-project` Gradle plugins, the `MainApplication`/`MainActivity` wrappers), and applying them by hand is equally supported — that is exactly how this library's bare-RN verification app was wired. The one thing you cannot skip is the `expo` package dependency itself.
+
+**2. Install the library.** `npm install expo-yandex-mapkit`. Expo autolinking discovers it via its `expo-module.config.json` — no pod entries, Gradle includes, or manifest edits.
+
+**3. Android — set `minSdkVersion` to 26** in the `ext` block of `android/build.gradle`:
+
+```diff
+     ext {
+-        minSdkVersion = 24
++        minSdkVersion = 26
+```
+
+> In bare apps, `android.minSdkVersion=26` in `gradle.properties` is **not** enough — the template's `ext` block takes precedence. Edit the `ext` line itself.
+
+**4. Android — optionally pin the MapKit version/flavor** in `android/gradle.properties` (defaults: `4.42.0`, `lite`):
+
+```properties
+expoYandexMapKit.version=4.42.0
+expoYandexMapKit.flavor=lite
+```
+
+**5. iOS — deployment target 16.4+**: make sure `ios/Podfile` has `platform :ios, '16.4'` (RN 0.86's default is 15.1) and your Xcode targets match — otherwise `pod install` fails with a minimum-deployment-target error.
+
+**6. iOS — optionally pin the MapKit version/flavor**: create `ios/Podfile.properties.json` (recommended — committed, so CI/EAS builds are deterministic):
+
+```json
+{ "expoYandexMapKit.version": "4.42.0", "expoYandexMapKit.flavor": "lite" }
+```
+
+or export `EXPO_YANDEX_MAPKIT_VERSION` / `EXPO_YANDEX_MAPKIT_FLAVOR` when running `pod install` — the env vars win over the file, and on EAS/CI they must be present in the environment of the pod-install step itself (e.g. the build profile's `env`).
+
+**7. Build and run.** `npx pod-install`, then `npx react-native run-android` / `run-ios` (or `npx expo run:*` if you accepted the Expo CLI integration). Then [`initialize`](#initializeapikey-string-promisevoid) and render as usual — the runtime API key needs no native edits in bare apps either.
+
+A complete, manually wired reference app lives in [`bare-example/`](./bare-example) — every edit above as real code, built by CI on both platforms against the packed npm tarball on every change. If anything in your setup deviates, [Expo's bare guide](https://docs.expo.dev/bare/installing-expo-modules/) is the authority for step 1.
 
 ## Usage
 

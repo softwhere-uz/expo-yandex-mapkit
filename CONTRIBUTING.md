@@ -78,6 +78,9 @@ Every PR and push to `main` runs `.github/workflows/ci.yaml`:
 - **android** — compiles the module Kotlin against the real pinned MapKit artifact.
 - **ios** — full example build on a macOS runner (pod install pulls the real YandexMapsMobile pod,
   `xcodebuild` compiles the Swift for the iOS Simulator).
+- **bare-android / bare-ios** — pack the library and install the tarball into
+  [`bare-example/`](./bare-example) (a manually wired bare RN app), then build — the bare-RN
+  support contract from the README cannot silently regress.
 
 `.github/workflows/mapkit-version-watch.yaml` runs weekly and opens a bump issue when Yandex
 publishes a MapKit newer than our pinned default on both Maven Central and CocoaPods.
