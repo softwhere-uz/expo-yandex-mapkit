@@ -68,14 +68,23 @@ function validatePlatformOptions(options: PlatformOptions, scope: string): void 
       `expo-yandex-mapkit config plugin: invalid ${scope}flavor "${options.flavor}" — must be "lite" or "full".`
     );
   }
-  // Config plugin props arrive as untyped JSON (app.config.js is plain JS), so guard the type
-  // as well as emptiness — a blank key is the common footgun and MapKit rejects it at runtime.
-  if (
-    options.apiKey !== undefined &&
-    (typeof options.apiKey !== 'string' || options.apiKey.trim() === '')
-  ) {
+  // A build-time apiKey is optional: the key can instead be supplied at runtime via
+  // initialize(apiKey). Config plugin props arrive as untyped JSON (app.config.js is plain JS),
+  // so a present, non-string value (number, array, object) is a genuine misconfiguration and
+  // still throws. But an empty/whitespace-only string — the common footgun when a key comes from
+  // an unset env var (`process.env.X ?? ''`) — must NOT abort prebuild: treat it as "not provided"
+  // and warn, so keyless CI/local builds still generate native projects. See #15.
+  // Read as unknown: config-plugin props are untyped JSON, so a caller can pass a number/array/null
+  // despite the declared `string | undefined`. `!= null` folds null and undefined into "not provided".
+  const apiKey: unknown = options.apiKey;
+  if (apiKey != null && typeof apiKey !== 'string') {
     throw new Error(
-      `expo-yandex-mapkit config plugin: invalid ${scope}apiKey — must be a non-empty MapKit API key string.`
+      `expo-yandex-mapkit config plugin: invalid ${scope}apiKey — must be a string MapKit API key (or omit it to initialize at runtime).`
+    );
+  }
+  if (typeof apiKey === 'string' && apiKey.trim() === '') {
+    console.warn(
+      `expo-yandex-mapkit config plugin: ${scope}apiKey is empty — ignoring it (no build-time key injected). Supply a non-empty key or call initialize(apiKey) at runtime.`
     );
   }
   // Guard the type as well (see apiKey above): RegExp.test coerces its argument, so an array like
@@ -96,6 +105,16 @@ function validateProps(props: ExpoYandexMapKitPluginProps): void {
   validatePlatformOptions(props.ios ?? {}, 'ios.');
 }
 
+// Trim the key so a whitespace-padded value (e.g. a dashboard copy-paste with a trailing newline)
+// is stored canonically in the manifest/plist — otherwise the native SDK receives the padded string
+// and a later runtime initialize() with the clean key would compare as different. An empty or
+// whitespace-only key normalizes to `undefined` so the plugin injects nothing and the app falls back
+// to the runtime initialize() path (validatePlatformOptions warns about the blank value separately).
+function normalizeApiKey(apiKey: string | null | undefined): string | undefined {
+  const trimmed = apiKey?.trim();
+  return trimmed ? trimmed : undefined;
+}
+
 function resolvePlatformOptions(
   props: ExpoYandexMapKitPluginProps,
   platform: 'android' | 'ios'
@@ -104,10 +123,7 @@ function resolvePlatformOptions(
   return {
     version: override.version ?? props.version ?? DEFAULT_VERSION,
     flavor: override.flavor ?? props.flavor ?? DEFAULT_FLAVOR,
-    // Trim the key so a whitespace-padded value (e.g. a dashboard copy-paste with a trailing
-    // newline) is stored canonically in the manifest/plist — otherwise the native SDK receives the
-    // padded string and a later runtime initialize() with the clean key would compare as different.
-    apiKey: (override.apiKey ?? props.apiKey)?.trim(),
+    apiKey: normalizeApiKey(override.apiKey ?? props.apiKey),
     locale: override.locale ?? props.locale,
   };
 }
