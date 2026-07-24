@@ -3,6 +3,7 @@
 import ExpoYandexMapKitModule from './ExpoYandexMapKitModule';
 
 export { YandexMapView } from './ExpoYandexMapKitView';
+export { Marker } from './ExpoYandexMapKitMarkerView';
 export * from './ExpoYandexMapKit.types';
 
 // Escape hatch: the raw native module.

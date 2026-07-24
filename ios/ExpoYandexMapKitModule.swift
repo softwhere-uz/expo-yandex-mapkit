@@ -142,6 +142,62 @@ public class ExpoYandexMapKitModule: Module {
         view.worldPoints(forScreenPoints: points)
       }
     }
+
+    // The <Marker> child view. Named via ViewName (the iOS view-builder element — the top-level
+    // Name() factory is not valid inside a View {} block), so it is required as
+    // requireNativeView('ExpoYandexMapKit', 'ExpoYandexMapKitMarkerView'); the unnamed map view
+    // above stays the module's default view.
+    View(ExpoYandexMapKitMarkerView.self) {
+      ViewName("ExpoYandexMapKitMarkerView")
+      Events("onPress")
+
+      Prop("point") { (view: ExpoYandexMapKitMarkerView, point: PointRecord) in
+        view.setPoint(point)
+      }
+
+      Prop("source") { (view: ExpoYandexMapKitMarkerView, source: String?) in
+        view.setIconSource(source)
+      }
+
+      Prop("scale") { (view: ExpoYandexMapKitMarkerView, scale: Double) in
+        view.setScale(scale)
+      }
+
+      Prop("anchor") { (view: ExpoYandexMapKitMarkerView, anchor: MarkerAnchorRecord?) in
+        view.setAnchor(anchor)
+      }
+
+      Prop("visible") { (view: ExpoYandexMapKitMarkerView, visible: Bool) in
+        view.setVisible(visible)
+      }
+
+      Prop("zI") { (view: ExpoYandexMapKitMarkerView, zIndex: Double) in
+        view.setZIndexValue(zIndex)
+      }
+
+      Prop("rotated") { (view: ExpoYandexMapKitMarkerView, rotated: Bool) in
+        view.setRotated(rotated)
+      }
+
+      Prop("handled") { (view: ExpoYandexMapKitMarkerView, handled: Bool) in
+        view.setHandled(handled)
+      }
+
+      Prop("identifier") { (view: ExpoYandexMapKitMarkerView, identifier: String?) in
+        view.setIdentifier(identifier)
+      }
+
+      // Run on the main queue so the placemark is only ever touched on main (Expo runs
+      // AsyncFunctions off-main by default; the animation's first frame is applied synchronously).
+      AsyncFunction("animatedMoveTo") { (view: ExpoYandexMapKitMarkerView, point: PointRecord, durationMs: Double) in
+        view.animatedMoveTo(
+          YMKPoint(latitude: point.latitude, longitude: point.longitude), durationMs: durationMs)
+      }.runOnQueue(.main)
+
+      AsyncFunction("animatedRotateTo") { (view: ExpoYandexMapKitMarkerView, angle: Double, durationMs: Double) in
+        view.animatedRotateTo(angle, durationMs: durationMs)
+      }.runOnQueue(.main)
+    }
   }
 
   // Shared initialization for both the JS initialize() call and the build-time auto-init. Must be

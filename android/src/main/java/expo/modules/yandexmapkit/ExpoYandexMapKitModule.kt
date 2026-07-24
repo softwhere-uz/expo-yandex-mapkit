@@ -6,6 +6,7 @@ import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import com.yandex.mapkit.MapKitFactory
+import com.yandex.mapkit.geometry.Point
 import expo.modules.kotlin.exception.CodedException
 import expo.modules.kotlin.exception.Exceptions
 import expo.modules.kotlin.functions.Queues
@@ -64,6 +65,20 @@ class ExpoYandexMapKitModule : Module() {
 
     View(ExpoYandexMapKitView::class) {
       Events("onMapReady", "onCameraPositionChanged", "onMapPress", "onMapLongPress", "onMapLoaded")
+
+      // <Marker> children are managed here, not through the Android view hierarchy — each drives a
+      // MapKit placemark rather than a laid-out view.
+      GroupView<ExpoYandexMapKitView> {
+        AddChildView { parent, child: ExpoYandexMapKitMarkerView, index ->
+          parent.addMarkerView(child, index)
+        }
+        GetChildCount { parent -> parent.markerViewCount() }
+        GetChildViewAt { parent, index -> parent.markerViewAt(index) }
+        RemoveChildViewAt { parent, index -> parent.removeMarkerViewAt(index) }
+        RemoveChildView { parent, child: ExpoYandexMapKitMarkerView ->
+          parent.removeMarkerView(child)
+        }
+      }
 
       Prop("cameraPosition") { view: ExpoYandexMapKitView, cameraPosition: CameraPositionRecord? ->
         view.setCameraPosition(cameraPosition)
@@ -148,6 +163,59 @@ class ExpoYandexMapKitModule : Module() {
       AsyncFunction("getWorldPoints") { view: ExpoYandexMapKitView, points: List<ScreenPointRecord> ->
         view.worldPoints(points)
       }
+    }
+
+    // The <Marker> child view. Named, so it is required as requireNativeView('ExpoYandexMapKit',
+    // 'ExpoYandexMapKitMarkerView'); the map view above stays the module's default view.
+    View(ExpoYandexMapKitMarkerView::class) {
+      Name("ExpoYandexMapKitMarkerView")
+      Events("onPress")
+
+      Prop("point") { view: ExpoYandexMapKitMarkerView, point: PointRecord ->
+        view.setPoint(Point(point.latitude, point.longitude))
+      }
+
+      Prop("source") { view: ExpoYandexMapKitMarkerView, source: String? ->
+        view.setIconSource(source)
+      }
+
+      Prop("scale") { view: ExpoYandexMapKitMarkerView, scale: Double ->
+        view.setScale(scale.toFloat())
+      }
+
+      Prop("anchor") { view: ExpoYandexMapKitMarkerView, anchor: MarkerAnchorRecord? ->
+        view.setAnchor(anchor)
+      }
+
+      Prop("visible") { view: ExpoYandexMapKitMarkerView, visible: Boolean ->
+        view.setVisible(visible)
+      }
+
+      Prop("zI") { view: ExpoYandexMapKitMarkerView, zIndex: Double ->
+        view.setZIndexValue(zIndex.toFloat())
+      }
+
+      Prop("rotated") { view: ExpoYandexMapKitMarkerView, rotated: Boolean ->
+        view.setRotated(rotated)
+      }
+
+      Prop("handled") { view: ExpoYandexMapKitMarkerView, handled: Boolean ->
+        view.setHandled(handled)
+      }
+
+      Prop("identifier") { view: ExpoYandexMapKitMarkerView, identifier: String? ->
+        view.setIdentifier(identifier)
+      }
+
+      // The animations drive a ValueAnimator, which must be created and started on a Looper
+      // (main) thread — Expo runs AsyncFunctions off the main queue by default.
+      AsyncFunction("animatedMoveTo") { view: ExpoYandexMapKitMarkerView, point: PointRecord, durationMs: Double ->
+        view.animatedMoveTo(Point(point.latitude, point.longitude), durationMs)
+      }.runOnQueue(Queues.MAIN)
+
+      AsyncFunction("animatedRotateTo") { view: ExpoYandexMapKitMarkerView, angle: Double, durationMs: Double ->
+        view.animatedRotateTo(angle.toFloat(), durationMs)
+      }.runOnQueue(Queues.MAIN)
     }
   }
 

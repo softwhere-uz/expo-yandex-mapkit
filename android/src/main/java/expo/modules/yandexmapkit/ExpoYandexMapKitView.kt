@@ -180,6 +180,12 @@ class ExpoYandexMapKitView(context: Context, appContext: AppContext) : ExpoView(
   private var pendingCameraPosition: CameraPositionRecord? = null
   private var cameraPositionDirty = false
 
+  // Child <Marker> views, in the order React mounted them. Managed via the module's GroupView
+  // actions rather than the Android view hierarchy — markers own no UI, they drive placemarks.
+  // A marker added before the map exists stays here un-attached and is wired up in
+  // maybeCreateMapView once the MapObjectCollection is available.
+  private val markerViews = mutableListOf<ExpoYandexMapKitMarkerView>()
+
   // MapKit holds only weak references to its listeners — these MUST stay strong fields
   // of the view, otherwise they get collected and events silently stop.
   private val cameraListener = object : CameraListener {
@@ -514,6 +520,54 @@ class ExpoYandexMapKitView(context: Context, appContext: AppContext) : ExpoView(
     "tilt" to cameraPosition.tilt.toDouble()
   )
 
+  // Child <Marker> management. Called from the module's GroupView actions. Markers are tracked in
+  // [markerViews] (not added to the Android view hierarchy). Each is backed by a PlacemarkMapObject
+  // created from the map's collection once the map exists.
+
+  internal fun addMarkerView(marker: ExpoYandexMapKitMarkerView, index: Int) {
+    val safeIndex = index.coerceIn(0, markerViews.size)
+    markerViews.add(safeIndex, marker)
+    attachMarker(marker)
+  }
+
+  internal fun removeMarkerViewAt(index: Int) {
+    val marker = markerViews.getOrNull(index) ?: return
+    markerViews.removeAt(index)
+    detachMarker(marker)
+  }
+
+  internal fun removeMarkerView(marker: ExpoYandexMapKitMarkerView) {
+    if (markerViews.remove(marker)) {
+      detachMarker(marker)
+    }
+  }
+
+  internal fun markerViewCount(): Int = markerViews.size
+
+  internal fun markerViewAt(index: Int): ExpoYandexMapKitMarkerView? = markerViews.getOrNull(index)
+
+  // Create a placemark for a marker and hand it over. No-op if the map is not ready yet (the
+  // marker stays in the list and is attached later by attachPendingMarkers) or already attached.
+  private fun attachMarker(marker: ExpoYandexMapKitMarkerView) {
+    if (marker.isAttached) {
+      return
+    }
+    val mapObjects = mapView?.mapWindow?.map?.mapObjects ?: return
+    marker.attachTo(mapObjects.addPlacemark())
+  }
+
+  private fun detachMarker(marker: ExpoYandexMapKitMarkerView) {
+    val placemark = marker.currentPlacemark()
+    if (placemark != null) {
+      mapView?.mapWindow?.map?.mapObjects?.remove(placemark)
+    }
+    marker.detach()
+  }
+
+  private fun attachPendingMarkers() {
+    markerViews.forEach { attachMarker(it) }
+  }
+
   private fun maybeCreateMapView() {
     if (mapView != null) {
       return
@@ -542,6 +596,8 @@ class ExpoYandexMapKitView(context: Context, appContext: AppContext) : ExpoView(
     applyLogo(map)
     // The initial camera position is applied instantly — the map has not been shown yet.
     applyPendingCameraPosition(allowAnimation = false)
+    // Wire up any <Marker> children that mounted before the map existed.
+    attachPendingMarkers()
     if (isAttachedToWindow) {
       // React Native has already laid this view out; measure the freshly added child manually.
       post { measureAndLayout() }
