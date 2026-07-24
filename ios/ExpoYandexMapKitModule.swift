@@ -143,11 +143,12 @@ public class ExpoYandexMapKitModule: Module {
       }
     }
 
-    // The <Marker> child view. Named, so it is required as
-    // requireNativeView('ExpoYandexMapKit', 'ExpoYandexMapKitMarkerView'); the map view above stays
-    // the module's default view.
+    // The <Marker> child view. Named via ViewName (the iOS view-builder element — the top-level
+    // Name() factory is not valid inside a View {} block), so it is required as
+    // requireNativeView('ExpoYandexMapKit', 'ExpoYandexMapKitMarkerView'); the unnamed map view
+    // above stays the module's default view.
     View(ExpoYandexMapKitMarkerView.self) {
-      Name("ExpoYandexMapKitMarkerView")
+      ViewName("ExpoYandexMapKitMarkerView")
       Events("onPress")
 
       Prop("point") { (view: ExpoYandexMapKitMarkerView, point: PointRecord) in
