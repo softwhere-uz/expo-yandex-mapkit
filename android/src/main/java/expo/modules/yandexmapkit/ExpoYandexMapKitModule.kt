@@ -110,6 +110,34 @@ class ExpoYandexMapKitModule : Module() {
       OnViewDidUpdateProps { view: ExpoYandexMapKitView ->
         view.applyPendingCameraPosition()
       }
+
+      AsyncFunction("setCenter") { view: ExpoYandexMapKitView, position: CameraPositionRecord, options: CameraMoveOptionsRecord ->
+        view.moveCamera(position, options)
+      }
+
+      AsyncFunction("setZoom") { view: ExpoYandexMapKitView, zoom: Double, options: CameraMoveOptionsRecord ->
+        view.setZoom(zoom, options)
+      }
+
+      AsyncFunction("fitMarkers") { view: ExpoYandexMapKitView, points: List<PointRecord>, options: CameraMoveOptionsRecord ->
+        view.fitMarkers(points, options)
+      }
+
+      AsyncFunction("getCameraPosition") { view: ExpoYandexMapKitView ->
+        view.currentCameraPosition()
+      }
+
+      AsyncFunction("getVisibleRegion") { view: ExpoYandexMapKitView ->
+        view.currentVisibleRegion()
+      }
+
+      AsyncFunction("getScreenPoints") { view: ExpoYandexMapKitView, points: List<PointRecord> ->
+        view.screenPoints(points)
+      }
+
+      AsyncFunction("getWorldPoints") { view: ExpoYandexMapKitView, points: List<ScreenPointRecord> ->
+        view.worldPoints(points)
+      }
     }
   }
 

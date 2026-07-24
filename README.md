@@ -257,6 +257,30 @@ type MapPressEvent = { point: Point };
 
 The raw native module is also exported as `ExpoYandexMapKitModule` as an escape hatch; its shape is not part of the stable API.
 
+### Imperative methods
+
+Call these through a ref (`const mapRef = useRef<YandexMapViewRef>(null)`). All return Promises and run on the UI thread:
+
+| Method | Returns | Notes |
+| --- | --- | --- |
+| `setCenter(position, options?)` | `Promise<void>` | Move / animate the camera. `options.durationSeconds` (default `0.3`, `0` = instant) and `options.animation` (`'smooth' \| 'linear'`). Sets the full camera — omitting `azimuth`/`tilt` resets them to `0` (flat, north-up). No-op until the map is ready. |
+| `setZoom(zoom, options?)` | `Promise<void>` | Animate the zoom, keeping the current center / azimuth / tilt. |
+| `fitMarkers(points, options?)` | `Promise<void>` | Move the camera so every point is visible. A single point recenters at the current zoom. |
+| `getCameraPosition()` | `Promise<CameraPosition \| null>` | Current camera; `null` until the map is ready. |
+| `getVisibleRegion()` | `Promise<VisibleRegion \| null>` | The visible geographic quad (`topLeft` / `topRight` / `bottomLeft` / `bottomRight`). |
+| `getScreenPoints(points)` | `Promise<(ScreenPoint \| null)[]>` | Project world coordinates to screen pixels; `null` per point that can't be projected (off-globe / behind the camera). |
+| `getWorldPoints(points)` | `Promise<(Point \| null)[]>` | Project screen pixels back to world coordinates. |
+
+```tsx
+const mapRef = useRef<YandexMapViewRef>(null);
+// ...
+<YandexMapView ref={mapRef} style={StyleSheet.absoluteFill} cameraPosition={{ latitude: 41.31, longitude: 69.24, zoom: 12 }} />;
+
+await mapRef.current?.setCenter({ latitude: 41.31, longitude: 69.24, zoom: 14 }, { durationSeconds: 0.4 });
+const region = await mapRef.current?.getVisibleRegion();
+const [screen] = await mapRef.current?.getScreenPoints([{ latitude: 41.31, longitude: 69.24 }]) ?? [];
+```
+
 ## lite vs full
 
 Yandex ships MapKit in two flavors. This library defaults to `lite`; select `full` via the [config plugin](#2-add-the-config-plugin) when you need its features (the library itself will start exposing them in v2).

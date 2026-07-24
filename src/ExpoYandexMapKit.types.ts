@@ -43,3 +43,40 @@ export type YandexMapViewProps = {
   onMapLongPress?: (event: { nativeEvent: MapPressEvent }) => void;
   style?: StyleProp<ViewStyle>;
 };
+
+export type ScreenPoint = {
+  x: number; // pixels from the left of the map view
+  y: number; // pixels from the top of the map view
+};
+
+export type VisibleRegion = {
+  topLeft: Point;
+  topRight: Point;
+  bottomLeft: Point;
+  bottomRight: Point;
+};
+
+export type CameraMoveOptions = {
+  durationSeconds?: number; // animation length in seconds; 0 = instant. Default 0.3
+  animation?: 'smooth' | 'linear'; // easing, default 'smooth'
+};
+
+// Imperative methods, called through a ref: `const ref = useRef<YandexMapViewRef>(null)`.
+export type YandexMapViewRef = {
+  // Animate/move the camera to `position`. Sets the FULL camera — omitting `azimuth`/`tilt`
+  // resets them to 0 (flat, north-up), same as the `cameraPosition` prop. No-op until ready.
+  setCenter(position: CameraPosition, options?: CameraMoveOptions): Promise<void>;
+  // Animate the zoom, keeping the current center / azimuth / tilt.
+  setZoom(zoom: number, options?: CameraMoveOptions): Promise<void>;
+  // Move the camera so every point is visible. A single point recenters at the current zoom.
+  fitMarkers(points: Point[], options?: CameraMoveOptions): Promise<void>;
+  // Current camera position, or null if the map is not ready.
+  getCameraPosition(): Promise<Required<CameraPosition> | null>;
+  // The geographic quad currently visible, or null if the map is not ready.
+  getVisibleRegion(): Promise<VisibleRegion | null>;
+  // Project world coordinates to screen points. Each result is null when the point
+  // cannot be projected (off-globe / behind the camera).
+  getScreenPoints(points: Point[]): Promise<(ScreenPoint | null)[]>;
+  // Project screen points to world coordinates. Each result is null when unprojectable.
+  getWorldPoints(points: ScreenPoint[]): Promise<(Point | null)[]>;
+};

@@ -3,6 +3,9 @@ package expo.modules.yandexmapkit
 import android.content.Context
 import android.util.Log
 import com.yandex.mapkit.Animation
+import com.yandex.mapkit.ScreenPoint
+import com.yandex.mapkit.geometry.BoundingBox
+import com.yandex.mapkit.geometry.Geometry
 import com.yandex.mapkit.geometry.Point
 import com.yandex.mapkit.logo.Alignment as LogoAlignment
 import com.yandex.mapkit.logo.HorizontalAlignment
@@ -100,6 +103,43 @@ class LogoPaddingRecord : Record {
 
   @Field
   var vertical: Double = 0.0
+}
+
+// A geographic coordinate argument for getScreenPoints().
+class PointRecord : Record {
+  @Field
+  var latitude: Double = 0.0
+
+  @Field
+  var longitude: Double = 0.0
+}
+
+// A screen coordinate (in pixels) argument for getWorldPoints().
+class ScreenPointRecord : Record {
+  @Field
+  var x: Double = 0.0
+
+  @Field
+  var y: Double = 0.0
+}
+
+enum class CameraAnimationOption(val value: String) : Enumerable {
+  smooth("smooth"),
+  linear("linear");
+
+  fun toYandex(): Animation.Type = when (this) {
+    smooth -> Animation.Type.SMOOTH
+    linear -> Animation.Type.LINEAR
+  }
+}
+
+// Options for the imperative setCenter() move.
+class CameraMoveOptionsRecord : Record {
+  @Field
+  var durationSeconds: Double = 0.3
+
+  @Field
+  var animation: CameraAnimationOption = CameraAnimationOption.smooth
 }
 
 class ExpoYandexMapKitView(context: Context, appContext: AppContext) : ExpoView(context, appContext) {
@@ -353,6 +393,105 @@ class ExpoYandexMapKitView(context: Context, appContext: AppContext) : ExpoView(
       )
     }
   }
+
+  // Imperative functions (called from JS via the view ref).
+
+  internal fun moveCamera(position: CameraPositionRecord, options: CameraMoveOptionsRecord) {
+    val map = mapView?.mapWindow?.map ?: return
+    val target = CameraPosition(
+      Point(position.latitude, position.longitude),
+      position.zoom.toFloat(),
+      position.azimuth.toFloat(),
+      position.tilt.toFloat()
+    )
+    moveCameraTo(target, options, map)
+  }
+
+  internal fun setZoom(zoom: Double, options: CameraMoveOptionsRecord) {
+    val map = mapView?.mapWindow?.map ?: return
+    val current = map.cameraPosition
+    val target = CameraPosition(current.target, zoom.toFloat(), current.azimuth, current.tilt)
+    moveCameraTo(target, options, map)
+  }
+
+  // Fit the camera so every point is visible. A single point just recenters at the
+  // current zoom (a degenerate bounding box would otherwise snap to max zoom).
+  internal fun fitMarkers(points: List<PointRecord>, options: CameraMoveOptionsRecord) {
+    val map = mapView?.mapWindow?.map ?: return
+    if (points.isEmpty()) {
+      return
+    }
+    val current = map.cameraPosition
+    val target = if (points.size == 1) {
+      CameraPosition(
+        Point(points[0].latitude, points[0].longitude),
+        current.zoom,
+        current.azimuth,
+        current.tilt
+      )
+    } else {
+      val boundingBox = BoundingBox(
+        Point(points.minOf { it.latitude }, points.minOf { it.longitude }),
+        Point(points.maxOf { it.latitude }, points.maxOf { it.longitude })
+      )
+      map.cameraPosition(Geometry.fromBoundingBox(boundingBox))
+    }
+    moveCameraTo(target, options, map)
+  }
+
+  private fun moveCameraTo(target: CameraPosition, options: CameraMoveOptionsRecord, map: YandexMap) {
+    val duration = options.durationSeconds.toFloat().coerceAtLeast(0f)
+    if (duration > 0f) {
+      map.move(target, Animation(options.animation.toYandex(), duration), null)
+    } else {
+      map.move(target)
+    }
+  }
+
+  internal fun currentCameraPosition(): Map<String, Any>? {
+    val map = mapView?.mapWindow?.map ?: return null
+    return cameraPositionPayload(map.cameraPosition)
+  }
+
+  internal fun currentVisibleRegion(): Map<String, Any>? {
+    val region = mapView?.mapWindow?.map?.visibleRegion ?: return null
+    return mapOf(
+      "topLeft" to coordinatePayload(region.topLeft),
+      "topRight" to coordinatePayload(region.topRight),
+      "bottomLeft" to coordinatePayload(region.bottomLeft),
+      "bottomRight" to coordinatePayload(region.bottomRight)
+    )
+  }
+
+  // world -> screen. An unprojectable point (behind the camera / off the globe) becomes
+  // null, surfacing as `null` in the returned JS array.
+  internal fun screenPoints(worldPoints: List<PointRecord>): List<Any?> {
+    val window = mapView?.mapWindow ?: return worldPoints.map { null }
+    return worldPoints.map { point ->
+      val screen = window.worldToScreen(Point(point.latitude, point.longitude)) ?: return@map null
+      mapOf("x" to screen.x.toDouble(), "y" to screen.y.toDouble())
+    }
+  }
+
+  // screen -> world. An unprojectable screen point becomes null (JS `null`).
+  internal fun worldPoints(screenPoints: List<ScreenPointRecord>): List<Any?> {
+    val window = mapView?.mapWindow ?: return screenPoints.map { null }
+    return screenPoints.map { point ->
+      val world = window.screenToWorld(ScreenPoint(point.x.toFloat(), point.y.toFloat())) ?: return@map null
+      coordinatePayload(world)
+    }
+  }
+
+  private fun coordinatePayload(point: Point): Map<String, Any> =
+    mapOf("latitude" to point.latitude, "longitude" to point.longitude)
+
+  private fun cameraPositionPayload(cameraPosition: CameraPosition): Map<String, Any> = mapOf(
+    "latitude" to cameraPosition.target.latitude,
+    "longitude" to cameraPosition.target.longitude,
+    "zoom" to cameraPosition.zoom.toDouble(),
+    "azimuth" to cameraPosition.azimuth.toDouble(),
+    "tilt" to cameraPosition.tilt.toDouble()
+  )
 
   private fun maybeCreateMapView() {
     if (mapView != null) {
