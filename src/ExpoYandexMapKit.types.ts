@@ -23,6 +23,20 @@ export type MapPressEvent = {
   point: Point;
 };
 
+export type MapLoadStatistics = {
+  renderObjectCount: number; // number of map objects rendered
+  tileMemoryUsage: number; // tile cache memory usage, in bytes
+  // Load timings — the Yandex SDK's native values; treat as relative signals (units may
+  // differ slightly between platforms).
+  curZoomModelsLoaded: number;
+  curZoomPlacemarksLoaded: number;
+  curZoomLabelsLoaded: number;
+  curZoomGeometryLoaded: number;
+  delayedGeometryLoaded: number;
+  fullyLoaded: number;
+  fullyAppeared: number;
+};
+
 export type YandexMapViewProps = {
   cameraPosition?: CameraPosition; // declarative: prop change moves the native camera
   animated?: boolean; // animate declarative moves, default true
@@ -41,6 +55,7 @@ export type YandexMapViewProps = {
   onCameraPositionChanged?: (event: { nativeEvent: CameraPositionChangeEvent }) => void;
   onMapPress?: (event: { nativeEvent: MapPressEvent }) => void;
   onMapLongPress?: (event: { nativeEvent: MapPressEvent }) => void;
+  onMapLoaded?: (event: { nativeEvent: MapLoadStatistics }) => void; // fires once the map finishes loading, with render stats
   style?: StyleProp<ViewStyle>;
 };
 

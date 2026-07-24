@@ -16,6 +16,8 @@ import com.yandex.mapkit.map.CameraPosition
 import com.yandex.mapkit.map.CameraUpdateReason
 import com.yandex.mapkit.map.InputListener
 import com.yandex.mapkit.map.Map as YandexMap
+import com.yandex.mapkit.map.MapLoadStatistics
+import com.yandex.mapkit.map.MapLoadedListener
 import com.yandex.mapkit.map.MapType as YandexMapType
 import com.yandex.mapkit.mapview.MapView
 import expo.modules.kotlin.AppContext
@@ -147,6 +149,7 @@ class ExpoYandexMapKitView(context: Context, appContext: AppContext) : ExpoView(
   private val onCameraPositionChanged by EventDispatcher<Map<String, Any>>()
   private val onMapPress by EventDispatcher<Map<String, Any>>()
   private val onMapLongPress by EventDispatcher<Map<String, Any>>()
+  private val onMapLoaded by EventDispatcher<Map<String, Any>>()
 
   internal var animated = true
 
@@ -209,6 +212,24 @@ class ExpoYandexMapKitView(context: Context, appContext: AppContext) : ExpoView(
 
     override fun onMapLongTap(map: YandexMap, point: Point) {
       onMapLongPress(pointPayload(point))
+    }
+  }
+
+  private val mapLoadedListener = object : MapLoadedListener {
+    override fun onMapLoaded(statistics: MapLoadStatistics) {
+      this@ExpoYandexMapKitView.onMapLoaded(
+        mapOf(
+          "renderObjectCount" to statistics.renderObjectCount,
+          "tileMemoryUsage" to statistics.tileMemoryUsage,
+          "curZoomModelsLoaded" to statistics.curZoomModelsLoaded.toDouble(),
+          "curZoomPlacemarksLoaded" to statistics.curZoomPlacemarksLoaded.toDouble(),
+          "curZoomLabelsLoaded" to statistics.curZoomLabelsLoaded.toDouble(),
+          "curZoomGeometryLoaded" to statistics.curZoomGeometryLoaded.toDouble(),
+          "delayedGeometryLoaded" to statistics.delayedGeometryLoaded.toDouble(),
+          "fullyLoaded" to statistics.fullyLoaded.toDouble(),
+          "fullyAppeared" to statistics.fullyAppeared.toDouble()
+        )
+      )
     }
   }
 
@@ -512,6 +533,7 @@ class ExpoYandexMapKitView(context: Context, appContext: AppContext) : ExpoView(
     // cameraListener/inputListener fields on this view keep the listeners alive.
     map.addCameraListener(WeakReference(cameraListener))
     map.addInputListener(WeakReference(inputListener))
+    map.setMapLoadedListener(mapLoadedListener)
     map.isNightModeEnabled = nightMode
     applyGestureState()
     map.isFastTapEnabled = fastTapEnabled

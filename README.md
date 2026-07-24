@@ -232,6 +232,7 @@ Events:
 | `onCameraPositionChanged` | `CameraPositionChangeEvent` | While the camera moves; `reason` distinguishes user gestures from programmatic moves, `finished` marks the end of a movement. |
 | `onMapPress` | `MapPressEvent` | On a single tap on the map. |
 | `onMapLongPress` | `MapPressEvent` | On a long press on the map. |
+| `onMapLoaded` | `MapLoadStatistics` | Once the map finishes loading — carries render stats (`renderObjectCount`, `tileMemoryUsage`, load timings). |
 
 ### Types
 
@@ -253,6 +254,18 @@ type CameraPositionChangeEvent = {
 };
 
 type MapPressEvent = { point: Point };
+
+type MapLoadStatistics = {
+  renderObjectCount: number;      // number of map objects rendered
+  tileMemoryUsage: number;        // tile cache memory usage, in bytes
+  curZoomModelsLoaded: number;    // load timings (Yandex-native units)
+  curZoomPlacemarksLoaded: number;
+  curZoomLabelsLoaded: number;
+  curZoomGeometryLoaded: number;
+  delayedGeometryLoaded: number;
+  fullyLoaded: number;
+  fullyAppeared: number;
+};
 ```
 
 The raw native module is also exported as `ExpoYandexMapKitModule` as an escape hatch; its shape is not part of the stable API.

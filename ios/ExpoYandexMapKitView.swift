@@ -120,6 +120,7 @@ class ExpoYandexMapKitView: ExpoView {
   let onCameraPositionChanged = EventDispatcher()
   let onMapPress = EventDispatcher()
   let onMapLongPress = EventDispatcher()
+  let onMapLoaded = EventDispatcher()
 
   var animated = true
 
@@ -128,6 +129,7 @@ class ExpoYandexMapKitView: ExpoView {
   // retained here, or callbacks silently stop.
   private var cameraListener: CameraListener?
   private var inputListener: InputListener?
+  private var mapLoadedListener: MapLoadedListener?
   private var pendingCameraPosition: CameraPositionRecord?
   private var nightMode = false
   // Gesture toggles default to MapKit's own defaults (all enabled). Stored so a
@@ -459,10 +461,13 @@ class ExpoYandexMapKitView: ExpoView {
     let map = mapView.mapWindow.map
     let cameraListener = CameraListener(view: self)
     let inputListener = InputListener(view: self)
+    let mapLoadedListener = MapLoadedListener(view: self)
     self.cameraListener = cameraListener
     self.inputListener = inputListener
+    self.mapLoadedListener = mapLoadedListener
     map.addCameraListener(with: cameraListener)
     map.addInputListener(with: inputListener)
+    map.setMapLoadedListenerWith(mapLoadedListener)
 
     map.isNightModeEnabled = nightMode
     applyGestureState()
@@ -548,6 +553,20 @@ class ExpoYandexMapKitView: ExpoView {
     onMapLongPress(pointPayload(point))
   }
 
+  fileprivate func dispatchMapLoaded(_ statistics: YMKMapLoadStatistics) {
+    onMapLoaded([
+      "renderObjectCount": statistics.renderObjectCount,
+      "tileMemoryUsage": statistics.tileMemoryUsage,
+      "curZoomModelsLoaded": statistics.curZoomModelsLoaded,
+      "curZoomPlacemarksLoaded": statistics.curZoomPlacemarksLoaded,
+      "curZoomLabelsLoaded": statistics.curZoomLabelsLoaded,
+      "curZoomGeometryLoaded": statistics.curZoomGeometryLoaded,
+      "delayedGeometryLoaded": statistics.delayedGeometryLoaded,
+      "fullyLoaded": statistics.fullyLoaded,
+      "fullyAppeared": statistics.fullyAppeared,
+    ])
+  }
+
   private func pointPayload(_ point: YMKPoint) -> [String: Any] {
     return [
       "point": [
@@ -593,5 +612,17 @@ private final class InputListener: NSObject, YMKMapInputListener {
 
   func onMapLongTap(with map: YMKMap, point: YMKPoint) {
     view?.dispatchMapLongPress(point)
+  }
+}
+
+private final class MapLoadedListener: NSObject, YMKMapLoadedListener {
+  private weak var view: ExpoYandexMapKitView?
+
+  init(view: ExpoYandexMapKitView) {
+    self.view = view
+  }
+
+  func onMapLoaded(with statistics: YMKMapLoadStatistics) {
+    view?.dispatchMapLoaded(statistics)
   }
 }
