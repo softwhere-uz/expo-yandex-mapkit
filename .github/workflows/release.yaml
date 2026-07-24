@@ -55,7 +55,10 @@ jobs:
       - name: Verify tarball contents
         run: |
           npm pack --dry-run --json --foreground-scripts=false | node -e "
-            const files = JSON.parse(require('fs').readFileSync(0, 'utf8'))[0].files.map((f) => f.path);
+            // npm <=10 emits an array; npm >=11 an object keyed by package name.
+            const parsed = JSON.parse(require('fs').readFileSync(0, 'utf8'));
+            const pkg = Array.isArray(parsed) ? parsed[0] : Object.values(parsed)[0];
+            const files = pkg.files.map((f) => f.path);
             const required = ['app.plugin.js', 'build/index.js', 'plugin/build/index.js'];
             const missing = required.filter((p) => !files.includes(p));
             if (missing.length) { console.error('Missing from tarball:', missing); process.exit(1); }

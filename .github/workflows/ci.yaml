@@ -20,8 +20,10 @@ on:
       - '.github/workflows/mapkit-version-watch.yaml'
   workflow_dispatch:
 
+# Release version-bump pushes get their own concurrency group so they can never
+# cancel an in-flight full CI run (their own run skips the heavy jobs anyway).
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ci-${{ github.ref }}-${{ (github.event_name == 'push' && startsWith(github.event.head_commit.message, 'chore(release):')) && 'release' || 'code' }}
   cancel-in-progress: true
 
 permissions:
@@ -50,7 +52,10 @@ jobs:
         run: |
           for i in 1 2; do
             npm pack --dry-run --json --foreground-scripts=false | node -e "
-              const files = JSON.parse(require('fs').readFileSync(0, 'utf8'))[0].files.map((f) => f.path);
+              // npm <=10 emits an array; npm >=11 an object keyed by package name.
+              const parsed = JSON.parse(require('fs').readFileSync(0, 'utf8'));
+              const pkg = Array.isArray(parsed) ? parsed[0] : Object.values(parsed)[0];
+              const files = pkg.files.map((f) => f.path);
               const required = ['app.plugin.js', 'build/index.js', 'plugin/build/index.js', 'README.md', 'README.ru.md', 'LICENSE'];
               const missing = required.filter((p) => !files.includes(p));
               const banned = files.filter((p) => p === 'HANDOVER.md' || p.endsWith('.tsbuildinfo') || p.startsWith('alias/'));
