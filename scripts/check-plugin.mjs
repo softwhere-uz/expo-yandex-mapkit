@@ -311,10 +311,9 @@ const metaValues = (application, name) =>
 {
   const config = withPlugin(baseConfig(), { apiKey: '  spaced-key  ' });
   const manifest = await config.mods.android.manifest({ ...config, modResults: manifestInit() });
-  assert.deepEqual(
-    metaValues(mainApplicationOf(manifest.modResults), ANDROID_API_KEY_METADATA),
-    ['spaced-key']
-  );
+  assert.deepEqual(metaValues(mainApplicationOf(manifest.modResults), ANDROID_API_KEY_METADATA), [
+    'spaced-key',
+  ]);
   const plist = await config.mods.ios.infoPlist({ ...config, modResults: {} });
   assert.equal(plist.modResults[IOS_API_KEY_INFO_PLIST_KEY], 'spaced-key');
 }
@@ -333,7 +332,9 @@ const metaValues = (application, name) =>
   assert.equal(iosPlist.modResults[IOS_API_KEY_INFO_PLIST_KEY], 'ios-only');
   assert.equal(iosPlist.modResults[IOS_LOCALE_INFO_PLIST_KEY], 'en_US');
 
-  const androidOnly = withPlugin(baseConfig(), { android: { apiKey: 'android-only', locale: 'ru_RU' } });
+  const androidOnly = withPlugin(baseConfig(), {
+    android: { apiKey: 'android-only', locale: 'ru_RU' },
+  });
   assert.equal(
     androidOnly.mods.ios.infoPlist,
     undefined,
@@ -348,15 +349,74 @@ const metaValues = (application, name) =>
   assert.deepEqual(metaValues(app, ANDROID_LOCALE_METADATA), ['ru_RU']);
 }
 
-// 15. Validation: bad/non-string locale, blank/non-string apiKey throw scoped errors. The
-//     non-string locale case guards the RegExp.test coercion footgun (["en_US"] -> "en_US").
+// 15. Validation: bad/non-string locale and non-string apiKey throw scoped errors. The non-string
+//     locale case guards the RegExp.test coercion footgun (["en_US"] -> "en_US"). A blank/empty
+//     apiKey is deliberately NOT a throw — it is tolerated and warned about (see §16) — so only a
+//     present, non-string key (number, array, object) throws here.
 {
   assert.throws(() => withPlugin(baseConfig(), { locale: 'english' }), /locale/);
   assert.throws(() => withPlugin(baseConfig(), { locale: 'e_US' }), /locale/);
   assert.throws(() => withPlugin(baseConfig(), { locale: ['en_US'] }), /locale/);
-  assert.throws(() => withPlugin(baseConfig(), { apiKey: '   ' }), /apiKey/);
   assert.throws(() => withPlugin(baseConfig(), { apiKey: 123 }), /apiKey/);
+  assert.throws(() => withPlugin(baseConfig(), { apiKey: ['key'] }), /apiKey/);
+  assert.throws(() => withPlugin(baseConfig(), { ios: { apiKey: {} } }), /ios\..*apiKey/);
   assert.throws(() => withPlugin(baseConfig(), { ios: { locale: 'e_US' } }), /ios\./);
+}
+
+// 16. Empty/whitespace apiKey must NOT abort prebuild (regression: #15). A blank key — the common
+//     `process.env.YANDEX_MAPKIT_API_KEY ?? ''` footgun — is treated as "not provided": the plugin
+//     warns, injects no key, and still applies the native build props so prebuild succeeds.
+{
+  const warnings = [];
+  const originalWarn = console.warn;
+  console.warn = (msg) => warnings.push(String(msg));
+  try {
+    // Blank key alone → no injection mods registered at all; the runtime initialize() path is
+    // untouched, and the native build props (version/flavor/minSdk/iOS target) are still applied.
+    for (const apiKey of ['', '   ']) {
+      const config = withPlugin(baseConfig(), { apiKey });
+      assert.equal(
+        config.mods.android.manifest,
+        undefined,
+        `blank apiKey (${JSON.stringify(apiKey)}) must not register the Android manifest mod`
+      );
+      assert.equal(
+        config.mods.ios.infoPlist,
+        undefined,
+        `blank apiKey (${JSON.stringify(apiKey)}) must not register the iOS infoPlist mod`
+      );
+      const gradle = await config.mods.android.gradleProperties({ ...config, modResults: [] });
+      assert.deepEqual(gradleValue(gradle.modResults, 'expoYandexMapKit.version'), [
+        DEFAULT_VERSION,
+      ]);
+      assert.deepEqual(gradleValue(gradle.modResults, 'android.minSdkVersion'), ['26']);
+      const pod = await config.mods.ios.podfileProperties({ ...config, modResults: {} });
+      assert.equal(pod.modResults['expoYandexMapKit.flavor'], DEFAULT_FLAVOR);
+      assert.equal(pod.modResults['ios.deploymentTarget'], MIN_IOS_DEPLOYMENT_TARGET);
+    }
+
+    // Blank key alongside a locale → the injection mods ARE registered (for the locale), but the
+    // empty key is dropped: only the locale reaches the manifest / Info.plist.
+    const withLocale = withPlugin(baseConfig(), { apiKey: '', locale: 'en_US' });
+    const manifest = await withLocale.mods.android.manifest({
+      ...withLocale,
+      modResults: manifestInit(),
+    });
+    const app = mainApplicationOf(manifest.modResults);
+    assert.deepEqual(metaValues(app, ANDROID_API_KEY_METADATA), []);
+    assert.deepEqual(metaValues(app, ANDROID_LOCALE_METADATA), ['en_US']);
+    const plist = await withLocale.mods.ios.infoPlist({ ...withLocale, modResults: {} });
+    assert.equal(plist.modResults[IOS_API_KEY_INFO_PLIST_KEY], undefined);
+    assert.equal(plist.modResults[IOS_LOCALE_INFO_PLIST_KEY], 'en_US');
+  } finally {
+    console.warn = originalWarn;
+  }
+  // One warning per blank-key scope above: '', '   ', and '' with a locale.
+  assert.equal(warnings.length, 3, `expected 3 blank-apiKey warnings, got ${warnings.length}`);
+  assert.ok(
+    warnings.every((w) => /apiKey is empty/.test(w)),
+    'each blank-apiKey warning must explain the key was ignored'
+  );
 }
 
 console.log('plugin behavior checks: all passed');
