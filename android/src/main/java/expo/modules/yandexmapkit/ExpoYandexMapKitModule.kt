@@ -207,13 +207,15 @@ class ExpoYandexMapKitModule : Module() {
         view.setIdentifier(identifier)
       }
 
+      // The animations drive a ValueAnimator, which must be created and started on a Looper
+      // (main) thread — Expo runs AsyncFunctions off the main queue by default.
       AsyncFunction("animatedMoveTo") { view: ExpoYandexMapKitMarkerView, point: PointRecord, durationMs: Double ->
         view.animatedMoveTo(Point(point.latitude, point.longitude), durationMs)
-      }
+      }.runOnQueue(Queues.MAIN)
 
       AsyncFunction("animatedRotateTo") { view: ExpoYandexMapKitMarkerView, angle: Double, durationMs: Double ->
         view.animatedRotateTo(angle.toFloat(), durationMs)
-      }
+      }.runOnQueue(Queues.MAIN)
     }
   }
 

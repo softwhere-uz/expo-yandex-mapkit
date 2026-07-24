@@ -147,8 +147,9 @@ class ExpoYandexMapKitMarkerView: ExpoView {
   }
 
   fileprivate func handleTap(_ point: YMKPoint) -> Bool {
+    // NSNull (not `nil as Any`) when unset, so the payload matches Android's null identifier.
     onPress([
-      "identifier": identifier as Any,
+      "identifier": identifier.map { $0 as Any } ?? NSNull(),
       "point": ["latitude": point.latitude, "longitude": point.longitude],
     ])
     // Returning true consumes the tap so it does not also fall through to the map's onMapPress.
