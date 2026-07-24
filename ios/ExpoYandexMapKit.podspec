@@ -27,7 +27,9 @@ Pod::Spec.new do |s|
   s.platforms      = {
     :ios => '16.4'
   }
-  s.source         = { git: package['repository'] }
+  # package.json's repository may be a plain URL string or a { type, url } object.
+  repository_url = package['repository'].is_a?(Hash) ? package['repository']['url'] : package['repository']
+  s.source         = { git: repository_url }
   s.static_framework = true
 
   s.dependency 'ExpoModulesCore'
