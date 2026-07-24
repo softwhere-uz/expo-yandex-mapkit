@@ -21,13 +21,18 @@ export const YandexMapView = React.forwardRef<YandexMapViewRef, YandexMapViewPro
 
     React.useImperativeHandle(
       ref,
+      // Guard nativeRef.current: after unmount (or before the first commit) it is null.
+      // Optional chaining + a resolved fallback keeps every method returning a Promise
+      // instead of throwing a synchronous TypeError at the call site.
       () => ({
         setCenter: (position: CameraPosition, options?: CameraMoveOptions) =>
-          nativeRef.current.setCenter(position, options ?? {}),
-        getCameraPosition: () => nativeRef.current.getCameraPosition(),
-        getVisibleRegion: () => nativeRef.current.getVisibleRegion(),
-        getScreenPoints: (points: Point[]) => nativeRef.current.getScreenPoints(points),
-        getWorldPoints: (points: ScreenPoint[]) => nativeRef.current.getWorldPoints(points),
+          nativeRef.current?.setCenter(position, options ?? {}) ?? Promise.resolve(),
+        getCameraPosition: () => nativeRef.current?.getCameraPosition() ?? Promise.resolve(null),
+        getVisibleRegion: () => nativeRef.current?.getVisibleRegion() ?? Promise.resolve(null),
+        getScreenPoints: (points: Point[]) =>
+          nativeRef.current?.getScreenPoints(points) ?? Promise.resolve([]),
+        getWorldPoints: (points: ScreenPoint[]) =>
+          nativeRef.current?.getWorldPoints(points) ?? Promise.resolve([]),
       }),
       []
     );

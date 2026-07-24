@@ -63,7 +63,8 @@ export type CameraMoveOptions = {
 
 // Imperative methods, called through a ref: `const ref = useRef<YandexMapViewRef>(null)`.
 export type YandexMapViewRef = {
-  // Animate/move the camera. Rejects nothing; a no-op if the map is not ready yet.
+  // Animate/move the camera to `position`. Sets the FULL camera — omitting `azimuth`/`tilt`
+  // resets them to 0 (flat, north-up), same as the `cameraPosition` prop. No-op until ready.
   setCenter(position: CameraPosition, options?: CameraMoveOptions): Promise<void>;
   // Current camera position, or null if the map is not ready.
   getCameraPosition(): Promise<Required<CameraPosition> | null>;
