@@ -1,4 +1,4 @@
-import { initialize, YandexMapView } from 'expo-yandex-mapkit';
+import { initialize, Marker, YandexMapView } from 'expo-yandex-mapkit';
 import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
@@ -26,8 +26,15 @@ export default function App() {
           onMapReady={(event) => console.log('onMapReady', event.nativeEvent)}
           onCameraPositionChanged={(event) => console.log('onCameraPositionChanged', event.nativeEvent)}
           onMapPress={(event) => console.log('onMapPress', event.nativeEvent)}
-          onMapLongPress={(event) => console.log('onMapLongPress', event.nativeEvent)}
-        />
+          onMapLongPress={(event) => console.log('onMapLongPress', event.nativeEvent)}>
+          <Marker
+            point={{ latitude: TASHKENT.latitude, longitude: TASHKENT.longitude }}
+            source={require('./assets/favicon.png')}
+            anchor={{ x: 0.5, y: 0.5 }}
+            identifier="tashkent-center"
+            onPress={(event) => console.log('onMarkerPress', event.nativeEvent)}
+          />
+        </YandexMapView>
       ) : (
         <View style={styles.placeholder}>
           <Text>Initializing Yandex MapKit…</Text>

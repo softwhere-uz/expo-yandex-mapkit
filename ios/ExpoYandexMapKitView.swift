@@ -154,6 +154,11 @@ class ExpoYandexMapKitView: ExpoView {
   private var mapReadyEmitted = false
   private var didWarnAboutMissingInit = false
 
+  // Child <Marker> views in mount order. Managed through Fabric's mount/unmount child hooks rather
+  // than the view hierarchy — markers own no UI, they drive placemarks. A marker mounted before the
+  // map exists stays here un-attached and is wired up in createMapViewIfReady.
+  private var markerViews: [ExpoYandexMapKitMarkerView] = []
+
   required init(appContext: AppContext? = nil) {
     super.init(appContext: appContext)
     clipsToBounds = true
@@ -174,6 +179,51 @@ class ExpoYandexMapKitView: ExpoView {
   override func layoutSubviews() {
     super.layoutSubviews()
     mapView?.frame = bounds
+  }
+
+  // MARK: - Marker children
+
+  // Fabric mounts <Marker> children here. They are not added to the view hierarchy — each drives a
+  // MapKit placemark. Non-marker children (none expected) fall through to the default behaviour.
+  override func mountChildComponentView(_ childComponentView: UIView, index: Int) {
+    guard let marker = childComponentView as? ExpoYandexMapKitMarkerView else {
+      super.mountChildComponentView(childComponentView, index: index)
+      return
+    }
+    let safeIndex = min(max(index, 0), markerViews.count)
+    markerViews.insert(marker, at: safeIndex)
+    attachMarker(marker)
+  }
+
+  override func unmountChildComponentView(_ childComponentView: UIView, index: Int) {
+    guard let marker = childComponentView as? ExpoYandexMapKitMarkerView else {
+      super.unmountChildComponentView(childComponentView, index: index)
+      return
+    }
+    if let idx = markerViews.firstIndex(where: { $0 === marker }) {
+      markerViews.remove(at: idx)
+    }
+    detachMarker(marker)
+  }
+
+  // Create a placemark for a marker and hand it over. No-op if the map is not ready yet (the
+  // marker stays in the list and is attached later by attachPendingMarkers) or already attached.
+  private func attachMarker(_ marker: ExpoYandexMapKitMarkerView) {
+    guard !marker.isAttached, let mapObjects = mapView?.mapWindow.map.mapObjects else {
+      return
+    }
+    marker.attach(to: mapObjects.addPlacemark())
+  }
+
+  private func detachMarker(_ marker: ExpoYandexMapKitMarkerView) {
+    if let placemark = marker.currentPlacemark {
+      mapView?.mapWindow.map.mapObjects.remove(with: placemark)
+    }
+    marker.detach()
+  }
+
+  private func attachPendingMarkers() {
+    markerViews.forEach { attachMarker($0) }
   }
 
   // MARK: - Props
@@ -480,6 +530,8 @@ class ExpoYandexMapKitView: ExpoView {
     applyLogo(to: map)
     // The initial camera position is applied instantly — the map has not been shown yet.
     applyPendingCameraPosition(allowAnimation: false)
+    // Wire up any <Marker> children that mounted before the map existed.
+    attachPendingMarkers()
   }
 
   // Called on the main thread by the module once `initialize(apiKey)` resolves,

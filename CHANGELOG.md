@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`<Marker>` component** (#1 → Markers): image placemarks rendered as children of
+  `YandexMapView`. Props: `point`, `source` (`require(...)` or `{ uri }`, http/data/file/bundled),
+  `scale`, `anchor`, `visible`, `zIndex`, `rotated` (icon follows the map azimuth), `handled`
+  (consume the tap so it does not also fire the map's `onMapPress`), and `identifier` — echoed back
+  in `onPress` so a shared handler can tell markers apart (the identifying payload the lineage's
+  marker taps never carried). Imperative `animatedMoveTo(point, durationMs)` /
+  `animatedRotateTo(angle, durationMs)` via a marker ref. Markers mounted before `initialize()`
+  resolves attach automatically once the map is created. (React-children marker icons,
+  `fitAllMarkers`, and `fitMarkers` edge padding are follow-ups.)
+
 ## [0.0.4] - 2026-07-25
 
 ### Added

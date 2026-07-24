@@ -27,7 +27,7 @@ Planned: markers (including React-children icons), polylines/polygons/circles, c
 
 | Phase | Scope | Status |
 | --- | --- | --- |
-| v0 | MapView, camera control + events, press events, night mode, markers (incl. React-children icons) | In progress — everything except markers is shipped |
+| v0 | MapView, camera control + events, press events, night mode, markers (incl. React-children icons) | In progress — image markers shipped; React-children marker icons pending |
 | v1 | Polylines, polygons, circles, clustering, user-location layer, traffic toggle, JSON map styling | Planned |
 | v2 | Full-flavor features: search + suggest, geocoding, routing | Planned |
 | v3 | Mappable (mappable.world) dual-brand support; `expo-yandex-mapkit-dom` — a DOM-component fallback so a map can render in Expo Go and on web | Planned |
@@ -322,6 +322,46 @@ await mapRef.current?.setCenter({ latitude: 41.31, longitude: 69.24, zoom: 14 },
 const region = await mapRef.current?.getVisibleRegion();
 const [screen] = await mapRef.current?.getScreenPoints([{ latitude: 41.31, longitude: 69.24 }]) ?? [];
 ```
+
+### `<Marker />`
+
+Render markers as children of `YandexMapView`:
+
+```tsx
+import { YandexMapView, Marker } from 'expo-yandex-mapkit';
+
+<YandexMapView style={StyleSheet.absoluteFill} cameraPosition={{ latitude: 41.31, longitude: 69.24, zoom: 12 }}>
+  <Marker
+    point={{ latitude: 41.31, longitude: 69.24 }}
+    source={require('./assets/pin.png')}
+    anchor={{ x: 0.5, y: 1 }}
+    identifier="center"
+    onPress={({ nativeEvent }) => console.log('tapped', nativeEvent.identifier)}
+  />
+</YandexMapView>;
+```
+
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `point` | `Point` | — | Geographic position (required). |
+| `source` | `ImageSourcePropType` | — | Icon image — `require('./pin.png')` or `{ uri }` (http, `data:`, `file:`, or a bundled asset). Omit to keep MapKit's default placemark (which is empty until an icon is set). |
+| `scale` | `number` | `1` | Icon scale multiplier. |
+| `anchor` | `{ x: number; y: number }` | icon default | Anchor point as `[0,1]` fractions of the icon; `{ x: 0.5, y: 1 }` pins the bottom-center. |
+| `visible` | `boolean` | `true` | Show/hide the icon. |
+| `zIndex` | `number` | `0` | Draw order among map objects. |
+| `rotated` | `boolean` | `false` | When `true`, the icon rotates with the map's azimuth. |
+| `handled` | `boolean` | `false` | When `true`, a tap is consumed and does **not** also fire the map's `onMapPress`. |
+| `identifier` | `string` | — | Opaque id echoed back in `onPress` so one handler can tell markers apart. |
+| `onPress` | `(event) => void` | — | `event.nativeEvent` is `{ identifier?, point }`. |
+
+Imperative methods via a marker ref (`const ref = useRef<MarkerRef>(null)`):
+
+| Method | Notes |
+| --- | --- |
+| `animatedMoveTo(point, durationMs)` | Linearly animate the marker to `point`. |
+| `animatedRotateTo(angle, durationMs)` | Linearly animate the icon heading to `angle` degrees. |
+
+> Markers mounted before `initialize()` resolves attach automatically once the map is created — no ready-gating needed for the children. React-children marker icons, `fitAllMarkers`, and `fitMarkers` edge padding are on the roadmap.
 
 ## lite vs full
 

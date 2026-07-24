@@ -142,6 +142,59 @@ public class ExpoYandexMapKitModule: Module {
         view.worldPoints(forScreenPoints: points)
       }
     }
+
+    // The <Marker> child view. Named, so it is required as
+    // requireNativeView('ExpoYandexMapKit', 'ExpoYandexMapKitMarkerView'); the map view above stays
+    // the module's default view.
+    View(ExpoYandexMapKitMarkerView.self) {
+      Name("ExpoYandexMapKitMarkerView")
+      Events("onPress")
+
+      Prop("point") { (view: ExpoYandexMapKitMarkerView, point: PointRecord) in
+        view.setPoint(point)
+      }
+
+      Prop("source") { (view: ExpoYandexMapKitMarkerView, source: String?) in
+        view.setIconSource(source)
+      }
+
+      Prop("scale") { (view: ExpoYandexMapKitMarkerView, scale: Double) in
+        view.setScale(scale)
+      }
+
+      Prop("anchor") { (view: ExpoYandexMapKitMarkerView, anchor: MarkerAnchorRecord?) in
+        view.setAnchor(anchor)
+      }
+
+      Prop("visible") { (view: ExpoYandexMapKitMarkerView, visible: Bool) in
+        view.setVisible(visible)
+      }
+
+      Prop("zI") { (view: ExpoYandexMapKitMarkerView, zIndex: Double) in
+        view.setZIndexValue(zIndex)
+      }
+
+      Prop("rotated") { (view: ExpoYandexMapKitMarkerView, rotated: Bool) in
+        view.setRotated(rotated)
+      }
+
+      Prop("handled") { (view: ExpoYandexMapKitMarkerView, handled: Bool) in
+        view.setHandled(handled)
+      }
+
+      Prop("identifier") { (view: ExpoYandexMapKitMarkerView, identifier: String?) in
+        view.setIdentifier(identifier)
+      }
+
+      AsyncFunction("animatedMoveTo") { (view: ExpoYandexMapKitMarkerView, point: PointRecord, durationMs: Double) in
+        view.animatedMoveTo(
+          YMKPoint(latitude: point.latitude, longitude: point.longitude), durationMs: durationMs)
+      }
+
+      AsyncFunction("animatedRotateTo") { (view: ExpoYandexMapKitMarkerView, angle: Double, durationMs: Double) in
+        view.animatedRotateTo(angle, durationMs: durationMs)
+      }
+    }
   }
 
   // Shared initialization for both the JS initialize() call and the build-time auto-init. Must be

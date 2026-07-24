@@ -1,4 +1,5 @@
-import type { StyleProp, ViewStyle } from 'react-native';
+import type { ReactNode } from 'react';
+import type { ImageSourcePropType, StyleProp, ViewStyle } from 'react-native';
 
 export type Point = {
   latitude: number;
@@ -58,6 +59,42 @@ export type YandexMapViewProps = {
   onMapLongPress?: (event: { nativeEvent: MapPressEvent }) => void;
   onMapLoaded?: (event: { nativeEvent: MapLoadStatistics }) => void; // fires once the map finishes loading, with render stats
   style?: StyleProp<ViewStyle>;
+  children?: ReactNode; // <Marker> (and future map-object) children
+};
+
+// Icon anchor as fractions of the icon size: { x: 0.5, y: 1 } pins the icon's bottom-center
+// to the coordinate (the usual "pin" placement). Each component is clamped to [0, 1] natively.
+export type MarkerAnchor = {
+  x: number;
+  y: number;
+};
+
+export type MarkerPressEvent = {
+  // The marker's `identifier` prop, echoed back so you can tell markers apart — the
+  // identifying payload the lineage's marker press events never carried.
+  identifier?: string;
+  point: Point; // the marker's geographic position at tap time
+};
+
+export type MarkerProps = {
+  point: Point; // geographic position of the marker (required)
+  source?: ImageSourcePropType; // icon image — require('./pin.png') or { uri }; omit for MapKit's default pin
+  scale?: number; // icon scale multiplier, default 1
+  anchor?: MarkerAnchor; // icon anchor in [0,1] fractions; unset uses the icon's own default
+  visible?: boolean; // default true
+  zIndex?: number; // draw order relative to other map objects, default 0
+  rotated?: boolean; // when true the icon rotates with the map's azimuth, default false
+  handled?: boolean; // when true a tap is consumed and does NOT also fire the map's onMapPress, default false
+  identifier?: string; // opaque id echoed back in onPress — lets a shared handler identify the marker
+  onPress?: (event: { nativeEvent: MarkerPressEvent }) => void;
+};
+
+// Imperative marker methods, called through a ref: `const ref = useRef<MarkerRef>(null)`.
+export type MarkerRef = {
+  // Animate the marker to `point` over `durationMs` milliseconds (linear). No-op until it is on the map.
+  animatedMoveTo(point: Point, durationMs: number): Promise<void>;
+  // Animate the marker's icon heading to `angle` degrees over `durationMs` milliseconds (linear).
+  animatedRotateTo(angle: number, durationMs: number): Promise<void>;
 };
 
 export type ScreenPoint = {

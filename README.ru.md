@@ -27,7 +27,7 @@
 
 | Этап | Объём | Статус |
 | --- | --- | --- |
-| v0 | MapView, управление камерой + события, нажатия, ночной режим, маркеры (вкл. иконки из React-детей) | В работе — всё, кроме маркеров, уже готово |
+| v0 | MapView, управление камерой + события, нажатия, ночной режим, маркеры (вкл. иконки из React-детей) | В работе — маркеры с картинками готовы; иконки из React-детей — в планах |
 | v1 | Полилинии, полигоны, круги, кластеризация, слой геопозиции, пробки, JSON-стилизация карты | Запланировано |
 | v2 | Возможности flavor `full`: поиск + саджест, геокодинг, маршрутизация | Запланировано |
 | v3 | Поддержка второго бренда — Mappable (mappable.world); `expo-yandex-mapkit-dom` — DOM-компонент-фолбэк, чтобы карта работала в Expo Go и на вебе | Запланировано |
@@ -273,6 +273,46 @@ type MapPressEvent = { point: Point };
 ```
 
 Сырой нативный модуль также экспортируется как `ExpoYandexMapKitModule` — низкоуровневый обходной путь (escape hatch); его интерфейс не является частью стабильного API.
+
+### `<Marker />`
+
+Маркеры рендерятся как дети `YandexMapView`:
+
+```tsx
+import { YandexMapView, Marker } from 'expo-yandex-mapkit';
+
+<YandexMapView style={StyleSheet.absoluteFill} cameraPosition={{ latitude: 41.31, longitude: 69.24, zoom: 12 }}>
+  <Marker
+    point={{ latitude: 41.31, longitude: 69.24 }}
+    source={require('./assets/pin.png')}
+    anchor={{ x: 0.5, y: 1 }}
+    identifier="center"
+    onPress={({ nativeEvent }) => console.log('нажали', nativeEvent.identifier)}
+  />
+</YandexMapView>;
+```
+
+| Проп | Тип | По умолчанию | Описание |
+| --- | --- | --- | --- |
+| `point` | `Point` | — | Географическая позиция (обязательный). |
+| `source` | `ImageSourcePropType` | — | Иконка — `require('./pin.png')` или `{ uri }` (http, `data:`, `file:` или встроенный ассет). Опустите, чтобы оставить пустой плейсмарк MapKit (без иконки он невидим). |
+| `scale` | `number` | `1` | Множитель масштаба иконки. |
+| `anchor` | `{ x: number; y: number }` | по иконке | Точка привязки в долях `[0,1]`; `{ x: 0.5, y: 1 }` — низ по центру. |
+| `visible` | `boolean` | `true` | Показать/скрыть иконку. |
+| `zIndex` | `number` | `0` | Порядок отрисовки среди объектов карты. |
+| `rotated` | `boolean` | `false` | Если `true`, иконка поворачивается вместе с азимутом карты. |
+| `handled` | `boolean` | `false` | Если `true`, нажатие поглощается и **не** вызывает `onMapPress` карты. |
+| `identifier` | `string` | — | Непрозрачный id, возвращаемый в `onPress` — чтобы один обработчик различал маркеры. |
+| `onPress` | `(event) => void` | — | `event.nativeEvent` — это `{ identifier?, point }`. |
+
+Императивные методы через ref маркера (`const ref = useRef<MarkerRef>(null)`):
+
+| Метод | Описание |
+| --- | --- |
+| `animatedMoveTo(point, durationMs)` | Линейно анимирует маркер к `point`. |
+| `animatedRotateTo(angle, durationMs)` | Линейно анимирует курс иконки к `angle` градусам. |
+
+> Маркеры, смонтированные до завершения `initialize()`, привязываются автоматически после создания карты — гейтинг готовности для детей не нужен. Иконки из React-детей, `fitAllMarkers` и отступы у `fitMarkers` — в дорожной карте.
 
 ## lite и full
 
