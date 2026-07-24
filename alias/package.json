@@ -1,0 +1,36 @@
+{
+  "name": "@softwhere-uz/expo-yandex-mapkit",
+  "version": "0.0.1",
+  "description": "Official scoped alias of expo-yandex-mapkit",
+  "main": "index.js",
+  "keywords": [
+    "yandex",
+    "mapkit",
+    "yandex-mapkit",
+    "expo",
+    "react-native",
+    "maps",
+    "map",
+    "mapview",
+    "expo-yandex-maps",
+    "yamap",
+    "react-native-yamap",
+    "geocoder",
+    "яндекс",
+    "карты"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/softwhere-uz/expo-yandex-mapkit",
+    "directory": "alias"
+  },
+  "bugs": {
+    "url": "https://github.com/softwhere-uz/expo-yandex-mapkit/issues"
+  },
+  "author": "softwhere.uz <kamuranbek1998@gmail.com> (https://github.com/softwhere-uz)",
+  "license": "MIT",
+  "homepage": "https://github.com/softwhere-uz/expo-yandex-mapkit#readme",
+  "dependencies": {
+    "expo-yandex-mapkit": "*"
+  }
+}
