@@ -92,16 +92,25 @@ jobs:
           set -euo pipefail
           VERSION=$(grep -oP "DEFAULT_VERSION = '\K[0-9.]+" plugin/src/index.ts)
           FLAVOR=$(grep -oP "DEFAULT_FLAVOR = '\K[a-z]+" plugin/src/index.ts)
+          IOS_TARGET=$(grep -oP "MIN_IOS_DEPLOYMENT_TARGET = '\K[0-9.]+" plugin/src/index.ts)
           grep -Fx "expoYandexMapKit.version=${VERSION}" example/android/gradle.properties
           grep -Fx "expoYandexMapKit.flavor=${FLAVOR}" example/android/gradle.properties
           grep -Fx "android.minSdkVersion=26" example/android/gradle.properties
           node -e "
             const p = require('./example/ios/Podfile.properties.json');
-            const [version, flavor] = [process.argv[1], process.argv[2]];
+            const [version, flavor, iosTarget] = process.argv.slice(1);
             if (p['expoYandexMapKit.version'] !== version || p['expoYandexMapKit.flavor'] !== flavor) {
               throw new Error('Podfile.properties.json missing plugin keys: ' + JSON.stringify(p));
             }
-          " "$VERSION" "$FLAVOR"
+            // Plugin floors the iOS target (raise-only), so assert >= — a higher SDK
+            // template default is valid and must not fail the check.
+            const cur = String(p['ios.deploymentTarget'] ?? '').split('.').map(Number);
+            const min = iosTarget.split('.').map(Number);
+            const below = Number.isNaN(cur[0]) || cur[0] < min[0] || (cur[0] === min[0] && (cur[1] || 0) < (min[1] || 0));
+            if (below) {
+              throw new Error('Podfile.properties.json ios.deploymentTarget below floor ' + iosTarget + ': ' + JSON.stringify(p));
+            }
+          " "$VERSION" "$FLAVOR" "$IOS_TARGET"
       - name: Assert prebuild idempotency (no duplicated keys on re-run)
         run: |
           set -euo pipefail
