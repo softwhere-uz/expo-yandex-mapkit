@@ -107,7 +107,11 @@ class ExpoYandexMapKitView: ExpoView {
       }
       return
     }
-    let mapView = YMKMapView(frame: bounds)
+    // YMKMapView's initializer is failable in the MapKit headers.
+    guard let mapView = YMKMapView(frame: bounds) else {
+      log.warn("expo-yandex-mapkit: YMKMapView could not be created")
+      return
+    }
     self.mapView = mapView
     addSubview(mapView)
 

@@ -122,6 +122,11 @@ npm version patch|minor|major    # bumps package.json, commits, tags vX.Y.Z
 git push --follow-tags           # the v* tag triggers .github/workflows/release.yaml
 ```
 
+The repo `.npmrc` makes `npm version` commit as `chore(release): x.y.z` — CI recognizes that
+prefix and skips the heavy native jobs for the bump commit (the release workflow verifies the
+same commit before publishing). Docs-only changes (markdown, `alias/`) skip CI entirely via
+path filters.
+
 The workflow lints, builds, checks the tag matches `package.json`, verifies the packed tarball
 actually contains the compiled config plugin, publishes to npm with `--provenance`, and creates
 the GitHub release with generated notes.

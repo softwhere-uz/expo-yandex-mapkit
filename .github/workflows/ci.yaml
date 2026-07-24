@@ -1,9 +1,23 @@
 name: CI
 
+# Docs-only changes (markdown, the alias stub, non-CI workflows) skip CI entirely.
+# Release version-bump commits ("chore(release): x.y.z" via .npmrc's message config)
+# run only the cheap quality job — the v* tag triggers release.yaml, which does the
+# full pre-publish verification for that same commit.
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - '**.md'
+      - 'alias/**'
+      - '.github/workflows/release.yaml'
+      - '.github/workflows/mapkit-version-watch.yaml'
   pull_request:
+    paths-ignore:
+      - '**.md'
+      - 'alias/**'
+      - '.github/workflows/release.yaml'
+      - '.github/workflows/mapkit-version-watch.yaml'
   workflow_dispatch:
 
 concurrency:
@@ -51,6 +65,7 @@ jobs:
   prebuild-smoke:
     name: Config plugin prebuild smoke test
     runs-on: ubuntu-latest
+    if: github.event_name != 'push' || !startsWith(github.event.head_commit.message, 'chore(release):')
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v6
@@ -92,6 +107,7 @@ jobs:
   android:
     name: Android build (Kotlin vs real MapKit)
     runs-on: ubuntu-latest
+    if: github.event_name != 'push' || !startsWith(github.event.head_commit.message, 'chore(release):')
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v6
@@ -118,6 +134,7 @@ jobs:
   ios:
     name: iOS build (Swift vs real MapKit)
     runs-on: macos-26
+    if: github.event_name != 'push' || !startsWith(github.event.head_commit.message, 'chore(release):')
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v6
