@@ -130,7 +130,8 @@ class ExpoYandexMapKitView(context: Context, appContext: AppContext) : ExpoView(
   // MAP/satellite/hybrid are raster and ignore styling).
   private var mapType: YandexMapType? = null
   private var mapStyle: String? = null
-  // Logo placement is null until set, so an unset value keeps MapKit's default logo position.
+  // Logo placement is null until first set; a never-set value keeps MapKit's default. Once set,
+  // the value persists — passing undefined later does not revert it (matches mapType/mapStyle).
   private var logoPosition: LogoPositionRecord? = null
   private var logoPadding: LogoPaddingRecord? = null
   private var pendingCameraPosition: CameraPositionRecord? = null

@@ -115,7 +115,8 @@ class ExpoYandexMapKitView: ExpoView {
   // `.map`/satellite/hybrid are raster and ignore styling).
   private var mapType: YMKMapType?
   private var mapStyle: String?
-  // Logo placement is nil until set, so an unset value keeps MapKit's default logo position.
+  // Logo placement is nil until first set; a never-set value keeps MapKit's default. Once set,
+  // the value persists — passing undefined later does not revert it (matches mapType/mapStyle).
   private var logoPosition: LogoPositionRecord?
   private var logoPadding: LogoPaddingRecord?
   private var mapReadyEmitted = false
@@ -256,10 +257,20 @@ class ExpoYandexMapKitView: ExpoView {
     }
     if let padding = logoPadding {
       map.logo.setPaddingWith(YMKLogoPadding(
-        horizontalPadding: UInt(max(0, padding.horizontal)),
-        verticalPadding: UInt(max(0, padding.vertical))
+        horizontalPadding: Self.logoPaddingValue(padding.horizontal),
+        verticalPadding: Self.logoPaddingValue(padding.vertical)
       ))
     }
+  }
+
+  // Converts a JS padding number to MapKit's NSUInteger without crashing on NaN /
+  // Infinity / out-of-range input. Matches Android's saturating
+  // `Double.toInt().coerceAtLeast(0)`: NaN and negatives -> 0, values above Int32.max saturate.
+  private static func logoPaddingValue(_ value: Double) -> UInt {
+    if value.isNaN {
+      return 0
+    }
+    return UInt(min(max(value, 0), Double(Int32.max)))
   }
 
   // MARK: - Map creation
