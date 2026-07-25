@@ -2,6 +2,7 @@ package expo.modules.yandexmapkit
 
 import android.content.Context
 import android.content.pm.PackageManager
+import android.view.View
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
@@ -69,14 +70,14 @@ class ExpoYandexMapKitModule : Module() {
       // <Marker> children are managed here, not through the Android view hierarchy — each drives a
       // MapKit placemark rather than a laid-out view.
       GroupView<ExpoYandexMapKitView> {
-        AddChildView { parent, child: ExpoYandexMapKitMarkerView, index ->
-          parent.addMarkerView(child, index)
+        AddChildView { parent, child: View, index ->
+          parent.addChildView(child, index)
         }
-        GetChildCount { parent -> parent.markerViewCount() }
-        GetChildViewAt { parent, index -> parent.markerViewAt(index) }
-        RemoveChildViewAt { parent, index -> parent.removeMarkerViewAt(index) }
-        RemoveChildView { parent, child: ExpoYandexMapKitMarkerView ->
-          parent.removeMarkerView(child)
+        GetChildCount { parent -> parent.childViewCount() }
+        GetChildViewAt { parent, index -> parent.childViewAt(index) }
+        RemoveChildViewAt { parent, index -> parent.removeChildViewAt(index) }
+        RemoveChildView { parent, child: View ->
+          parent.removeChildView(child)
         }
       }
 
@@ -224,6 +225,43 @@ class ExpoYandexMapKitModule : Module() {
       AsyncFunction("animatedRotateTo") { view: ExpoYandexMapKitMarkerView, angle: Double, durationMs: Double ->
         view.animatedRotateTo(angle.toFloat(), durationMs)
       }.runOnQueue(Queues.MAIN)
+    }
+
+    // The <Polyline> child view. Colors arrive as processColor()'d ints; zIndex as `zI`.
+    View(ExpoYandexMapKitPolylineView::class) {
+      Name("ExpoYandexMapKitPolylineView")
+      Events("onPress")
+
+      Prop("points") { view: ExpoYandexMapKitPolylineView, points: List<PointRecord> ->
+        view.setPoints(points.map { Point(it.latitude, it.longitude) })
+      }
+      Prop("strokeColor") { view: ExpoYandexMapKitPolylineView, color: Int? ->
+        view.setStrokeColor(color)
+      }
+      Prop("strokeWidth") { view: ExpoYandexMapKitPolylineView, width: Double ->
+        view.setStrokeWidth(width.toFloat())
+      }
+      Prop("outlineColor") { view: ExpoYandexMapKitPolylineView, color: Int? ->
+        view.setOutlineColor(color)
+      }
+      Prop("outlineWidth") { view: ExpoYandexMapKitPolylineView, width: Double ->
+        view.setOutlineWidth(width.toFloat())
+      }
+      Prop("dashLength") { view: ExpoYandexMapKitPolylineView, v: Double ->
+        view.setDashLength(v.toFloat())
+      }
+      Prop("dashOffset") { view: ExpoYandexMapKitPolylineView, v: Double ->
+        view.setDashOffset(v.toFloat())
+      }
+      Prop("gapLength") { view: ExpoYandexMapKitPolylineView, v: Double ->
+        view.setGapLength(v.toFloat())
+      }
+      Prop("zI") { view: ExpoYandexMapKitPolylineView, z: Double ->
+        view.setZIndexValue(z.toFloat())
+      }
+      Prop("handled") { view: ExpoYandexMapKitPolylineView, h: Boolean ->
+        view.setHandled(h)
+      }
     }
   }
 
