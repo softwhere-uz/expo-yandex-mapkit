@@ -26,7 +26,7 @@ import com.yandex.mapkit.map.Map as YandexMap
 import com.yandex.mapkit.map.MapLoadStatistics
 import com.yandex.mapkit.map.MapLoadedListener
 import com.yandex.mapkit.map.MapType as YandexMapType
-import com.yandex.mapkit.map.ObjectEvent
+import com.yandex.mapkit.layers.ObjectEvent
 import com.yandex.mapkit.mapview.MapView
 import com.yandex.mapkit.traffic.TrafficLayer
 import com.yandex.mapkit.user_location.UserLocationLayer
