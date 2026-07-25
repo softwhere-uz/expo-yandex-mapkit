@@ -750,7 +750,7 @@ class ExpoYandexMapKitView: ExpoView {
       layerId: selection.layerId,
       groupId: selection.groupId.map { NSNumber(value: $0) }
     )
-    map.selectGeoObject(with: metadata)
+    map.selectGeoObject(withSelectionMetaData: metadata)
   }
 
   func deselectGeoObject() {
