@@ -9,7 +9,7 @@ class ExpoYandexMapKitCircleView: ExpoView, MapObjectChild {
   private var collection: YMKMapObjectCollection?
   private var mapObject: YMKCircleMapObject?
   private var tapListener: CircleTapListener?
-  private var center: YMKPoint?
+  private var circleCenter: YMKPoint?
   private var radius: Float = 0
   private var fillColor: UIColor?
   private var strokeColor: UIColor?
@@ -18,7 +18,7 @@ class ExpoYandexMapKitCircleView: ExpoView, MapObjectChild {
   private var handled = false
 
   func setCenter(_ value: PointRecord) {
-    center = YMKPoint(latitude: value.latitude, longitude: value.longitude)
+    circleCenter = YMKPoint(latitude: value.latitude, longitude: value.longitude)
     updateGeometry()
   }
 
@@ -68,7 +68,7 @@ class ExpoYandexMapKitCircleView: ExpoView, MapObjectChild {
   var isAttachedToMap: Bool { collection != nil }
 
   private func createIfReady() {
-    guard mapObject == nil, let collection = collection, let center = center, radius > 0 else {
+    guard mapObject == nil, let collection = collection, let center = circleCenter, radius > 0 else {
       return
     }
     let obj = collection.addCircle(with: YMKCircle(center: center, radius: radius))
@@ -80,7 +80,7 @@ class ExpoYandexMapKitCircleView: ExpoView, MapObjectChild {
   }
 
   private func updateGeometry() {
-    if let obj = mapObject, obj.isValid, let center = center, radius > 0 {
+    if let obj = mapObject, obj.isValid, let center = circleCenter, radius > 0 {
       obj.geometry = YMKCircle(center: center, radius: radius)
     } else {
       createIfReady()

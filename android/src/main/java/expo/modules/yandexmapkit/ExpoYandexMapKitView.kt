@@ -506,7 +506,7 @@ class ExpoYandexMapKitView(context: Context, appContext: AppContext) : ExpoView(
       val geometry = Geometry.fromBoundingBox(boundingBox)
       val focus = focusRect(options.edgePadding)
       if (focus != null) {
-        map.cameraPosition(geometry, current.azimuth, current.tilt, focus)
+        map.cameraPosition(geometry, focus, current.azimuth, current.tilt)
       } else {
         map.cameraPosition(geometry)
       }
