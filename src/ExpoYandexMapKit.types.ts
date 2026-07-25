@@ -120,6 +120,28 @@ export type PolylineProps = {
   onPress?: (event: { nativeEvent: ShapePressEvent }) => void;
 };
 
+export type PolygonProps = {
+  points: Point[]; // the outer ring's vertices (3+)
+  innerRings?: Point[][]; // optional holes, each a ring of points
+  fillColor?: ColorValue; // interior fill color
+  strokeColor?: ColorValue; // border color
+  strokeWidth?: number; // border width in points
+  zIndex?: number; // draw order among map objects, default 0
+  handled?: boolean; // when true a tap is consumed and does NOT also fire the map's onMapPress
+  onPress?: (event: { nativeEvent: ShapePressEvent }) => void;
+};
+
+export type CircleProps = {
+  center: Point; // the circle's center
+  radius: number; // radius in meters
+  fillColor?: ColorValue; // interior fill color
+  strokeColor?: ColorValue; // border color
+  strokeWidth?: number; // border width in points
+  zIndex?: number; // draw order among map objects, default 0
+  handled?: boolean; // when true a tap is consumed and does NOT also fire the map's onMapPress
+  onPress?: (event: { nativeEvent: ShapePressEvent }) => void;
+};
+
 export type ScreenPoint = {
   x: number; // pixels from the left of the map view
   y: number; // pixels from the top of the map view

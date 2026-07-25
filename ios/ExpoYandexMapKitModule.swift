@@ -243,6 +243,52 @@ public class ExpoYandexMapKitModule: Module {
         view.setHandled(h)
       }
     }
+
+    // The <Polygon> child view.
+    View(ExpoYandexMapKitPolygonView.self) {
+      ViewName("ExpoYandexMapKitPolygonView")
+      Events("onPress")
+
+      Prop("points") { (view: ExpoYandexMapKitPolygonView, points: [PointRecord]) in
+        view.setPoints(points)
+      }
+      Prop("innerRings") { (view: ExpoYandexMapKitPolygonView, rings: [[PointRecord]]) in
+        view.setInnerRings(rings)
+      }
+      Prop("fillColor") { (view: ExpoYandexMapKitPolygonView, color: UIColor?) in
+        view.setFillColor(color)
+      }
+      Prop("strokeColor") { (view: ExpoYandexMapKitPolygonView, color: UIColor?) in
+        view.setStrokeColor(color)
+      }
+      Prop("strokeWidth") { (view: ExpoYandexMapKitPolygonView, w: Double) in
+        view.setStrokeWidth(w)
+      }
+      Prop("zI") { (view: ExpoYandexMapKitPolygonView, z: Double) in view.setZIndexValue(z) }
+      Prop("handled") { (view: ExpoYandexMapKitPolygonView, h: Bool) in view.setHandled(h) }
+    }
+
+    // The <Circle> child view.
+    View(ExpoYandexMapKitCircleView.self) {
+      ViewName("ExpoYandexMapKitCircleView")
+      Events("onPress")
+
+      Prop("center") { (view: ExpoYandexMapKitCircleView, c: PointRecord) in
+        view.setCenter(c)
+      }
+      Prop("radius") { (view: ExpoYandexMapKitCircleView, r: Double) in view.setRadius(r) }
+      Prop("fillColor") { (view: ExpoYandexMapKitCircleView, color: UIColor?) in
+        view.setFillColor(color)
+      }
+      Prop("strokeColor") { (view: ExpoYandexMapKitCircleView, color: UIColor?) in
+        view.setStrokeColor(color)
+      }
+      Prop("strokeWidth") { (view: ExpoYandexMapKitCircleView, w: Double) in
+        view.setStrokeWidth(w)
+      }
+      Prop("zI") { (view: ExpoYandexMapKitCircleView, z: Double) in view.setZIndexValue(z) }
+      Prop("handled") { (view: ExpoYandexMapKitCircleView, h: Bool) in view.setHandled(h) }
+    }
   }
 
   // Shared initialization for both the JS initialize() call and the build-time auto-init. Must be

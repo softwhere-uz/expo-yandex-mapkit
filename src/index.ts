@@ -5,6 +5,8 @@ import ExpoYandexMapKitModule from './ExpoYandexMapKitModule';
 export { YandexMapView } from './ExpoYandexMapKitView';
 export { Marker } from './ExpoYandexMapKitMarkerView';
 export { Polyline } from './ExpoYandexMapKitPolylineView';
+export { Polygon } from './ExpoYandexMapKitPolygonView';
+export { Circle } from './ExpoYandexMapKitCircleView';
 export * from './ExpoYandexMapKit.types';
 
 // Escape hatch: the raw native module.

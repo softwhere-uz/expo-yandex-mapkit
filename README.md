@@ -404,7 +404,27 @@ import { YandexMapView, Polyline } from 'expo-yandex-mapkit';
 | `handled` | `boolean` | Consume the tap so it does not also fire the map's `onMapPress`. |
 | `onPress` | `(event) => void` | `event.nativeEvent` is `{ point }`. |
 
-> `<Polygon>` and `<Circle>` are landing next on the same child architecture.
+### `<Polygon />` and `<Circle />`
+
+Same idea, as children of the map:
+
+```tsx
+import { YandexMapView, Polygon, Circle } from 'expo-yandex-mapkit';
+
+<YandexMapView style={StyleSheet.absoluteFill} cameraPosition={{ latitude: 41.31, longitude: 69.24, zoom: 12 }}>
+  <Polygon
+    points={[/* outer ring, 3+ */]}
+    innerRings={[[/* optional holes */]]}
+    fillColor="rgba(30,136,229,0.3)"
+    strokeColor="#1e88e5"
+    strokeWidth={2}
+  />
+  <Circle center={{ latitude: 41.31, longitude: 69.24 }} radius={500} fillColor="rgba(244,67,54,0.2)" strokeColor="#f44336" />
+</YandexMapView>;
+```
+
+- **`<Polygon>`**: `points` (outer ring, 3+), `innerRings?` (holes), `fillColor`, `strokeColor`, `strokeWidth`, `zIndex`, `onPress`, `handled`.
+- **`<Circle>`**: `center`, `radius` (metres), `fillColor`, `strokeColor`, `strokeWidth`, `zIndex`, `onPress`, `handled`.
 
 ## lite vs full
 

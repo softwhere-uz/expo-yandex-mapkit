@@ -263,6 +263,48 @@ class ExpoYandexMapKitModule : Module() {
         view.setHandled(h)
       }
     }
+
+    // The <Polygon> child view.
+    View(ExpoYandexMapKitPolygonView::class) {
+      Name("ExpoYandexMapKitPolygonView")
+      Events("onPress")
+
+      Prop("points") { view: ExpoYandexMapKitPolygonView, points: List<PointRecord> ->
+        view.setPoints(points.map { Point(it.latitude, it.longitude) })
+      }
+      Prop("innerRings") { view: ExpoYandexMapKitPolygonView, rings: List<List<PointRecord>> ->
+        view.setInnerRings(rings.map { ring -> ring.map { Point(it.latitude, it.longitude) } })
+      }
+      Prop("fillColor") { view: ExpoYandexMapKitPolygonView, color: Int? -> view.setFillColor(color) }
+      Prop("strokeColor") { view: ExpoYandexMapKitPolygonView, color: Int? ->
+        view.setStrokeColor(color)
+      }
+      Prop("strokeWidth") { view: ExpoYandexMapKitPolygonView, w: Double ->
+        view.setStrokeWidth(w.toFloat())
+      }
+      Prop("zI") { view: ExpoYandexMapKitPolygonView, z: Double -> view.setZIndexValue(z.toFloat()) }
+      Prop("handled") { view: ExpoYandexMapKitPolygonView, h: Boolean -> view.setHandled(h) }
+    }
+
+    // The <Circle> child view.
+    View(ExpoYandexMapKitCircleView::class) {
+      Name("ExpoYandexMapKitCircleView")
+      Events("onPress")
+
+      Prop("center") { view: ExpoYandexMapKitCircleView, c: PointRecord ->
+        view.setCenter(Point(c.latitude, c.longitude))
+      }
+      Prop("radius") { view: ExpoYandexMapKitCircleView, r: Double -> view.setRadius(r.toFloat()) }
+      Prop("fillColor") { view: ExpoYandexMapKitCircleView, color: Int? -> view.setFillColor(color) }
+      Prop("strokeColor") { view: ExpoYandexMapKitCircleView, color: Int? ->
+        view.setStrokeColor(color)
+      }
+      Prop("strokeWidth") { view: ExpoYandexMapKitCircleView, w: Double ->
+        view.setStrokeWidth(w.toFloat())
+      }
+      Prop("zI") { view: ExpoYandexMapKitCircleView, z: Double -> view.setZIndexValue(z.toFloat()) }
+      Prop("handled") { view: ExpoYandexMapKitCircleView, h: Boolean -> view.setHandled(h) }
+    }
   }
 
   // Shared initialization for both the JS initialize() call and the build-time auto-init. Runs on
