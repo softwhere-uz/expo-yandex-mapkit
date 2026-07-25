@@ -11,6 +11,8 @@ internal struct SearchOptionsRecord: Record {
   @Field var searchTypes: [String]?
   @Field var resultPageSize: Int?
   @Field var zoom: Int?
+  @Field var disableSpellingCorrection: Bool = false
+  @Field var snippets: [String]?
 }
 
 // The Search module (text search + reverse geocoding). Real work is behind `#if YANDEX_MAPS_FULL`
@@ -108,6 +110,8 @@ public class ExpoYandexSearchModule: Module {
     private func searchOptions(_ options: SearchOptionsRecord?) -> YMKSearchOptions {
       let result = YMKSearchOptions()
       result.searchTypes = resolveSearchTypes(options?.searchTypes)
+      result.disableSpellingCorrection = options?.disableSpellingCorrection ?? false
+      result.snippets = resolveSnippets(options?.snippets)
       if let up = options?.userPosition {
         result.userPosition = YMKPoint(latitude: up.latitude, longitude: up.longitude)
       }
@@ -130,6 +134,19 @@ public class ExpoYandexSearchModule: Module {
       return result.isEmpty ? [.geo] : result
     }
 
+    private func resolveSnippets(_ snippets: [String]?) -> YMKSearchSnippet {
+      var result: YMKSearchSnippet = []
+      for snippet in snippets ?? [] {
+        switch snippet {
+        case "rating": result.insert(.businessRating1x)
+        case "photos": result.insert(.photos)
+        case "panoramas": result.insert(.panoramas)
+        default: break
+        }
+      }
+      return result
+    }
+
     private func serialize(_ obj: YMKGeoObject) -> [String: Any?] {
       var result: [String: Any?] = [:]
       if let name = obj.name {
@@ -149,6 +166,15 @@ public class ExpoYandexSearchModule: Module {
         result["addressComponents"] = address.components.map { component -> [String: Any?] in
           ["name": component.name, "kinds": component.kinds.map { self.kindName($0) }]
         }
+      }
+      // Business rating, present only when the 'rating' snippet was requested (organizations).
+      if let rating = obj.metadataContainer.getItemOf(YMKSearchBusinessRating1xObjectMetadata.self)
+        as? YMKSearchBusinessRating1xObjectMetadata
+      {
+        if let score = rating.score {
+          result["rating"] = score
+        }
+        result["ratingsCount"] = rating.ratings
       }
       return result
     }
