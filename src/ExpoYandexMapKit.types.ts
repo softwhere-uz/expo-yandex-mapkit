@@ -53,6 +53,9 @@ export type YandexMapViewProps = {
   mapStyle?: string; // Yandex JSON style; only affects 'vector'/'hybrid' layers (no-op on raster 'map'/'satellite'); pass '' to clear
   logoPosition?: { horizontal: 'left' | 'center' | 'right'; vertical: 'top' | 'bottom' }; // corner the mandatory Yandex logo aligns to
   logoPadding?: { horizontal: number; vertical: number }; // logo padding in px from the aligned edges (negatives clamped to 0)
+  showUserPosition?: boolean; // show the device-location dot — requires the app to hold location permission; default false
+  followUser?: boolean; // keep the camera centered on the user's location; default false
+  trafficVisible?: boolean; // show the live traffic-jams layer; default false
   onMapReady?: (event: { nativeEvent: Record<string, never> }) => void;
   onCameraPositionChanged?: (event: { nativeEvent: CameraPositionChangeEvent }) => void;
   onMapPress?: (event: { nativeEvent: MapPressEvent }) => void;

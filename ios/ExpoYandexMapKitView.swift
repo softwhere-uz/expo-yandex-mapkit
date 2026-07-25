@@ -170,6 +170,13 @@ class ExpoYandexMapKitView: ExpoView {
   // map exists stays here un-attached and is wired up in createMapViewIfReady.
   private var childViews: [UIView] = []
 
+  // User-location and traffic layers, created lazily on first use (they need the map window).
+  private var userLocationLayer: YMKUserLocationLayer?
+  private var trafficLayer: YMKTrafficLayer?
+  private var showUserPosition = false
+  private var followUser = false
+  private var trafficVisible = false
+
   required init(appContext: AppContext? = nil) {
     super.init(appContext: appContext)
     clipsToBounds = true
@@ -238,6 +245,60 @@ class ExpoYandexMapKitView: ExpoView {
 
   private func attachPendingChildren() {
     childViews.forEach { attachChild($0) }
+  }
+
+  // MARK: - User location & traffic
+
+  func setShowUserPosition(_ value: Bool) {
+    showUserPosition = value
+    applyUserLocation()
+  }
+
+  func setFollowUser(_ value: Bool) {
+    followUser = value
+    applyUserLocation()
+  }
+
+  func setTrafficVisible(_ value: Bool) {
+    trafficVisible = value
+    applyTraffic()
+  }
+
+  private func applyUserLocation() {
+    guard let mapWindow = mapView?.mapWindow else {
+      return
+    }
+    let layer: YMKUserLocationLayer
+    if let existing = userLocationLayer {
+      layer = existing
+    } else {
+      layer = YMKMapKit.sharedInstance().createUserLocationLayer(with: mapWindow)
+      userLocationLayer = layer
+    }
+    layer.setVisibleWithOn(showUserPosition)
+    if showUserPosition, followUser, let mapView = mapView, mapView.bounds.width > 0 {
+      // Anchoring the layer keeps the user dot centered — the map follows the user.
+      let scale = Float(UIScreen.main.scale)
+      let center = YMKScreenPoint(
+        x: Float(mapView.bounds.width) * scale / 2, y: Float(mapView.bounds.height) * scale / 2)
+      layer.setAnchorWithAnchorNormal(center, anchorCourse: center)
+    } else {
+      layer.resetAnchor()
+    }
+  }
+
+  private func applyTraffic() {
+    guard let mapWindow = mapView?.mapWindow else {
+      return
+    }
+    let layer: YMKTrafficLayer
+    if let existing = trafficLayer {
+      layer = existing
+    } else {
+      layer = YMKMapKit.sharedInstance().createTrafficLayer(with: mapWindow)
+      trafficLayer = layer
+    }
+    layer.setTrafficVisibleWithOn(trafficVisible)
   }
 
   // MARK: - Props
@@ -591,6 +652,13 @@ class ExpoYandexMapKitView: ExpoView {
     applyPendingCameraPosition(allowAnimation: false)
     // Wire up any <Marker> children that mounted before the map existed.
     attachPendingChildren()
+    // Apply user-location / traffic props set before the map was created.
+    if showUserPosition || followUser {
+      applyUserLocation()
+    }
+    if trafficVisible {
+      applyTraffic()
+    }
   }
 
   // Called on the main thread by the module once `initialize(apiKey)` resolves,
