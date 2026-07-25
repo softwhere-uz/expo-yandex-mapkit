@@ -5,11 +5,17 @@ import { processColor } from 'react-native';
 import { PolylineProps } from './ExpoYandexMapKit.types';
 
 // Colors are converted to native via processColor (matching the marker/shape convention); `zIndex`
-// is sent as `zI` so React Native's layout zIndex doesn't intercept it.
-type NativePolylineProps = Omit<PolylineProps, 'strokeColor' | 'outlineColor' | 'zIndex'> & {
+// is sent as `zI` so React Native's layout zIndex doesn't intercept it. The public `onPress` is
+// forwarded to the native `onShapePress` event to avoid RN's reserved bubbling `topPress` (which
+// collides with Expo's direct view events and red-screens on mount).
+type NativePolylineProps = Omit<
+  PolylineProps,
+  'strokeColor' | 'outlineColor' | 'zIndex' | 'onPress'
+> & {
   strokeColor?: ReturnType<typeof processColor>;
   outlineColor?: ReturnType<typeof processColor>;
   zI?: number;
+  onShapePress?: PolylineProps['onPress'];
 };
 
 const NativePolylineView: React.ComponentType<NativePolylineProps> = requireNativeView(
@@ -26,13 +32,14 @@ const NativePolylineView: React.ComponentType<NativePolylineProps> = requireNati
  * </YandexMapView>
  * ```
  */
-export function Polyline({ strokeColor, outlineColor, zIndex, ...props }: PolylineProps) {
+export function Polyline({ strokeColor, outlineColor, zIndex, onPress, ...props }: PolylineProps) {
   return (
     <NativePolylineView
       {...props}
       strokeColor={processColor(strokeColor)}
       outlineColor={processColor(outlineColor)}
       zI={zIndex}
+      onShapePress={onPress}
     />
   );
 }

@@ -5,7 +5,7 @@ import YandexMapsMobile
 // MapKit YMKPolylineMapObject. A polyline can only be created with its geometry, so the object is
 // created lazily once both the map collection and at least two points are available.
 class ExpoYandexMapKitPolylineView: ExpoView, MapObjectChild {
-  let onPress = EventDispatcher()
+  let onShapePress = EventDispatcher()
 
   private var collection: YMKMapObjectCollection?
   private var mapObject: YMKPolylineMapObject?
@@ -107,34 +107,33 @@ class ExpoYandexMapKitPolylineView: ExpoView, MapObjectChild {
       return
     }
     obj.zIndex = zIndexValue
+    // On iOS width / dash / outline are direct properties of the polyline object (there is no
+    // setStyle method); colors go through setStrokeColorWith / the outlineColor property.
     if let strokeColor = strokeColor {
       obj.setStrokeColorWith(strokeColor)
     }
-    // Width / dash / outline are configured through a YMKLineStyle (not direct properties) on iOS.
-    let style = YMKLineStyle()
     if let strokeWidth = strokeWidth {
-      style.strokeWidth = strokeWidth
+      obj.strokeWidth = strokeWidth
     }
     if let dashLength = dashLength {
-      style.dashLength = dashLength
+      obj.dashLength = dashLength
     }
     if let gapLength = gapLength {
-      style.gapLength = gapLength
+      obj.gapLength = gapLength
     }
     if let dashOffset = dashOffset {
-      style.dashOffset = dashOffset
+      obj.dashOffset = dashOffset
     }
     if let outlineWidth = outlineWidth {
-      style.outlineWidth = outlineWidth
+      obj.outlineWidth = outlineWidth
     }
     if let outlineColor = outlineColor {
-      style.outlineColor = outlineColor
+      obj.outlineColor = outlineColor
     }
-    obj.setStyle(style)
   }
 
   fileprivate func handleTap(_ point: YMKPoint) -> Bool {
-    onPress(["point": ["latitude": point.latitude, "longitude": point.longitude]])
+    onShapePress(["point": ["latitude": point.latitude, "longitude": point.longitude]])
     return handled
   }
 }

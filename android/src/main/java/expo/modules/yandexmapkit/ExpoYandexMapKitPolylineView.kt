@@ -19,7 +19,7 @@ import java.lang.ref.WeakReference
 // the map hands markers their placemark.
 class ExpoYandexMapKitPolylineView(context: Context, appContext: AppContext) :
   ExpoView(context, appContext), MapObjectTapListener, MapObjectChild {
-  private val onPress by EventDispatcher<Map<String, Any?>>()
+  private val onShapePress by EventDispatcher<Map<String, Any?>>()
 
   private var collection: MapObjectCollection? = null
   private var mapObject: PolylineMapObject? = null
@@ -137,7 +137,7 @@ class ExpoYandexMapKitPolylineView(context: Context, appContext: AppContext) :
   }
 
   override fun onMapObjectTap(mapObject: MapObject, point: Point): Boolean {
-    onPress(mapOf("point" to mapOf("latitude" to point.latitude, "longitude" to point.longitude)))
+    onShapePress(mapOf("point" to mapOf("latitude" to point.latitude, "longitude" to point.longitude)))
     return handled
   }
 }

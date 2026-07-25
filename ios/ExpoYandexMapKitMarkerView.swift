@@ -20,7 +20,11 @@ class ExpoYandexMapKitMarkerView: ExpoView, MapObjectChild {
   // Frame rate for the imperative move/rotate animations.
   private static let framesPerSecond = 60.0
 
-  let onPress = EventDispatcher()
+  // Named onMarkerPress (not onPress): React Native normalizes onPress to the top-level bubbling
+  // event topPress, which collides with Expo's direct-event registration ("Event cannot be both
+  // direct and bubbling: topPress") and red-screens on the first marker mount. topMarkerPress is
+  // free. The public JS prop stays `onPress` — the wrapper forwards it to this native event.
+  let onMarkerPress = EventDispatcher()
 
   private var placemark: YMKPlacemarkMapObject?
   // MapKit holds the tap listener; keep it strongly retained here (this view is itself kept alive
@@ -37,6 +41,10 @@ class ExpoYandexMapKitMarkerView: ExpoView, MapObjectChild {
   private var iconSource: String?
   // The icon URI currently applied; guards against reloading the same image on unrelated updates.
   private var appliedIconSource: String?
+  // Whether an icon (image or view) has actually been set on the placemark yet. YMKPlacemark's
+  // setIconStyle asserts ("Supported for single, animated icon and view only") when no icon is
+  // present, so style is only ever applied once this is true.
+  private var hasIcon = false
 
   // React-children icon: the marker's content child (a custom pin) is rendered as the placemark
   // icon via YRTViewProvider (takes precedence over `source`). `tracksViewChanges` drives a display
@@ -109,6 +117,7 @@ class ExpoYandexMapKitMarkerView: ExpoView, MapObjectChild {
     tapListener = listener
     placemark.addTapListener(with: listener)
     appliedIconSource = nil
+    hasIcon = false
     updateMarker()
   }
 
@@ -119,6 +128,7 @@ class ExpoYandexMapKitMarkerView: ExpoView, MapObjectChild {
     placemark = nil
     tapListener = nil
     appliedIconSource = nil
+    hasIcon = false
     stopTracking()
   }
 
@@ -153,8 +163,10 @@ class ExpoYandexMapKitMarkerView: ExpoView, MapObjectChild {
     }
     childView = nil
     stopTracking()
-    // Fall back to the image `source` (or default pin) now that the custom view is gone.
+    // Fall back to the image `source` now that the custom view is gone. Clear hasIcon so a
+    // subsequent style-only update doesn't run before the source icon has (re)loaded.
     appliedIconSource = nil
+    hasIcon = false
     updateMarker()
   }
 
@@ -167,6 +179,7 @@ class ExpoYandexMapKitMarkerView: ExpoView, MapObjectChild {
       return
     }
     placemark.setViewWithView(YRTViewProvider(uiView: child), style: buildIconStyle())
+    hasIcon = true
   }
 
   private func updateTracking() {
@@ -202,18 +215,33 @@ class ExpoYandexMapKitMarkerView: ExpoView, MapObjectChild {
     }
     placemark.geometry = point
     placemark.zIndex = zIndexValue
-    placemark.setIconStyleWith(buildIconStyle())
 
-    // A React-children icon (custom pin) takes precedence over the image source.
+    // A React-children icon (custom pin) takes precedence over the image source. refreshChildIcon
+    // sets the view AND its style together (a view icon is supported by setIconStyle).
     if childView != nil {
       refreshChildIcon()
       updateTracking()
       return
     }
 
-    guard let source = iconSource, !source.isEmpty, source != appliedIconSource else {
+    guard let source = iconSource, !source.isEmpty else {
+      // No icon source: only (re)apply style if an icon is already present — styling an icon-less
+      // placemark asserts natively. Nothing to render otherwise.
+      if hasIcon {
+        placemark.setIconStyleWith(buildIconStyle())
+      }
       return
     }
+
+    guard source != appliedIconSource else {
+      // Same icon already applied (or still loading). Re-apply style so scale/anchor/visibility
+      // changes stick — but only once the icon is actually on the placemark.
+      if hasIcon {
+        placemark.setIconStyleWith(buildIconStyle())
+      }
+      return
+    }
+
     appliedIconSource = source
     MarkerImageLoader.load(source) { [weak self] image in
       guard let self = self, let image = image, let current = self.placemark, current.isValid,
@@ -222,7 +250,8 @@ class ExpoYandexMapKitMarkerView: ExpoView, MapObjectChild {
         return
       }
       current.setIconWith(image)
-      // Re-apply the style so scale/anchor/visibility stick after the icon swap.
+      self.hasIcon = true
+      // Apply the style now that an icon exists (scale/anchor/visibility/rotation).
       current.setIconStyleWith(self.buildIconStyle())
     }
   }
@@ -240,7 +269,7 @@ class ExpoYandexMapKitMarkerView: ExpoView, MapObjectChild {
 
   fileprivate func handleTap(_ point: YMKPoint) -> Bool {
     // NSNull (not `nil as Any`) when unset, so the payload matches Android's null identifier.
-    onPress([
+    onMarkerPress([
       "identifier": identifier.map { $0 as Any } ?? NSNull(),
       "point": ["latitude": point.latitude, "longitude": point.longitude],
     ])

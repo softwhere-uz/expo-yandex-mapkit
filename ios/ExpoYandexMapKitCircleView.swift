@@ -4,7 +4,7 @@ import YandexMapsMobile
 // One `<Circle>`. Drives a MapKit YMKCircleMapObject; created lazily once the collection and a
 // center are available. Radius is in meters.
 class ExpoYandexMapKitCircleView: ExpoView, MapObjectChild {
-  let onPress = EventDispatcher()
+  let onShapePress = EventDispatcher()
 
   private var collection: YMKMapObjectCollection?
   private var mapObject: YMKCircleMapObject?
@@ -104,7 +104,7 @@ class ExpoYandexMapKitCircleView: ExpoView, MapObjectChild {
   }
 
   fileprivate func handleTap(_ point: YMKPoint) -> Bool {
-    onPress(["point": ["latitude": point.latitude, "longitude": point.longitude]])
+    onShapePress(["point": ["latitude": point.latitude, "longitude": point.longitude]])
     return handled
   }
 }
