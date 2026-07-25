@@ -326,6 +326,27 @@ import { YandexMapView, Marker } from 'expo-yandex-mapkit';
 
 > Маркеры, смонтированные до завершения `initialize()`, привязываются автоматически после создания карты — гейтинг готовности для детей не нужен.
 
+### `<Polyline />`
+
+Линия как ребёнок `YandexMapView`:
+
+```tsx
+import { YandexMapView, Polyline } from 'expo-yandex-mapkit';
+
+<YandexMapView style={StyleSheet.absoluteFill} cameraPosition={{ latitude: 41.31, longitude: 69.24, zoom: 12 }}>
+  <Polyline
+    points={[{ latitude: 41.31, longitude: 69.24 }, { latitude: 41.33, longitude: 69.28 }]}
+    strokeColor="#1e88e5"
+    strokeWidth={4}
+    onPress={({ nativeEvent }) => console.log('нажали линию', nativeEvent.point)}
+  />
+</YandexMapView>;
+```
+
+Пропсы: `points` (2+, обязателен), `strokeColor`, `strokeWidth`, `outlineColor`/`outlineWidth`, штрихи `dashLength`/`gapLength`/`dashOffset`, `zIndex`, `handled`, `onPress` (`event.nativeEvent` — `{ point }`).
+
+> `<Polygon>` и `<Circle>` — следующими, на той же архитектуре дочерних объектов.
+
 ## lite и full
 
 Яндекс поставляет MapKit в двух flavor'ах. Библиотека по умолчанию использует `lite`; выберите `full` через [конфиг-плагин](#2-добавьте-конфиг-плагин), когда понадобятся его возможности (сама библиотека начнёт поддерживать их в v2).

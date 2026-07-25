@@ -168,7 +168,7 @@ class ExpoYandexMapKitView: ExpoView {
   // Child <Marker> views in mount order. Managed through Fabric's mount/unmount child hooks rather
   // than the view hierarchy — markers own no UI, they drive placemarks. A marker mounted before the
   // map exists stays here un-attached and is wired up in createMapViewIfReady.
-  private var markerViews: [ExpoYandexMapKitMarkerView] = []
+  private var childViews: [UIView] = []
 
   required init(appContext: AppContext? = nil) {
     super.init(appContext: appContext)
@@ -197,44 +197,47 @@ class ExpoYandexMapKitView: ExpoView {
   // Fabric mounts <Marker> children here. They are not added to the view hierarchy — each drives a
   // MapKit placemark. Non-marker children (none expected) fall through to the default behaviour.
   override func mountChildComponentView(_ childComponentView: UIView, index: Int) {
-    guard let marker = childComponentView as? ExpoYandexMapKitMarkerView else {
+    guard childComponentView is MapObjectChild else {
       super.mountChildComponentView(childComponentView, index: index)
       return
     }
-    let safeIndex = min(max(index, 0), markerViews.count)
-    markerViews.insert(marker, at: safeIndex)
-    attachMarker(marker)
+    let safeIndex = min(max(index, 0), childViews.count)
+    childViews.insert(childComponentView, at: safeIndex)
+    attachChild(childComponentView)
   }
 
   override func unmountChildComponentView(_ childComponentView: UIView, index: Int) {
-    guard let marker = childComponentView as? ExpoYandexMapKitMarkerView else {
+    guard childComponentView is MapObjectChild else {
       super.unmountChildComponentView(childComponentView, index: index)
       return
     }
-    if let idx = markerViews.firstIndex(where: { $0 === marker }) {
-      markerViews.remove(at: idx)
+    if let idx = childViews.firstIndex(where: { $0 === childComponentView }) {
+      childViews.remove(at: idx)
     }
-    detachMarker(marker)
+    detachChild(childComponentView)
   }
 
-  // Create a placemark for a marker and hand it over. No-op if the map is not ready yet (the
-  // marker stays in the list and is attached later by attachPendingMarkers) or already attached.
-  private func attachMarker(_ marker: ExpoYandexMapKitMarkerView) {
-    guard !marker.isAttached, let mapObjects = mapView?.mapWindow.map.mapObjects else {
+  // Attach a child's map object to the collection. No-op if the map is not ready yet (the child
+  // stays in the list and is attached later by attachPendingChildren) or already attached.
+  private func attachChild(_ child: UIView) {
+    guard let mapChild = child as? MapObjectChild, !mapChild.isAttachedToMap,
+      let collection = mapView?.mapWindow.map.mapObjects
+    else {
       return
     }
-    marker.attach(to: mapObjects.addPlacemark())
+    mapChild.attachToMap(collection)
   }
 
-  private func detachMarker(_ marker: ExpoYandexMapKitMarkerView) {
-    if let placemark = marker.currentPlacemark {
-      mapView?.mapWindow.map.mapObjects.remove(with: placemark)
+  private func detachChild(_ child: UIView) {
+    guard let mapChild = child as? MapObjectChild, let collection = mapView?.mapWindow.map.mapObjects
+    else {
+      return
     }
-    marker.detach()
+    mapChild.detachFromMap(collection)
   }
 
-  private func attachPendingMarkers() {
-    markerViews.forEach { attachMarker($0) }
+  private func attachPendingChildren() {
+    childViews.forEach { attachChild($0) }
   }
 
   // MARK: - Props
@@ -411,7 +414,9 @@ class ExpoYandexMapKitView: ExpoView {
     guard let map = mapView?.mapWindow.map else {
       return
     }
-    fitToPoints(markerViews.compactMap { $0.geoPoint }, options: options, on: map)
+    fitToPoints(
+      childViews.compactMap { ($0 as? ExpoYandexMapKitMarkerView)?.geoPoint }, options: options,
+      on: map)
   }
 
   // Move the camera so every point is visible, optionally inset by options.edgePadding. A single
@@ -585,7 +590,7 @@ class ExpoYandexMapKitView: ExpoView {
     // The initial camera position is applied instantly — the map has not been shown yet.
     applyPendingCameraPosition(allowAnimation: false)
     // Wire up any <Marker> children that mounted before the map existed.
-    attachPendingMarkers()
+    attachPendingChildren()
   }
 
   // Called on the main thread by the module once `initialize(apiKey)` resolves,

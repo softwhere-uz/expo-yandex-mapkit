@@ -8,6 +8,7 @@ import android.view.animation.LinearInterpolator
 import com.yandex.mapkit.geometry.Point
 import com.yandex.mapkit.map.IconStyle
 import com.yandex.mapkit.map.MapObject
+import com.yandex.mapkit.map.MapObjectCollection
 import com.yandex.mapkit.map.MapObjectTapListener
 import com.yandex.mapkit.map.PlacemarkMapObject
 import com.yandex.mapkit.map.RotationType
@@ -36,7 +37,7 @@ class MarkerAnchorRecord : Record {
 // every setter re-applies through [updateMarker], which no-ops until both the placemark and a
 // point are present.
 class ExpoYandexMapKitMarkerView(context: Context, appContext: AppContext) :
-  ExpoView(context, appContext), MapObjectTapListener {
+  ExpoView(context, appContext), MapObjectTapListener, MapObjectChild {
   private val onPress by EventDispatcher<Map<String, Any?>>()
 
   private var placemark: PlacemarkMapObject? = null
@@ -115,10 +116,14 @@ class ExpoYandexMapKitMarkerView(context: Context, appContext: AppContext) :
 
   // Called by the map view once it has created a placemark for this marker (immediately when the
   // marker mounts onto a ready map, or later when the map finishes initializing).
-  internal fun attachTo(placemark: PlacemarkMapObject) {
+  override fun attachToMap(collection: MapObjectCollection) {
+    if (placemark != null) {
+      return
+    }
+    val placemark = collection.addPlacemark()
     this.placemark = placemark
     // MapKit 4.41+ takes an explicit WeakReference; this view is the strong owner of the listener
-    // and is itself kept alive by the map view's marker list while mounted.
+    // and is itself kept alive by the map view's child list while mounted.
     placemark.addTapListener(WeakReference(this))
     appliedIconSource = null
     updateMarker()
@@ -158,19 +163,16 @@ class ExpoYandexMapKitMarkerView(context: Context, appContext: AppContext) :
     }
   }
 
-  // Called by the map view right before it removes the placemark from the collection.
-  internal fun detach() {
+  override fun detachFromMap(collection: MapObjectCollection) {
+    placemark?.let { collection.remove(it) }
     placemark = null
     appliedIconSource = null
     viewProvider = null
     hasRenderedChild = false
   }
 
-  internal val isAttached: Boolean
+  override val isAttachedToMap: Boolean
     get() = placemark != null
-
-  // The placemark the map view must remove from its collection when this marker unmounts.
-  internal fun currentPlacemark(): PlacemarkMapObject? = placemark
 
   // The marker's current geographic position, for fitAllMarkers().
   internal fun geoPoint(): Point? = point

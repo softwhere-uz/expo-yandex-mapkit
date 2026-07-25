@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import type { ImageSourcePropType, StyleProp, ViewStyle } from 'react-native';
+import type { ColorValue, ImageSourcePropType, StyleProp, ViewStyle } from 'react-native';
 
 export type Point = {
   latitude: number;
@@ -101,6 +101,23 @@ export type MarkerRef = {
   animatedMoveTo(point: Point, durationMs: number): Promise<void>;
   // Animate the marker's icon heading to `angle` degrees over `durationMs` milliseconds (linear).
   animatedRotateTo(angle: number, durationMs: number): Promise<void>;
+};
+
+// Payload for a shape's onPress — the tapped geographic point.
+export type ShapePressEvent = { point: Point };
+
+export type PolylineProps = {
+  points: Point[]; // the line's vertices (2+)
+  strokeColor?: ColorValue; // line color
+  strokeWidth?: number; // line width in points, default per MapKit
+  outlineColor?: ColorValue; // outline (border) color drawn under the stroke
+  outlineWidth?: number; // outline width in points
+  dashLength?: number; // dash segment length in points (with gapLength, makes a dashed line)
+  gapLength?: number; // gap length between dashes in points
+  dashOffset?: number; // starting offset of the dash pattern in points
+  zIndex?: number; // draw order among map objects, default 0
+  handled?: boolean; // when true a tap is consumed and does NOT also fire the map's onMapPress
+  onPress?: (event: { nativeEvent: ShapePressEvent }) => void;
 };
 
 export type ScreenPoint = {

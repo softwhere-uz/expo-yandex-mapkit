@@ -376,6 +376,36 @@ Imperative methods via a marker ref (`const ref = useRef<MarkerRef>(null)`):
 
 > Markers mounted before `initialize()` resolves attach automatically once the map is created — no ready-gating needed for the children.
 
+### `<Polyline />`
+
+Render a line as a child of `YandexMapView`:
+
+```tsx
+import { YandexMapView, Polyline } from 'expo-yandex-mapkit';
+
+<YandexMapView style={StyleSheet.absoluteFill} cameraPosition={{ latitude: 41.31, longitude: 69.24, zoom: 12 }}>
+  <Polyline
+    points={[{ latitude: 41.31, longitude: 69.24 }, { latitude: 41.33, longitude: 69.28 }]}
+    strokeColor="#1e88e5"
+    strokeWidth={4}
+    onPress={({ nativeEvent }) => console.log('line tapped at', nativeEvent.point)}
+  />
+</YandexMapView>;
+```
+
+| Prop | Type | Description |
+| --- | --- | --- |
+| `points` | `Point[]` | Line vertices (2+). Required. |
+| `strokeColor` | `ColorValue` | Line color. |
+| `strokeWidth` | `number` | Line width (points). |
+| `outlineColor` / `outlineWidth` | `ColorValue` / `number` | Border drawn under the stroke. |
+| `dashLength` / `gapLength` / `dashOffset` | `number` | Dash pattern (points). |
+| `zIndex` | `number` | Draw order among map objects. |
+| `handled` | `boolean` | Consume the tap so it does not also fire the map's `onMapPress`. |
+| `onPress` | `(event) => void` | `event.nativeEvent` is `{ point }`. |
+
+> `<Polygon>` and `<Circle>` are landing next on the same child architecture.
+
 ## lite vs full
 
 Yandex ships MapKit in two flavors. This library defaults to `lite`; select `full` via the [config plugin](#2-add-the-config-plugin) when you need its features (the library itself will start exposing them in v2).

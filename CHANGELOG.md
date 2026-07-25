@@ -20,6 +20,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `fitMarkers` and `fitAllMarkers` now accept `options.edgePadding` (`{ top, right, bottom, left }`
   in points) — a focus rectangle that keeps the fitted content clear of overlays like a bottom
   sheet or header. Completes the v0 imperative-ref surface.
+- **`<Polyline>` component** (#1 → Shapes): render a polyline as a child of `YandexMapView` —
+  `points`, `strokeColor`/`strokeWidth`, `outlineColor`/`outlineWidth`, a dash pattern
+  (`dashLength`/`gapLength`/`dashOffset`), `zIndex`, `onPress`, and `handled`. The map-object child
+  handling (shared with `<Marker>`) is now generalized behind a `MapObjectChild` interface, so the
+  upcoming `<Polygon>` and `<Circle>` plug into the same attach/detach machinery.
 
 ## [0.0.5] - 2026-07-25
 

@@ -206,6 +206,43 @@ public class ExpoYandexMapKitModule: Module {
         view.animatedRotateTo(angle, durationMs: durationMs)
       }.runOnQueue(.main)
     }
+
+    // The <Polyline> child view. Colors arrive as processColor()'d values (Expo → UIColor).
+    View(ExpoYandexMapKitPolylineView.self) {
+      ViewName("ExpoYandexMapKitPolylineView")
+      Events("onPress")
+
+      Prop("points") { (view: ExpoYandexMapKitPolylineView, points: [PointRecord]) in
+        view.setPoints(points)
+      }
+      Prop("strokeColor") { (view: ExpoYandexMapKitPolylineView, color: UIColor?) in
+        view.setStrokeColor(color)
+      }
+      Prop("strokeWidth") { (view: ExpoYandexMapKitPolylineView, width: Double) in
+        view.setStrokeWidth(width)
+      }
+      Prop("outlineColor") { (view: ExpoYandexMapKitPolylineView, color: UIColor?) in
+        view.setOutlineColor(color)
+      }
+      Prop("outlineWidth") { (view: ExpoYandexMapKitPolylineView, width: Double) in
+        view.setOutlineWidth(width)
+      }
+      Prop("dashLength") { (view: ExpoYandexMapKitPolylineView, v: Double) in
+        view.setDashLength(v)
+      }
+      Prop("dashOffset") { (view: ExpoYandexMapKitPolylineView, v: Double) in
+        view.setDashOffset(v)
+      }
+      Prop("gapLength") { (view: ExpoYandexMapKitPolylineView, v: Double) in
+        view.setGapLength(v)
+      }
+      Prop("zI") { (view: ExpoYandexMapKitPolylineView, z: Double) in
+        view.setZIndexValue(z)
+      }
+      Prop("handled") { (view: ExpoYandexMapKitPolylineView, h: Bool) in
+        view.setHandled(h)
+      }
+    }
   }
 
   // Shared initialization for both the JS initialize() call and the build-time auto-init. Must be

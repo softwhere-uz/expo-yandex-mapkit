@@ -12,7 +12,7 @@ internal struct MarkerAnchorRecord: Record {
 // MapObjectCollection) and hands it over via `attach(to:)`; this view then mirrors its props onto
 // the placemark. Props may arrive before or after the placemark exists, so `updateMarker()` no-ops
 // until both the placemark and a point are present.
-class ExpoYandexMapKitMarkerView: ExpoView {
+class ExpoYandexMapKitMarkerView: ExpoView, MapObjectChild {
   // YMKRotationType raw values: 0 = no rotation, 1 = rotate with the map (matches the SDK enum;
   // used as a plain NSNumber to avoid depending on the Swift enum symbol name).
   private static let rotationNone: Int = 0
@@ -99,7 +99,11 @@ class ExpoYandexMapKitMarkerView: ExpoView {
 
   // MARK: - Placemark lifecycle (driven by the map view)
 
-  func attach(to placemark: YMKPlacemarkMapObject) {
+  func attachToMap(_ collection: YMKMapObjectCollection) {
+    guard placemark == nil else {
+      return
+    }
+    let placemark = collection.addPlacemark()
     self.placemark = placemark
     let listener = MarkerTapListener(view: self)
     tapListener = listener
@@ -108,17 +112,17 @@ class ExpoYandexMapKitMarkerView: ExpoView {
     updateMarker()
   }
 
-  func detach() {
+  func detachFromMap(_ collection: YMKMapObjectCollection) {
+    if let placemark = placemark {
+      collection.remove(with: placemark)
+    }
     placemark = nil
     tapListener = nil
     appliedIconSource = nil
     stopTracking()
   }
 
-  var isAttached: Bool { placemark != nil }
-
-  // The placemark the map view must remove from its collection when this marker unmounts.
-  var currentPlacemark: YMKPlacemarkMapObject? { placemark }
+  var isAttachedToMap: Bool { placemark != nil }
 
   // The marker's current geographic position, for fitAllMarkers().
   var geoPoint: YMKPoint? { point }
