@@ -8,6 +8,7 @@ import android.graphics.PointF
 import android.view.View
 import android.view.animation.LinearInterpolator
 import com.yandex.mapkit.geometry.Point
+import com.yandex.mapkit.map.ClusterizedPlacemarkCollection
 import com.yandex.mapkit.map.IconStyle
 import com.yandex.mapkit.map.MapObject
 import com.yandex.mapkit.map.MapObjectCollection
@@ -71,6 +72,10 @@ class ExpoYandexMapKitMarkerView(context: Context, appContext: AppContext) :
   private var tracksViewChanges = true
   private var childView: View? = null
   private var hasRenderedChild = false
+
+  // Set by a <Clusterer> parent while this marker is clustered, so a geometry change re-triggers
+  // clustering. Null when the marker is a direct child of the map (un-clustered).
+  internal var onClusterInvalidate: (() -> Unit)? = null
   // Re-render the icon when the child is (re)laid out: always for the first successful render, and
   // thereafter only while tracksViewChanges is on (so a settled bubble is snapshotted once).
   private val childLayoutListener = View.OnLayoutChangeListener { view, _, _, _, _, _, _, _, _ ->
@@ -82,6 +87,8 @@ class ExpoYandexMapKitMarkerView(context: Context, appContext: AppContext) :
   internal fun setPoint(value: Point) {
     point = value
     updateMarker()
+    // A clustered marker moving must re-cluster; no-op when un-clustered.
+    onClusterInvalidate?.invoke()
   }
 
   internal fun setScale(value: Float) {
@@ -130,14 +137,40 @@ class ExpoYandexMapKitMarkerView(context: Context, appContext: AppContext) :
     if (placemark != null) {
       return
     }
-    val placemark = collection.addPlacemark()
-    this.placemark = placemark
+    bindPlacemark(collection.addPlacemark())
+  }
+
+  // Attach into a `<Clusterer>`'s cluster collection instead of the map's root collection, so this
+  // marker participates in clustering. Mirrors attachToMap — a ClusterizedPlacemarkCollection is a
+  // BaseMapObjectCollection, so addPlacemark() / remove() behave identically.
+  internal fun attachToCluster(collection: ClusterizedPlacemarkCollection) {
+    if (placemark != null) {
+      return
+    }
+    bindPlacemark(collection.addPlacemark())
+  }
+
+  internal fun detachFromCluster(collection: ClusterizedPlacemarkCollection) {
+    placemark?.let { collection.remove(it) }
+    clearPlacemarkState()
+  }
+
+  // Wire a freshly created placemark (from either the root or a cluster collection) up to this view.
+  private fun bindPlacemark(created: PlacemarkMapObject) {
+    placemark = created
     // MapKit 4.41+ takes an explicit WeakReference; this view is the strong owner of the listener
     // and is itself kept alive by the map view's child list while mounted.
-    placemark.addTapListener(WeakReference(this))
+    created.addTapListener(WeakReference(this))
     appliedIconSource = null
     hasIcon = false
     updateMarker()
+  }
+
+  private fun clearPlacemarkState() {
+    placemark = null
+    appliedIconSource = null
+    hasIcon = false
+    hasRenderedChild = false
   }
 
   internal fun setTracksViewChanges(value: Boolean) {
@@ -176,10 +209,7 @@ class ExpoYandexMapKitMarkerView(context: Context, appContext: AppContext) :
 
   override fun detachFromMap(collection: MapObjectCollection) {
     placemark?.let { collection.remove(it) }
-    placemark = null
-    appliedIconSource = null
-    hasIcon = false
-    hasRenderedChild = false
+    clearPlacemarkState()
   }
 
   override val isAttachedToMap: Boolean

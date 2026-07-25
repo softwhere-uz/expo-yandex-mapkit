@@ -234,6 +234,36 @@ public class ExpoYandexMapKitModule: Module {
       }.runOnQueue(.main)
     }
 
+    // The <Clusterer> child view: groups its <Marker> children into a YMKClusterizedPlacemarkCollection.
+    // Its markers arrive through the view's own Fabric child hooks (into the cluster collection), so no
+    // extra child wiring is needed here. Colors arrive as processColor()'d values (Expo → UIColor).
+    View(ExpoYandexMapKitClustererView.self) {
+      ViewName("ExpoYandexMapKitClustererView")
+      Events("onClusterPress")
+
+      Prop("clusterRadius") { (view: ExpoYandexMapKitClustererView, radius: Double) in
+        view.setClusterRadius(radius)
+      }
+      Prop("minZoom") { (view: ExpoYandexMapKitClustererView, zoom: Double) in
+        view.setMinZoom(zoom)
+      }
+      Prop("clusterColor") { (view: ExpoYandexMapKitClustererView, color: UIColor?) in
+        view.setClusterColor(color)
+      }
+      Prop("clusterTextColor") { (view: ExpoYandexMapKitClustererView, color: UIColor?) in
+        view.setClusterTextColor(color)
+      }
+      Prop("clusterTextSize") { (view: ExpoYandexMapKitClustererView, size: Double) in
+        view.setClusterTextSize(size)
+      }
+      Prop("clusterSize") { (view: ExpoYandexMapKitClustererView, size: Double) in
+        view.setClusterSize(size)
+      }
+      Prop("fitClusterOnPress") { (view: ExpoYandexMapKitClustererView, fit: Bool) in
+        view.setFitOnPress(fit)
+      }
+    }
+
     // The <Polyline> child view. Colors arrive as processColor()'d values (Expo → UIColor).
     View(ExpoYandexMapKitPolylineView.self) {
       ViewName("ExpoYandexMapKitPolylineView")

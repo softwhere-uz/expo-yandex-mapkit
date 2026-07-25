@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Marker clustering** (#1 → Clustering): a new `<Clusterer>` component groups its `<Marker>`
+  children into clusters, backed by MapKit's `ClusterizedPlacemarkCollection` on both platforms.
+  Rather than yamap-plus's separate `clusteredMarkers` array + `renderMarker` render-prop, this
+  reuses the existing declarative `<Marker>` (image / React-children icons, `onPress`, `identifier`
+  all still work) — the marker _is_ the render-prop. `clusterRadius` and `minZoom` are configurable
+  (yamap-plus hardcodes 50 / 12). A default round count badge is drawn natively with configurable
+  `clusterColor` / `clusterTextColor` / `clusterTextSize` / `clusterSize`. Tapping a cluster fits the
+  camera to its markers (`fitClusterOnPress`, default on) and fires `onClusterPress` with
+  `{ size, point }`. `fitAllMarkers()` includes clustered markers. Marker add/remove/move within a
+  clusterer coalesces into a single re-cluster per frame. Still to come in this group:
+  `excludeFromCluster`, imperative batch add/clear, and custom cluster-badge icons.
 - **iOS edge padding for `fitMarkers` / `fitAllMarkers`** (#1 → Imperative ref, #7): `options.edgePadding`
   now applies on iOS too (previously Android-only, iOS framed to the full viewport). It is applied via
   the map window's focus rectangle, so an asymmetric inset — e.g. a bottom sheet overlapping the lower

@@ -256,6 +256,48 @@ class ExpoYandexMapKitModule : Module() {
       }.runOnQueue(Queues.MAIN)
     }
 
+    // The <Clusterer> child view: groups its <Marker> children into a ClusterizedPlacemarkCollection.
+    // Its markers are managed through this GroupView (into the cluster collection), mirroring how the
+    // map view manages its own children.
+    View(ExpoYandexMapKitClustererView::class) {
+      Name("ExpoYandexMapKitClustererView")
+      Events("onClusterPress")
+
+      GroupView<ExpoYandexMapKitClustererView> {
+        AddChildView { parent, child: View, index ->
+          parent.addChildView(child, index)
+        }
+        GetChildCount { parent -> parent.childViewCount() }
+        GetChildViewAt { parent, index -> parent.childViewAt(index) }
+        RemoveChildViewAt { parent, index -> parent.removeChildViewAt(index) }
+        RemoveChildView { parent, child: View ->
+          parent.removeChildView(child)
+        }
+      }
+
+      Prop("clusterRadius") { view: ExpoYandexMapKitClustererView, radius: Double ->
+        view.setClusterRadius(radius)
+      }
+      Prop("minZoom") { view: ExpoYandexMapKitClustererView, zoom: Double ->
+        view.setMinZoom(zoom.toInt())
+      }
+      Prop("clusterColor") { view: ExpoYandexMapKitClustererView, color: Int? ->
+        view.setClusterColor(color)
+      }
+      Prop("clusterTextColor") { view: ExpoYandexMapKitClustererView, color: Int? ->
+        view.setClusterTextColor(color)
+      }
+      Prop("clusterTextSize") { view: ExpoYandexMapKitClustererView, size: Double ->
+        view.setClusterTextSize(size.toFloat())
+      }
+      Prop("clusterSize") { view: ExpoYandexMapKitClustererView, size: Double ->
+        view.setClusterSize(size.toFloat())
+      }
+      Prop("fitClusterOnPress") { view: ExpoYandexMapKitClustererView, fit: Boolean ->
+        view.setFitOnPress(fit)
+      }
+    }
+
     // The <Polyline> child view. Colors arrive as processColor()'d ints; zIndex as `zI`.
     View(ExpoYandexMapKitPolylineView::class) {
       Name("ExpoYandexMapKitPolylineView")
