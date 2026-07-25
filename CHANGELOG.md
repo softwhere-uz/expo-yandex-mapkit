@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-07-25
+
+Completes the react-native-yamap-plus feature-parity checklist (#1): every tracked item is now shipped.
+This release adds the remaining Search options. (Note: the `full`-flavor v2 modules are verified to
+compile against real MapKit but have not yet been exercised on a device.)
+
 ### Added
 
 - **Search options: spelling correction + snippets** (#1 → v2 Search, `full` flavor). `SearchOptions` gains
@@ -313,7 +319,8 @@ Initial scaffold.
 - Web stubs that warn once and render nothing instead of crashing.
 - Official scoped alias package `@softwhere-uz/expo-yandex-mapkit`.
 
-[Unreleased]: https://github.com/softwhere-uz/expo-yandex-mapkit/compare/v1.3.0...HEAD
+[Unreleased]: https://github.com/softwhere-uz/expo-yandex-mapkit/compare/v1.4.0...HEAD
+[1.4.0]: https://github.com/softwhere-uz/expo-yandex-mapkit/releases/tag/v1.4.0
 [1.3.0]: https://github.com/softwhere-uz/expo-yandex-mapkit/releases/tag/v1.3.0
 [1.2.0]: https://github.com/softwhere-uz/expo-yandex-mapkit/releases/tag/v1.2.0
 [1.1.0]: https://github.com/softwhere-uz/expo-yandex-mapkit/releases/tag/v1.1.0
