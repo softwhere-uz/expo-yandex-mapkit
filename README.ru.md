@@ -12,6 +12,8 @@
 [![license](https://img.shields.io/npm/l/expo-yandex-mapkit.svg)](./LICENSE)
 [![CI](https://github.com/softwhere-uz/expo-yandex-mapkit/actions/workflows/ci.yaml/badge.svg)](https://github.com/softwhere-uz/expo-yandex-mapkit/actions/workflows/ci.yaml)
 
+📝 **Статья:** [Яндекс.Карты в Expo в 2026: поддерживаемый нативный SDK](https://habr.com/ru/articles/1063014/)
+
 ## Возможности
 
 Полноценный SDK Яндекс Карт для Expo — полный паритет по функциональности с самой мощной обёрткой сообщества ([отслеживается в #1](https://github.com/softwhere-uz/expo-yandex-mapkit/issues/1)), на базе Expo Modules API, с поддержкой Новой архитектуры и настройкой целиком через конфиг-плагин. Всё перечисленное ниже работает на **обеих платформах** с одинаковым JS.
