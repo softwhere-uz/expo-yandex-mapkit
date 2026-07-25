@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-07-25
+
+Starts v2 (the MapKit `full`-flavor modules) with **Suggest** and **Search & geocoding**, plus the
+flavor-conditional-compilation infrastructure they run on. All additive and `full`-flavor only —
+`lite` apps are unaffected (these APIs reject with a clear message on `lite`).
+
 ### Added
 
 - **v2: Search & geocoding** (#1 → v2 Search, `full` flavor). `searchText(query, options)` (full-text
@@ -264,7 +270,8 @@ Initial scaffold.
 - Web stubs that warn once and render nothing instead of crashing.
 - Official scoped alias package `@softwhere-uz/expo-yandex-mapkit`.
 
-[Unreleased]: https://github.com/softwhere-uz/expo-yandex-mapkit/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/softwhere-uz/expo-yandex-mapkit/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/softwhere-uz/expo-yandex-mapkit/releases/tag/v1.1.0
 [1.0.0]: https://github.com/softwhere-uz/expo-yandex-mapkit/releases/tag/v1.0.0
 [0.0.5]: https://github.com/softwhere-uz/expo-yandex-mapkit/releases/tag/v0.0.5
 [0.0.4]: https://github.com/softwhere-uz/expo-yandex-mapkit/releases/tag/v0.0.4
