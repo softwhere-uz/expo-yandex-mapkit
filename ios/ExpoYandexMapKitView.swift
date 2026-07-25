@@ -162,6 +162,9 @@ class ExpoYandexMapKitView: ExpoView {
   // the value persists — passing undefined later does not revert it (matches mapType/mapStyle).
   private var logoPosition: LogoPositionRecord?
   private var logoPadding: LogoPaddingRecord?
+  // Persistent map-padding inset, applied as the map window's focus rectangle. nil = full viewport.
+  // Kept so it can be re-applied when the view is (re)laid out, since the focus rect is in pixels.
+  private var mapPadding: EdgePaddingRecord?
   private var mapReadyEmitted = false
   private var didWarnAboutMissingInit = false
 
@@ -210,6 +213,9 @@ class ExpoYandexMapKitView: ExpoView {
   override func layoutSubviews() {
     super.layoutSubviews()
     mapView?.frame = bounds
+    // The focus rect is in pixels and depends on the map size, so re-apply the map padding whenever
+    // the view is (re)laid out — the first real size, a rotation, or a resized container.
+    applyMapPadding()
   }
 
   // MARK: - Marker children
@@ -521,6 +527,21 @@ class ExpoYandexMapKitView: ExpoView {
     applyLogo(to: mapView?.mapWindow.map)
   }
 
+  func setMapPadding(_ padding: EdgePaddingRecord?) {
+    mapPadding = padding
+    applyMapPadding()
+  }
+
+  // Apply the persistent map-padding inset as the map window's focus rectangle. Only touches the
+  // focus rect when a padding is set — when nil, the focus rect is left alone (a fitMarkers call may
+  // own it). The rect is in pixels, so this is re-run from layoutSubviews when the view is resized.
+  private func applyMapPadding() {
+    guard let mapWindow = mapView?.mapWindow, mapPadding != nil else {
+      return
+    }
+    mapWindow.focusRect = focusRect(mapPadding)
+  }
+
   private func applyLogo(to map: YMKMap?) {
     guard let map = map else {
       return
@@ -625,7 +646,9 @@ class ExpoYandexMapKitView: ExpoView {
     guard let mapWindow = mapView?.mapWindow else {
       return
     }
-    mapWindow.focusRect = focusRect(options.edgePadding)
+    // A fit with no edgePadding of its own falls back to the persistent mapPadding, so a fit never
+    // silently discards the map's configured inset. An explicit edgePadding overrides it for this fit.
+    mapWindow.focusRect = focusRect(options.edgePadding ?? mapPadding)
     let current = map.cameraPosition
     let target: YMKCameraPosition
     if points.count == 1 {
@@ -784,6 +807,7 @@ class ExpoYandexMapKitView: ExpoView {
     }
     applyMapStyle(to: map)
     applyLogo(to: map)
+    applyMapPadding()
     // The initial camera position is applied instantly — the map has not been shown yet.
     applyPendingCameraPosition(allowAnimation: false)
     // Wire up any <Marker> children that mounted before the map existed.

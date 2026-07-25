@@ -150,6 +150,10 @@ class ExpoYandexMapKitModule : Module() {
         view.setLogoPadding(logoPadding)
       }
 
+      Prop("mapPadding") { view: ExpoYandexMapKitView, mapPadding: EdgePaddingRecord? ->
+        view.setMapPadding(mapPadding)
+      }
+
       Prop("showUserPosition") { view: ExpoYandexMapKitView, show: Boolean ->
         view.setShowUserPosition(show)
       }

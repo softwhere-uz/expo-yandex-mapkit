@@ -209,6 +209,9 @@ class ExpoYandexMapKitView(context: Context, appContext: AppContext) : ExpoView(
   // the value persists — passing undefined later does not revert it (matches mapType/mapStyle).
   private var logoPosition: LogoPositionRecord? = null
   private var logoPadding: LogoPaddingRecord? = null
+  // Persistent map-padding inset, applied as the map window's focus rectangle. null = full viewport.
+  // Kept so it can be re-applied when the view is resized, since the focus rect is in pixels.
+  private var mapPadding: EdgePaddingRecord? = null
   private var pendingCameraPosition: CameraPositionRecord? = null
   private var cameraPositionDirty = false
 
@@ -325,6 +328,13 @@ class ExpoYandexMapKitView(context: Context, appContext: AppContext) : ExpoView(
     ExpoYandexMapKitModule.unregisterView(this)
     stopMap()
     super.onDetachedFromWindow()
+  }
+
+  override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
+    super.onSizeChanged(w, h, oldw, oldh)
+    // The focus rect is in pixels and depends on the map size, so re-apply the map padding whenever
+    // the view is resized — the first real size, a rotation, or a resized container.
+    applyMapPadding()
   }
 
   /**
@@ -479,6 +489,22 @@ class ExpoYandexMapKitView(context: Context, appContext: AppContext) : ExpoView(
     applyLogo(mapView?.mapWindow?.map)
   }
 
+  internal fun setMapPadding(padding: EdgePaddingRecord?) {
+    mapPadding = padding
+    applyMapPadding()
+  }
+
+  // Apply the persistent map-padding inset as the map window's focus rectangle. Only touches the
+  // focus rect when a padding is set — when null, the focus rect is left alone (a fitMarkers call may
+  // own it). The rect is in pixels, so this is re-run from onSizeChanged when the view is resized.
+  private fun applyMapPadding() {
+    val mapWindow = mapView?.mapWindow ?: return
+    if (mapPadding == null) {
+      return
+    }
+    mapWindow.focusRect = focusRect(mapPadding)
+  }
+
   private fun applyLogo(map: YandexMap?) {
     val target = map ?: return
     logoPosition?.let {
@@ -549,7 +575,9 @@ class ExpoYandexMapKitView(context: Context, appContext: AppContext) : ExpoView(
         Point(points.maxOf { it.latitude }, points.maxOf { it.longitude })
       )
       val geometry = Geometry.fromBoundingBox(boundingBox)
-      val focus = focusRect(options.edgePadding)
+      // A fit with no edgePadding of its own falls back to the persistent mapPadding, so a fit never
+      // silently discards the map's configured inset. An explicit edgePadding overrides it for this fit.
+      val focus = focusRect(options.edgePadding ?: mapPadding)
       if (focus != null) {
         map.cameraPosition(geometry, focus, current.azimuth, current.tilt)
       } else {
@@ -826,6 +854,7 @@ class ExpoYandexMapKitView(context: Context, appContext: AppContext) : ExpoView(
     mapType?.let { map.mapType = it }
     applyMapStyle(map)
     applyLogo(map)
+    applyMapPadding()
     // The initial camera position is applied instantly — the map has not been shown yet.
     applyPendingCameraPosition(allowAnimation = false)
     // Wire up any <Marker> children that mounted before the map existed.

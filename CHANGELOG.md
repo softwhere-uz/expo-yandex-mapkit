@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`mapPadding` prop** (beyond parity — [#2](https://github.com/softwhere-uz/expo-yandex-mapkit/issues/2)).
+  A persistent inset (`{ top?, right?, bottom?, left? }`, in points) around the map's logical viewport —
+  the react-native-maps `mapPadding` convention. It shifts the map's optical center and the target of
+  camera moves / gestures so content stays clear of a bottom sheet, header, or floating controls,
+  applied as MapKit's map-window focus rectangle. `fitMarkers` / `fitAllMarkers` fall back to it when
+  their own `edgePadding` is omitted. No Yandex-maps RN wrapper offers a map-padding equivalent.
+
 ## [2.0.1] - 2026-07-26
 
 Docs/packaging patch — no code changes.

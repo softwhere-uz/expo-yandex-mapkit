@@ -63,6 +63,12 @@ export type YandexMapViewProps = {
   userLocationAccuracyStrokeColor?: ColorValue; // stroke (border) color of the accuracy circle
   userLocationAccuracyStrokeWidth?: number; // accuracy-circle stroke width in points
   trafficVisible?: boolean; // show the live traffic-jams layer; default false
+  // Persistent inset (in points) around the map's logical viewport — the react-native-maps
+  // `mapPadding` convention. Shifts the map's optical center and the target of camera moves / gestures
+  // so content stays clear of a bottom sheet, header, or floating controls. Applied as MapKit's
+  // map-window focus rectangle. Unset = full viewport. `fitMarkers`/`fitAllMarkers` fall back to this
+  // when their own `edgePadding` is omitted.
+  mapPadding?: EdgePadding;
   onMapReady?: (event: { nativeEvent: Record<string, never> }) => void;
   onCameraPositionChanged?: (event: { nativeEvent: CameraPositionChangeEvent }) => void;
   onMapPress?: (event: { nativeEvent: MapPressEvent }) => void;

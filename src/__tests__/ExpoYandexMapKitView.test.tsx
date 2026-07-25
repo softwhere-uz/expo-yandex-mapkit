@@ -75,3 +75,22 @@ describe('YandexMapView user-location styling', () => {
     expect(props.userLocationAccuracyStrokeWidth).toBe(3);
   });
 });
+
+// mapPadding (issue #2, Section A) — a persistent focus-rect inset, the react-native-maps convention.
+// It is a plain passthrough prop (the native side turns it into the map-window focus rectangle).
+describe('YandexMapView mapPadding', () => {
+  afterEach(() => {
+    mockNative.props = null;
+  });
+
+  it('forwards mapPadding to the native view unchanged', () => {
+    const mapPadding = { top: 0, right: 0, bottom: 240, left: 0 };
+    const props = renderMap({ mapPadding });
+    expect(props.mapPadding).toBe(mapPadding);
+  });
+
+  it('leaves mapPadding undefined when unset (full viewport)', () => {
+    const props = renderMap({});
+    expect(props.mapPadding).toBeUndefined();
+  });
+});
