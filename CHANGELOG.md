@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-07-25
+
+Rounds out the v2 (`full`-flavor) modules: per-section route breakdowns, structured search-address
+components, and `resolveURI`. Additive and `full`-flavor only.
+
 ### Added
 
 - **`resolveURI()` — resolve a MapKit object URI** (#1 → v2 Search, `full` flavor). `resolveURI(uri, options?)`
@@ -301,7 +306,8 @@ Initial scaffold.
 - Web stubs that warn once and render nothing instead of crashing.
 - Official scoped alias package `@softwhere-uz/expo-yandex-mapkit`.
 
-[Unreleased]: https://github.com/softwhere-uz/expo-yandex-mapkit/compare/v1.2.0...HEAD
+[Unreleased]: https://github.com/softwhere-uz/expo-yandex-mapkit/compare/v1.3.0...HEAD
+[1.3.0]: https://github.com/softwhere-uz/expo-yandex-mapkit/releases/tag/v1.3.0
 [1.2.0]: https://github.com/softwhere-uz/expo-yandex-mapkit/releases/tag/v1.2.0
 [1.1.0]: https://github.com/softwhere-uz/expo-yandex-mapkit/releases/tag/v1.1.0
 [1.0.0]: https://github.com/softwhere-uz/expo-yandex-mapkit/releases/tag/v1.0.0
