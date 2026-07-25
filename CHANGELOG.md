@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **iOS edge padding for `fitMarkers` / `fitAllMarkers`** (#1 → Imperative ref, #7): `options.edgePadding`
+  now applies on iOS too (previously Android-only, iOS framed to the full viewport). It is applied via
+  the map window's focus rectangle, so an asymmetric inset — e.g. a bottom sheet overlapping the lower
+  part of the map — keeps the fitted content clear of the overlay rather than centering it. The focus
+  rect persists after the fit, so follow-up camera moves keep the same inset until the next `fit*` call
+  changes it (pass no `edgePadding` to reset to the full viewport).
+
 ## [0.0.7] - 2026-07-25
 
 ### Added

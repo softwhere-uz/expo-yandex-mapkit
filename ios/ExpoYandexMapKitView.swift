@@ -487,6 +487,17 @@ class ExpoYandexMapKitView: ExpoView {
     guard !points.isEmpty else {
       return
     }
+    // iOS has no cameraPosition(geometry, focusRect, …) overload (unlike Android), so edge padding
+    // is applied through the map window's focus rectangle instead: cameraPosition(with:) frames the
+    // bounding box into the focusRect, and the focusRect also anchors where the camera target sits
+    // on screen (so asymmetric padding — e.g. a bottom sheet — is honoured, not just centred). It is
+    // set when padding is given and reset to the full window otherwise. It persists after the fit so
+    // follow-up camera moves keep the same inset (content stays clear of the sheet) until the next
+    // fit changes it. mapWindow may be nil before the map is ready — then there is nothing to fit.
+    guard let mapWindow = mapView?.mapWindow else {
+      return
+    }
+    mapWindow.focusRect = focusRect(options.edgePadding)
     let current = map.cameraPosition
     let target: YMKCameraPosition
     if points.count == 1 {
@@ -500,14 +511,32 @@ class ExpoYandexMapKitView: ExpoView {
         northEast: YMKPoint(latitude: latitudes.max() ?? 0, longitude: longitudes.max() ?? 0)
       )
       let geometry = YMKGeometry(boundingBox: boundingBox)
-      // 4.42's iOS SDK exposes only cameraPosition(with:) for geometry framing — there is no
-      // focus/padding overload (Android has cameraPosition(geometry, focusRect, azimuth, tilt), so
-      // edge padding applies there). On iOS the geometry is framed to the full viewport. Applying
-      // options.edgePadding here needs the map window's focusRect (with careful focusPoint/reset
-      // handling) — tracked as a follow-up so this fit does not silently frame to the wrong region.
       target = map.cameraPosition(with: geometry)
     }
     moveCamera(to: target, options: options, on: map)
+  }
+
+  // The focus rectangle = the map's bounds inset by the edge padding, in physical pixels (the map's
+  // screen coordinates are pixels, so the point-based padding and bounds are scaled by the screen
+  // scale). Returns nil when there is no padding or the map has no size yet — nil resets the map
+  // window to its full-viewport focus.
+  private func focusRect(_ padding: EdgePaddingRecord?) -> YMKScreenRect? {
+    guard let padding = padding, let mapView = mapView else {
+      return nil
+    }
+    let scale = Float(UIScreen.main.scale)
+    let width = Float(mapView.bounds.width) * scale
+    let height = Float(mapView.bounds.height) * scale
+    guard width > 0, height > 0 else {
+      return nil
+    }
+    let left = min(max(Float(padding.left) * scale, 0), width - 1)
+    let top = min(max(Float(padding.top) * scale, 0), height - 1)
+    let right = min(max(width - Float(padding.right) * scale, left + 1), width)
+    let bottom = min(max(height - Float(padding.bottom) * scale, top + 1), height)
+    return YMKScreenRect(
+      topLeft: YMKScreenPoint(x: left, y: top),
+      bottomRight: YMKScreenPoint(x: right, y: bottom))
   }
 
   private func moveCamera(to target: YMKCameraPosition, options: CameraMoveOptionsRecord, on map: YMKMap) {
