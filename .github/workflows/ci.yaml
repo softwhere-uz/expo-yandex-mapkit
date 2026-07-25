@@ -9,12 +9,16 @@ on:
     branches: [main]
     paths-ignore:
       - '**.md'
+      - '**.png'
+      - 'media/**'
       - 'alias/**'
       - '.github/workflows/release.yaml'
       - '.github/workflows/mapkit-version-watch.yaml'
   pull_request:
     paths-ignore:
       - '**.md'
+      - '**.png'
+      - 'media/**'
       - 'alias/**'
       - '.github/workflows/release.yaml'
       - '.github/workflows/mapkit-version-watch.yaml'

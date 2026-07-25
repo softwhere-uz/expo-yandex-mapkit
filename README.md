@@ -2,11 +2,17 @@
 
 **English** | [Русский](./README.ru.md)
 
+<p align="center">
+  <img src="https://raw.githubusercontent.com/softwhere-uz/expo-yandex-mapkit/main/media/social-card.png" alt="expo-yandex-mapkit — Yandex Maps for Expo: native, maintained, full-flavor" width="820">
+</p>
+
 Yandex Maps (MapKit) for Expo — built on the Expo Modules API, configured by a config plugin, New Architecture ready.
 
 [![npm version](https://img.shields.io/npm/v/expo-yandex-mapkit.svg)](https://www.npmjs.com/package/expo-yandex-mapkit)
 [![license](https://img.shields.io/npm/l/expo-yandex-mapkit.svg)](./LICENSE)
 [![CI](https://github.com/softwhere-uz/expo-yandex-mapkit/actions/workflows/ci.yaml/badge.svg)](https://github.com/softwhere-uz/expo-yandex-mapkit/actions/workflows/ci.yaml)
+
+📝 **Writeup:** [Yandex Maps in Expo, in 2026 — a maintained, native SDK](https://medium.com/@kamuranbek1998/yandex-maps-in-expo-in-2026-a-maintained-native-sdk-e7e3d8e25165)
 
 ## Features
 

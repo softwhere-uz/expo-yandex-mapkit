@@ -2,6 +2,10 @@
 
 **Русский** | [English](./README.md)
 
+<p align="center">
+  <img src="https://raw.githubusercontent.com/softwhere-uz/expo-yandex-mapkit/main/media/social-card.png" alt="expo-yandex-mapkit — Яндекс Карты для Expo: нативно, поддерживается, full-flavor" width="820">
+</p>
+
 Яндекс Карты (MapKit) для Expo — на базе Expo Modules API, настройка через конфиг-плагин, с поддержкой Новой архитектуры.
 
 [![npm version](https://img.shields.io/npm/v/expo-yandex-mapkit.svg)](https://www.npmjs.com/package/expo-yandex-mapkit)

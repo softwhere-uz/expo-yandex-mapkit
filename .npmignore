@@ -24,3 +24,6 @@ __tests__
 
 # Bare CI fixture is excluded from the npm package
 /bare-example/
+
+# README artwork — referenced by absolute URL, not shipped in the tarball
+/media/
