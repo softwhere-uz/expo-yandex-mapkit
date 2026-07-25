@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.7] - 2026-07-25
+
 ### Added
 
 - **Runtime locale** (#1 → Locale): `setLocale(locale)`, `getLocale()`, and `resetLocale()` module
