@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-07-26
+
+**Milestone release — full feature parity, device-validated.** `1.0` marked v1 (lite-flavor) parity;
+`2.0` marks the whole surface complete: every item on the parity checklist ([#1](https://github.com/softwhere-uz/expo-yandex-mapkit/issues/1))
+is shipped, and the full library — including the `full`-flavor Search / Suggest / Routing — has now
+been **runtime-verified on iOS** (a 25/25 programmatic suite plus screenshot-verified rendering across
+every v0/v1 path) in addition to compiling against the real MapKit SDK on both platforms in CI.
+
+> **No breaking changes** — the public API is identical to `1.4.0`; no migration is needed. The major
+> bump is a deliberate "validated, feature-complete, production-ready" signal, not an API break.
+
+### Changed
+
+- **README refreshed** for the feature-complete state (Features / Status / Alternatives / lite-vs-full
+  had all drifted, still describing "early development"). Sharpened the `mapType` note: `'satellite'` /
+  `'hybrid'` need a key with satellite-imagery access — a free-tier key renders the empty tile grid (the
+  prop takes effect, imagery just doesn't load), which is a key entitlement, not a library issue.
+
 ## [1.4.0] - 2026-07-25
 
 Completes the react-native-yamap-plus feature-parity checklist (#1): every tracked item is now shipped.
@@ -319,7 +337,8 @@ Initial scaffold.
 - Web stubs that warn once and render nothing instead of crashing.
 - Official scoped alias package `@softwhere-uz/expo-yandex-mapkit`.
 
-[Unreleased]: https://github.com/softwhere-uz/expo-yandex-mapkit/compare/v1.4.0...HEAD
+[Unreleased]: https://github.com/softwhere-uz/expo-yandex-mapkit/compare/v2.0.0...HEAD
+[2.0.0]: https://github.com/softwhere-uz/expo-yandex-mapkit/releases/tag/v2.0.0
 [1.4.0]: https://github.com/softwhere-uz/expo-yandex-mapkit/releases/tag/v1.4.0
 [1.3.0]: https://github.com/softwhere-uz/expo-yandex-mapkit/releases/tag/v1.3.0
 [1.2.0]: https://github.com/softwhere-uz/expo-yandex-mapkit/releases/tag/v1.2.0
