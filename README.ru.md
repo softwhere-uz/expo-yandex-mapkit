@@ -1,6 +1,6 @@
 # expo-yandex-mapkit
 
-[English](./README.md) | **Русский**
+**Русский** | [English](./README.md)
 
 Яндекс Карты (MapKit) для Expo — на базе Expo Modules API, настройка через конфиг-плагин, с поддержкой Новой архитектуры.
 
@@ -10,27 +10,40 @@
 
 ## Возможности
 
-- 🗺️ Нативная карта Yandex MapKit на Android и iOS (Fabric / Новая архитектура)
-- 🎥 Декларативное управление камерой с опциональной анимацией (`cameraPosition` + `animated`)
-- 👆 События камеры, нажатий и долгих нажатий — одинаковые payload'ы на обеих платформах
-- 🌙 Ночной режим
-- 🔑 API-ключ задаётся в **рантайме** через `initialize(apiKey)` **или** на этапе **сборки** через конфиг-плагин (`apiKey`) — в обоих случаях без правок `AndroidManifest.xml` / `AppDelegate`; ключ, заданный при сборке, инициализирует MapKit автоматически при старте, так что нет ни ритуала инициализации, ни проблемы порядка инициализации
-- 🔧 Конфиг-плагин: версия MapKit и flavor `lite`/`full`, API-ключ и `locale` карты на этапе сборки (всё — с переопределением по платформам), автоматическое поднятие minSdk на Android — вся настройка сводится к `npx expo prebuild`
-- 📦 Доступен и под scoped-алиасом [`@softwhere-uz/expo-yandex-mapkit`](https://www.npmjs.com/package/@softwhere-uz/expo-yandex-mapkit)
-- 🌍 Документация на [английском](./README.md) и [русском](./README.ru.md)
+Полноценный SDK Яндекс Карт для Expo — полный паритет по функциональности с самой мощной обёрткой сообщества ([отслеживается в #1](https://github.com/softwhere-uz/expo-yandex-mapkit/issues/1)), на базе Expo Modules API, с поддержкой Новой архитектуры и настройкой целиком через конфиг-плагин. Всё перечисленное ниже работает на **обеих платформах** с одинаковым JS.
 
-В планах: маркеры (включая иконки из React-детей), полилинии/полигоны/круги, кластеризация, слой геопозиции, пробки, JSON-стилизация, поиск/геокодинг/маршрутизация (flavor `full`), поддержка [Mappable](https://github.com/mappable-world) (второй бренд того же SDK) и DOM-компонент-фолбэк для Expo Go и веба. См. дорожную карту ниже.
+**Карта и камера**
+- 🗺️ Нативная карта MapKit `<YandexMapView>` (Fabric / Новая архитектура)
+- 🎥 Декларативная анимируемая камера (`cameraPosition`) + императивные методы через ref — `setCenter`, `setZoom`, `fitMarkers` / `fitAllMarkers` (с отступами по краям), `getCameraPosition`, `getVisibleRegion`, проекция мир↔экран
+- 👆 События нажатий / долгих нажатий / движения камеры / загрузки карты с идентичными payload'ами на iOS и Android
+- 🎨 `mapType` (`map` / `satellite` / `hybrid` / `vector`), JSON-`mapStyle`, ночной режим, переключатели отдельных жестов, размещение логотипа
+
+**Объекты карты** (декларативные дети карты)
+- 📍 `<Marker>` — иконки-картинки **или из React-детей** (надёжно, с конвейером повторного снапшота через `tracksViewChanges`), `onPress` с идентифицирующим payload'ом, `animatedMoveTo` / `animatedRotateTo`
+- 〰️ `<Polyline>` (штрихи + обводка), `<Polygon>` (дырки через `innerRings`), `<Circle>`
+- 🔵 `<Clusterer>` — декларативная кластеризация, где ваши собственные `<Marker>` служат render-пропом; настраиваемый бейдж (цвет / размер / **иконка**), `excludeFromCluster`, тап-для-подгонки, настраиваемые радиус / minZoom
+- 📡 Слой геопозиции пользователя (кастомная иконка точки + стилизация круга точности) и живой 🚦 слой пробок
+
+**Модули flavor `full`** — задайте `flavor: 'full'` ([lite и full](#lite-и-full))
+- 🔎 **Поиск и геокодинг** — `searchText`, `searchPoint` (обратный), `geocodeAddress` / `geocodePoint`, `resolveURI`; структурные `addressComponents`, рейтинг организаций `rating`, опции орфографии / сниппетов
+- ⌨️ **Саджест** — поиск по мере ввода; координаты читаются **нативно** (без потери `center`)
+- 🧭 **Маршрутизация** — `findRoutes` для авто / общественного транспорта / пешехода, с разбивкой на участки по секциям (пешком → автобус → пересадка → метро)
+
+**Установка и DX**
+- 🔑 API-ключ на этапе **сборки** (конфиг-плагин) или в **рантайме** (`initialize`) — без правок `AndroidManifest.xml` / `AppDelegate`; ключ, заданный при сборке, инициализирует MapKit автоматически при старте (без проблемы порядка инициализации)
+- 🔧 Один конфиг-плагин: версия MapKit, flavor `lite`/`full`, API-ключ, `locale` карты, разрешение на геопозицию, минимальный уровень Android minSdk (переопределение по платформам для всего) — вся настройка сводится к `npx expo prebuild`
+- 📦 Доступен и под scoped-алиасом [`@softwhere-uz/expo-yandex-mapkit`](https://www.npmjs.com/package/@softwhere-uz/expo-yandex-mapkit) · 🌍 документация на [английском](./README.md) и [русском](./README.ru.md)
 
 ## Статус
 
-**Ранняя стадия разработки (v0.0.x).** Что есть уже сейчас: нативный `YandexMapView` для Android и iOS с декларативной камерой, событиями камеры/нажатий и ночным режимом, `initialize(apiKey)` на стороне JS (без правок нативных файлов) и конфиг-плагин, который выбирает версию и flavor MapKit, при желании внедряет API-ключ и локаль карты на этапе сборки и принудительно поднимает Android minSdk до 26. Между релизами 0.0.x возможны ломающие изменения.
+**Стабильно — функциональность завершена.** Библиотека достигла полного паритета с поверхностью [`react-native-yamap-plus`](https://github.com/Qudaeo/react-native-yamap-plus) (и делает ряд вещей лучше) на протяжении релизов `1.0.0` → `2.0.0`; чек-лист паритета ([#1](https://github.com/softwhere-uz/expo-yandex-mapkit/issues/1)) закрыт. Вся поверхность — включая Поиск / Саджест / Маршрутизацию flavor `full` — **проверена в рантайме на iOS** и компилируется против реального MapKit SDK на обеих платформах в CI. Следует [semver](https://semver.org/): аддитивные изменения поднимают минорную версию, так что обновление в пределах `2.x` не требует миграции.
 
 | Этап | Объём | Статус |
 | --- | --- | --- |
-| v0 | MapView, управление камерой + события, нажатия, ночной режим, маркеры (вкл. иконки из React-детей) | **Готово** — MapView, камера + события, ночной режим, маркеры (картинки **и** React-дети), императивные методы |
-| v1 | Полилинии, полигоны, круги, кластеризация, слой геопозиции, пробки, JSON-стилизация карты | Запланировано |
-| v2 | Возможности flavor `full`: поиск + саджест, геокодинг, маршрутизация | Запланировано |
-| v3 | Поддержка второго бренда — Mappable (mappable.world); `expo-yandex-mapkit-dom` — DOM-компонент-фолбэк, чтобы карта работала в Expo Go и на вебе | Запланировано |
+| v0 | MapView, камера + события, ночной режим, маркеры-картинки и из React-детей, императивные методы через ref | ✅ **Готово** |
+| v1 | Полилинии / полигоны / круги, кластеризация, геопозиция, пробки, JSON-стилизация, локаль | ✅ **Готово** (1.0.0) |
+| v2 | Модули flavor `full`: поиск + геокодинг, саджест, маршрутизация | ✅ **Готово** (1.1.0 → 2.0.0) |
+| v3 | Поддержка второго бренда — [Mappable](https://github.com/mappable-world); `expo-yandex-mapkit-dom` — DOM-компонент-фолбэк, чтобы карта работала в Expo Go и на вебе | Запланировано |
 
 ## Зачем
 
@@ -42,7 +55,7 @@
 
 ## Альтернативы
 
-Честное сравнение по состоянию на июль 2026. Если маркеры, маршруты или кластеризация нужны **уже сегодня** — библиотеки ниже функциональнее, чем наш v0; компромиссы — в остальных строках.
+Честное сравнение по состоянию на июль 2026. Библиотека теперь **не уступает признанным решениям по глубине функциональности** (полный паритет — маркеры, фигуры, кластеризация, геопозиция, пробки, поиск, саджест, маршрутизация) и вдобавок даёт Expo Modules API, настоящий конфиг-плагин, обе архитектуры React Native и документацию на английском и русском.
 
 | | `expo-yandex-mapkit` (эта) | [`react-native-yamap-plus`](https://github.com/Qudaeo/react-native-yamap-plus) | `@yoyomobility/expo-yandex-maps` | [`react-native-yamap`](https://github.com/volga-volga/react-native-yamap) |
 | --- | --- | --- | --- | --- |
@@ -53,7 +66,7 @@
 | Новая архитектура | ✓ | ✓ (v5+) | ✓ | — |
 | Документация | EN + RU | RU | частично EN | частично |
 | Дополнительные peer-зависимости | нет | нет | `react-native-reanimated ^4` | нет |
-| Функциональность на сегодня | карта, камера, события, ночной режим | глубокая (маркеры, фигуры, маршруты…) | глубокая (кластеризация, маршруты…) | самая глубокая, но не работает на актуальных Expo SDK |
+| Функциональность на сегодня | **полная** (маркеры, фигуры, кластеризация, геопозиция, пробки, поиск, саджест, маршрутизация) | глубокая (маркеры, фигуры, маршруты…) | глубокая (кластеризация, маршруты…) | самая глубокая, но не работает на актуальных Expo SDK |
 
 ## Совместимость
 
@@ -76,7 +89,7 @@ npx expo install expo-yandex-mapkit
 
 ### 1. Получите API-ключ
 
-Создайте API-ключ для **MapKit Mobile SDK** в [кабинете разработчика Яндекса](https://developer.tech.yandex.ru/services/) (см. [документацию MapKit](https://yandex.ru/maps-api/docs/mapkit/index.html)). Задать ключ можно двумя способами — править `AndroidManifest.xml` или `AppDelegate` не нужно ни в одном:
+Создайте API-ключ для **MapKit Mobile SDK** в [кабинете разработчика Яндекса](https://developer.tech.yandex.ru/services/) (см. [документацию MapKit](https://yandex.com/dev/mapkit/doc/en/)). Задать ключ можно двумя способами — править `AndroidManifest.xml` или `AppDelegate` не нужно ни в одном:
 
 - **На этапе сборки** — передайте `apiKey` в конфиг-плагин (ниже). MapKit инициализируется автоматически при старте, так что [`initialize`](#initializeapikey-string-promisevoid) можно вообще не вызывать и рендерить `<YandexMapView />` без гейтинга готовности. Самый простой путь, к тому же без проблемы порядка инициализации.
 - **В рантайме** — вызовите [`initialize(apiKey)`](#initializeapikey-string-promisevoid) один раз до рендера. Подходит, когда ключ известен только в рантайме (получен с бэкенда, выбран под окружение и т. п.).
@@ -91,7 +104,7 @@ npx expo install expo-yandex-mapkit
     "plugins": [
       [
         "expo-yandex-mapkit",
-        { "apiKey": "YOUR_MAPKIT_API_KEY", "locale": "ru_RU", "flavor": "lite", "version": "4.42.0" }
+        { "apiKey": "YOUR_MAPKIT_API_KEY", "locale": "en_US", "flavor": "lite", "version": "4.42.0" }
       ]
     ]
   }
@@ -103,7 +116,7 @@ npx expo install expo-yandex-mapkit
 | Опция | Тип | По умолчанию | Описание |
 | --- | --- | --- | --- |
 | `apiKey` | `string` | — | API-ключ MapKit на этапе сборки. Если задан, MapKit инициализируется автоматически при старте и вызывать [`initialize`](#initializeapikey-string-promisevoid) не нужно. Опустите, чтобы задавать ключ в рантайме. |
-| `locale` | `string` | — | Язык карты в формате `language` или `language_REGION` (например, `"ru_RU"`, `"en_US"`, `"tr_TR"`). Опустите, чтобы следовать локали устройства. Применяется и на рантайм-пути. |
+| `locale` | `string` | — | Язык карты в формате `language` или `language_REGION` (например, `"en_US"`, `"ru_RU"`, `"tr_TR"`). Опустите, чтобы следовать локали устройства. Применяется и на рантайм-пути. |
 | `version` | `string` | `"4.42.0"` | Версия нативного MapKit SDK (`x.y.z`). |
 | `flavor` | `"lite" \| "full"` | `"lite"` | Flavor MapKit — см. [lite и full](#lite-и-full). |
 | `locationWhenInUsePermission` | `string` | — | Описание для разрешения на геопозицию, которое нужно слою местоположения (`showUserPosition` / `followUser`). Если задано, записывается в iOS `NSLocationWhenInUseUsageDescription` и добавляет `ACCESS_FINE_LOCATION` / `ACCESS_COARSE_LOCATION` в манифест Android. Опустите, если приложение само запрашивает геопозицию (например, через expo-location) или не показывает местоположение пользователя. |
@@ -237,7 +250,7 @@ export default function App() {
 
 Получить/установить язык карты в рантайме, в формате `language` или `language_REGION` (например, `"en_US"`, `"ru_RU"`, `"tr_TR"`). `getLocale()` возвращает `null`, если карта следует локали устройства; `resetLocale()` возвращает к ней.
 
-> ⚠️ **Ограничения SDK** (MapKit, не этой библиотеки): на **iOS** локаль применяется только если задать её **один раз, до создания первой карты**; на **Android** изменение полностью применяется лишь после перезапуска приложения. Для языка, известного на этапе сборки, предпочтительнее опция [`locale`](#config-plugin) конфиг-плагина — она применяется при старте и полностью исключает ловушку с порядком инициализации.
+> ⚠️ **Ограничения SDK** (MapKit, не этой библиотеки): на **iOS** локаль применяется только если задать её **один раз, до создания первой карты**; на **Android** изменение полностью применяется лишь после перезапуска приложения. Для языка, известного на этапе сборки, предпочтительнее опция [`locale`](#2-добавьте-конфиг-плагин) конфиг-плагина — она применяется при старте и полностью исключает ловушку с порядком инициализации.
 
 ### `<YandexMapView />`
 
@@ -246,6 +259,16 @@ export default function App() {
 | `cameraPosition` | `CameraPosition` | — | Декларативная камера: изменение пропа двигает нативную камеру. Значения, равные текущей позиции (с точностью до 1e-6), игнорируются, поэтому «эхо» из `onCameraPositionChanged` не зацикливается. |
 | `animated` | `boolean` | `true` | Анимировать декларативные перемещения камеры (0,3 с); мгновенно при `false`. |
 | `nightMode` | `boolean` | `false` | Ночная цветовая схема MapKit. |
+| `scrollGesturesEnabled` | `boolean` | `true` | Разрешить перемещение карты перетаскиванием. |
+| `zoomGesturesEnabled` | `boolean` | `true` | Разрешить зум щипком / двойным тапом / тапом двумя пальцами. |
+| `tiltGesturesEnabled` | `boolean` | `true` | Разрешить вертикальное перетаскивание двумя пальцами, наклоняющее камеру. |
+| `rotateGesturesEnabled` | `boolean` | `true` | Разрешить поворот карты вращением двумя пальцами. |
+| `fastTapEnabled` | `boolean` | `true` | Сообщать о тапе сразу, не дожидаясь, не станет ли он двойным. |
+| `interactiveDisabled` | `boolean` | `false` | При `true` отключает сразу все четыре жеста перемещения — сокращение, перекрывающее отдельные пропсы `*GesturesEnabled`. События нажатий (`onMapPress`/`onMapLongPress`) продолжают срабатывать. |
+| `mapType` | `'none' \| 'map' \| 'satellite' \| 'hybrid' \| 'vector'` | — (дефолт SDK) | Базовый слой карты. `'map'`, `'satellite'` и `'hybrid'` — растровые; `'vector'` — стилизуемая векторная схема. Если не задан, карта сохраняет собственный дефолт MapKit (векторный). **`'satellite'` / `'hybrid'` требуют ключа с включённым доступом к спутниковым снимкам** — проп всё равно применяется (карта уходит с дорожной схемы и показывает пустую сетку тайлов), но на ключе MapKit Mobile SDK бесплатного тарифа спутниковые тайлы не загружаются; запросите доступ к снимкам для своего ключа в кабинете Яндекса. |
+| `mapStyle` | `string` | — | [JSON-стиль карты Яндекса](https://yandex.com/dev/mapkit/doc/en/android/generated/style), применяемый к карте. **Влияет только на слои `'vector'` и `'hybrid'`** — оставьте `mapType` незаданным (дефолт — векторный) или задайте `mapType='vector'`; на растровых слоях `'map'` / `'satellite'` это тихий no-op. Передайте `''`, чтобы сбросить ранее применённый стиль. Невалидный JSON игнорируется с предупреждением. |
+| `logoPosition` | `{ horizontal: 'left' \| 'center' \| 'right'; vertical: 'top' \| 'bottom' }` | — | Угол, к которому выравнивается обязательный логотип Яндекса. |
+| `logoPadding` | `{ horizontal: number; vertical: number }` | — | Отступы логотипа, в px, от выровненных краёв (отрицательные приводятся к `0`). |
 | `showUserPosition` | `boolean` | `false` | Показывать точку геопозиции устройства. Требуется разрешение на геопозицию (см. опцию плагина `locationWhenInUsePermission` или запросите его самостоятельно). |
 | `followUser` | `boolean` | `false` | Держать камеру по центру на местоположении пользователя. Требует `showUserPosition`. |
 | `userLocationIcon` | `ImageSourcePropType` | — | Пользовательская иконка точки геопозиции — используется и для статичной точки, и для стрелки направления. `require('./me.png')` или `{ uri }`. Требует `showUserPosition`; без значения остаётся стандартная точка MapKit. |
@@ -256,6 +279,8 @@ export default function App() {
 | `trafficVisible` | `boolean` | `false` | Показывать слой пробок в реальном времени. |
 | `style` | `StyleProp<ViewStyle>` | — | Стандартная стилизация React Native. |
 
+> Для неинтерактивной карты (например, статичного превью) задайте `interactiveDisabled` (сокращение для отключения всех четырёх жестов перемещения); отключите `rotateGesturesEnabled` / `tiltGesturesEnabled`, чтобы карта оставалась плоской и ориентированной на север.
+
 События:
 
 | Событие | Payload `nativeEvent` | Когда срабатывает |
@@ -264,6 +289,7 @@ export default function App() {
 | `onCameraPositionChanged` | `CameraPositionChangeEvent` | Пока камера движется; `reason` отличает жесты пользователя от программных перемещений, `finished` помечает конец движения. |
 | `onMapPress` | `MapPressEvent` | Одиночное нажатие на карту. |
 | `onMapLongPress` | `MapPressEvent` | Долгое нажатие на карту. |
+| `onMapLoaded` | `MapLoadStatistics` | Когда карта завершает загрузку — несёт статистику рендеринга (`renderObjectCount`, `tileMemoryUsage`, тайминги загрузки). |
 
 ### Типы
 
@@ -285,9 +311,46 @@ type CameraPositionChangeEvent = {
 };
 
 type MapPressEvent = { point: Point };
+
+type MapLoadStatistics = {
+  renderObjectCount: number;      // число отрисованных объектов карты
+  tileMemoryUsage: number;        // потребление памяти кэшем тайлов, в байтах
+  curZoomModelsLoaded: number;    // тайминги загрузки — в нативных единицах SDK, различаются по платформам (iOS секунды / Android целое)
+  curZoomPlacemarksLoaded: number;
+  curZoomLabelsLoaded: number;
+  curZoomGeometryLoaded: number;
+  delayedGeometryLoaded: number;
+  fullyLoaded: number;
+  fullyAppeared: number;
+};
 ```
 
 Сырой нативный модуль также экспортируется как `ExpoYandexMapKitModule` — низкоуровневый обходной путь (escape hatch); его интерфейс не является частью стабильного API.
+
+### Императивные методы
+
+Вызывайте их через ref (`const mapRef = useRef<YandexMapViewRef>(null)`). Все возвращают Promise и выполняются в UI-потоке:
+
+| Метод | Возвращает | Описание |
+| --- | --- | --- |
+| `setCenter(position, options?)` | `Promise<void>` | Переместить / анимировать камеру. `options.durationSeconds` (по умолчанию `0.3`, `0` = мгновенно) и `options.animation` (`'smooth' \| 'linear'`). Задаёт камеру целиком — если опустить `azimuth`/`tilt`, они сбрасываются в `0` (плоско, на север). No-op, пока карта не готова. |
+| `setZoom(zoom, options?)` | `Promise<void>` | Анимировать зум, сохраняя текущий центр / азимут / наклон. |
+| `fitMarkers(points, options?)` | `Promise<void>` | Переместить камеру так, чтобы все точки были видны. Одна точка перецентрирует на текущем зуме. `options.edgePadding` (`{ top, right, bottom, left }`, в пунктах) оставляет зазор для оверлеев. |
+| `fitAllMarkers(options?)` | `Promise<void>` | Как `fitMarkers`, но для всех смонтированных `<Marker>` — точки передавать не нужно. No-op, если маркеров нет. |
+| `getCameraPosition()` | `Promise<CameraPosition \| null>` | Текущая камера; `null`, пока карта не готова. |
+| `getVisibleRegion()` | `Promise<VisibleRegion \| null>` | Видимый географический четырёхугольник (`topLeft` / `topRight` / `bottomLeft` / `bottomRight`). |
+| `getScreenPoints(points)` | `Promise<(ScreenPoint \| null)[]>` | Спроецировать мировые координаты в экранные пиксели; `null` для точки, которую нельзя спроецировать (за пределами глобуса / за камерой). |
+| `getWorldPoints(points)` | `Promise<(Point \| null)[]>` | Спроецировать экранные пиксели обратно в мировые координаты. |
+
+```tsx
+const mapRef = useRef<YandexMapViewRef>(null);
+// ...
+<YandexMapView ref={mapRef} style={StyleSheet.absoluteFill} cameraPosition={{ latitude: 41.31, longitude: 69.24, zoom: 12 }} />;
+
+await mapRef.current?.setCenter({ latitude: 41.31, longitude: 69.24, zoom: 14 }, { durationSeconds: 0.4 });
+const region = await mapRef.current?.getVisibleRegion();
+const [screen] = await mapRef.current?.getScreenPoints([{ latitude: 41.31, longitude: 69.24 }]) ?? [];
+```
 
 ### `<Marker />`
 
@@ -302,7 +365,7 @@ import { YandexMapView, Marker } from 'expo-yandex-mapkit';
     source={require('./assets/pin.png')}
     anchor={{ x: 0.5, y: 1 }}
     identifier="center"
-    onPress={({ nativeEvent }) => console.log('нажали', nativeEvent.identifier)}
+    onPress={({ nativeEvent }) => console.log('tapped', nativeEvent.identifier)}
   />
 </YandexMapView>;
 ```
@@ -310,7 +373,7 @@ import { YandexMapView, Marker } from 'expo-yandex-mapkit';
 | Проп | Тип | По умолчанию | Описание |
 | --- | --- | --- | --- |
 | `point` | `Point` | — | Географическая позиция (обязательный). |
-| `source` | `ImageSourcePropType` | — | Иконка — `require('./pin.png')` или `{ uri }` (http, `data:`, `file:` или встроенный ассет). Опустите, чтобы оставить пустой плейсмарк MapKit (без иконки он невидим). |
+| `source` | `ImageSourcePropType` | — | Иконка — `require('./pin.png')` или `{ uri }` (http, `data:`, `file:` или встроенный ассет). Опустите, чтобы оставить дефолтный плейсмарк MapKit (пустой, пока не задана иконка). |
 | `scale` | `number` | `1` | Множитель масштаба иконки. |
 | `anchor` | `{ x: number; y: number }` | по иконке | Точка привязки в долях `[0,1]`; `{ x: 0.5, y: 1 }` — низ по центру. |
 | `visible` | `boolean` | `true` | Показать/скрыть иконку. |
@@ -321,6 +384,7 @@ import { YandexMapView, Marker } from 'expo-yandex-mapkit';
 | `onPress` | `(event) => void` | — | `event.nativeEvent` — это `{ identifier?, point }`. |
 | `children` | `ReactNode` | — | React-контент, отрисованный как иконка маркера (кастомный пин). Имеет приоритет над `source`. Рендерится нативно через view-провайдер MapKit (без хрупкого снапшота в bitmap). |
 | `tracksViewChanges` | `boolean` | `true` | Перерисовывать ли иконку при изменении `children`. Поставьте `false`, когда контент устоялся (например, статичный бабл) — иконка снапшотится один раз (большой выигрыш в производительности вместо перерисовки каждый кадр). |
+| `excludeFromCluster` | `boolean` | `false` | Имеет смысл только внутри `<Clusterer>`: при `true` этот маркер никогда не сливается в кластер — он остаётся отдельным плейсмарком на любом зуме. |
 
 **Кастомные маркеры (React-дети)** — любой RN-компонент как пин:
 
@@ -353,23 +417,153 @@ import { YandexMapView, Polyline } from 'expo-yandex-mapkit';
     points={[{ latitude: 41.31, longitude: 69.24 }, { latitude: 41.33, longitude: 69.28 }]}
     strokeColor="#1e88e5"
     strokeWidth={4}
-    onPress={({ nativeEvent }) => console.log('нажали линию', nativeEvent.point)}
+    onPress={({ nativeEvent }) => console.log('line tapped at', nativeEvent.point)}
   />
 </YandexMapView>;
 ```
 
-Пропсы: `points` (2+, обязателен), `strokeColor`, `strokeWidth`, `outlineColor`/`outlineWidth`, штрихи `dashLength`/`gapLength`/`dashOffset`, `zIndex`, `handled`, `onPress` (`event.nativeEvent` — `{ point }`).
+| Проп | Тип | Описание |
+| --- | --- | --- |
+| `points` | `Point[]` | Вершины линии (2+). Обязателен. |
+| `strokeColor` | `ColorValue` | Цвет линии. |
+| `strokeWidth` | `number` | Толщина линии (пункты). |
+| `outlineColor` / `outlineWidth` | `ColorValue` / `number` | Обводка, отрисованная под линией. |
+| `dashLength` / `gapLength` / `dashOffset` | `number` | Штриховой узор (пункты). |
+| `zIndex` | `number` | Порядок отрисовки среди объектов карты. |
+| `handled` | `boolean` | Поглотить нажатие, чтобы оно не вызвало заодно `onMapPress` карты. |
+| `onPress` | `(event) => void` | `event.nativeEvent` — это `{ point }`. |
 
 ### `<Polygon />` и `<Circle />`
 
-Тоже как дети карты:
+Тот же принцип, как дети карты:
+
+```tsx
+import { YandexMapView, Polygon, Circle } from 'expo-yandex-mapkit';
+
+<YandexMapView style={StyleSheet.absoluteFill} cameraPosition={{ latitude: 41.31, longitude: 69.24, zoom: 12 }}>
+  <Polygon
+    points={[/* outer ring, 3+ */]}
+    innerRings={[[/* optional holes */]]}
+    fillColor="rgba(30,136,229,0.3)"
+    strokeColor="#1e88e5"
+    strokeWidth={2}
+  />
+  <Circle center={{ latitude: 41.31, longitude: 69.24 }} radius={500} fillColor="rgba(244,67,54,0.2)" strokeColor="#f44336" />
+</YandexMapView>;
+```
 
 - **`<Polygon>`**: `points` (внешнее кольцо, 3+), `innerRings?` (дырки), `fillColor`, `strokeColor`, `strokeWidth`, `zIndex`, `onPress`, `handled`.
 - **`<Circle>`**: `center`, `radius` (в метрах), `fillColor`, `strokeColor`, `strokeWidth`, `zIndex`, `onPress`, `handled`.
 
+### `<Clusterer />`
+
+Группирует детей `<Marker>` в кластеры. Оберните маркеры, которые нужно кластеризовать, в `<Clusterer>` — каждый маркер сохраняет все свои обычные возможности (иконка-картинка или из React-детей, `onPress`, `identifier`):
+
+```tsx
+import { YandexMapView, Clusterer, Marker } from 'expo-yandex-mapkit';
+
+<YandexMapView style={StyleSheet.absoluteFill} cameraPosition={{ latitude: 41.31, longitude: 69.24, zoom: 10 }}>
+  <Clusterer
+    clusterRadius={60}
+    minZoom={12}
+    clusterColor="#2E7D32"
+    onClusterPress={({ nativeEvent }) => console.log(`cluster of ${nativeEvent.size}`)}
+  >
+    {places.map((p) => (
+      <Marker key={p.id} point={p.point} identifier={p.id} onPress={onMarkerPress} />
+    ))}
+  </Clusterer>
+</YandexMapView>;
+```
+
+Отдельного API «кластеризуемого маркера» нет, как и render-пропа `renderMarker` — render-пропом служит тот же `<Marker>`, что и везде. Тап по кластеру подгоняет камеру под его маркеры (`fitClusterOnPress`, включён по умолчанию) и вызывает `onClusterPress`. Собственный `onPress` отдельного `<Marker>` продолжает срабатывать, как только маркер показан вне кластера (при приближении дальше `minZoom`). Кластеризуются только дети `<Marker>`; фигуры размещаются прямо под картой.
+
+| Проп | Тип | Описание |
+| --- | --- | --- |
+| `clusterRadius` | `number` | Дистанция слияния в пунктах/dp — чем больше, тем агрессивнее группировка. По умолчанию `60`. |
+| `minZoom` | `number` | Кластеризация применяется при зуме ≤ этого; приближение дальше разбивает кластеры. По умолчанию `12`. |
+| `clusterColor` | `ColorValue` | Цвет заливки бейджа кластера. По умолчанию `#3478F6`. |
+| `clusterTextColor` | `ColorValue` | Цвет текста-счётчика на бейдже кластера. По умолчанию белый. |
+| `clusterTextSize` | `number` | Размер текста-счётчика на бейдже кластера (пункты). По умолчанию `13`. |
+| `clusterSize` | `number` | Диаметр бейджа кластера (пункты); растёт для счётчиков из 3+ цифр. По умолчанию `36`. Игнорируется, если задан `clusterIcon`. |
+| `clusterIcon` | `ImageSourcePropType` | Пользовательская картинка бейджа — `require('./cluster.png')` или `{ uri }`. Заменяет отрисованный цветной кружок; счётчик всё равно рисуется поверх (с учётом `clusterTextColor`/`clusterTextSize`/`clusterTextOffset`), в собственном размере картинки. Без значения рисуется дефолтный кружок. |
+| `clusterTextOffset` | `{ x: number; y: number }` | Сдвиг текста-счётчика внутри бейджа, в пунктах (положительный `x` → вправо, `y` → вниз). По умолчанию по центру. Применяется и к кружку, и к бейджу с `clusterIcon`. |
+| `fitClusterOnPress` | `boolean` | Анимировать камеру под маркеры кластера при тапе. По умолчанию `true`. |
+| `onClusterPress` | `(event) => void` | `event.nativeEvent` — это `{ size, point }`. |
+
+Исключите маркер из кластеризации пропом `excludeFromCluster` у `<Marker>` — он останется отдельным плейсмарком на любом зуме (удобно для пина «вы здесь» среди кластеризуемых точек данных).
+
+> **О `onClusterPlacemarkPress` и императивных `appendClusterMarkers` / `clearClusterMarkers`** (оба есть в react-native-yamap-plus): декларативный дизайн этой библиотеки покрывает их без лишнего API. Собственный `onPress` кластеризуемого маркера уже срабатывает, когда маркер показан вне кластера, так что отдельный колбэк нажатия на плейсмарк подключать не нужно; а добавление/удаление/замену кластеризуемых маркеров вы делаете, рендеря детей `<Marker>` из состояния (`setMarkers(...)`), — это и есть batch-API, никаких императивных `append`/`clear`, которые надо держать синхронными.
+
+### `suggest()` — поиск по мере ввода
+
+> **Требует flavor `full`** — задайте `flavor: 'full'` в [конфиг-плагине](#2-добавьте-конфиг-плагин). На `lite` реджектится с понятным сообщением.
+
+```tsx
+import { suggest, resetSuggest } from 'expo-yandex-mapkit';
+
+const items = await suggest('coffee', {
+  userPosition: { latitude: 41.31, longitude: 69.24 }, // bias toward the user
+  types: ['biz', 'geo'], // organizations + places (also 'transit')
+});
+// items: { title, subtitle?, searchText, uri?, center?, distance? }[]
+// Call resetSuggest() to cancel an in-flight request (e.g. on unmount).
+```
+
+Каждый результат несёт свою координату `center` **напрямую** (прочитанную нативно), когда MapKit её предоставляет — в отличие от линейки, паритет с которой мы держим: там `uri` разбирался повторно в JS и [координаты терялись](https://github.com/Qudaeo/react-native-yamap-plus/issues/27) для org/непрозрачных URI. Когда `center` отсутствует, используйте `searchText` (полный поиск) или `uri`. Требует инициализированного MapKit (через `initialize()` или ключ на этапе сборки).
+
+| Опция | Тип | Описание |
+| --- | --- | --- |
+| `userPosition` | `Point` | Смещать результаты к этому местоположению. |
+| `boundingBox` | `{ southWest: Point; northEast: Point }` | Смещать/ограничивать результаты этим прямоугольником. |
+| `suggestWords` | `boolean` | Также предлагать завершения слов запроса. По умолчанию `true`. |
+| `types` | `('geo' \| 'biz' \| 'transit')[]` | Какие виды результатов возвращать. По умолчанию все три. |
+
+### `searchText()` / `searchPoint()` — поиск и геокодинг
+
+> **Требует flavor `full`** (на `lite` реджектится).
+
+```tsx
+import { searchText, searchPoint, geocodeAddress, geocodePoint } from 'expo-yandex-mapkit';
+
+const places = await searchText('coffee', {
+  boundingBox: { southWest: { latitude: 41.28, longitude: 69.18 }, northEast: { latitude: 41.36, longitude: 69.32 } },
+  searchTypes: ['biz'],
+});
+const here = await searchPoint({ latitude: 41.31, longitude: 69.24 }); // reverse geocoding
+// results: { name?, description?, point?, formattedAddress?, addressComponents? }[]
+```
+
+- `searchText(query, options?)` — полнотекстовый поиск рядом с окном (`boundingBox`/`userPosition`, иначе по всему миру).
+- `searchPoint(point, options?)` — обратный геокодинг (объекты в координате; `options.zoom` задаёт детализацию).
+- `geocodeAddress(address, options?)` — `searchText`, ограниченный топонимами (`geo`); `geocodePoint(point, options?)` — алиас для `searchPoint`.
+- `resolveURI(uri, options?)` — разрешить URI объекта `ymapsbm1://…` (например, `SuggestItem.uri`) в полные результаты; штатный способ получить координаты для подсказки, у которой не было `center`.
+
+Результат-топоним также несёт `addressComponents` — структурную разбивку, каждый элемент `{ name, kinds }`, где `kinds` в snake_case (`country`, `province`, `locality`, `district`, `street`, `house`, `metro_station`, …). Результат-организация, запрошенный со сниппетом `'rating'`, несёт `rating` (0–5) + `ratingsCount`. Опции: `userPosition`, `boundingBox`, `searchTypes` (`'geo'` топонимы / `'biz'` организации, по умолчанию `['geo']`), `resultPageSize`, `zoom`, `disableSpellingCorrection` и `snippets` (`'rating'` / `'photos'` / `'panoramas'`). Требует инициализированного MapKit.
+
+### `findRoutes()` — маршрутизация
+
+> **Требует flavor `full`** (на `lite` реджектится).
+
+```tsx
+import { findRoutes, findDrivingRoutes } from 'expo-yandex-mapkit';
+
+const routes = await findRoutes(
+  [{ latitude: 41.31, longitude: 69.24 }, { latitude: 41.33, longitude: 69.29 }],
+  'masstransit', // or 'driving' | 'pedestrian'
+);
+// routes[0]: { time?, timeWithTraffic?, distance?, walkingDistance?, transfersCount?, points }
+// Draw it: <Polyline points={routes[0].points} />
+```
+
+- `findRoutes(points, mode)` — 2+ путевых точки, `mode` = `'driving'` | `'masstransit'` | `'pedestrian'`; резолвит лучший маршрут первым.
+- `findDrivingRoutes` / `findMasstransitRoutes` / `findPedestrianRoutes` — удобные обёртки.
+
+Каждый `Route` несёт сводку (`time`; `timeWithTraffic` + `distance` для авто; `walkingDistance` + `transfersCount` для общественного транспорта), геометрию `points` и `sections` — маршрут, разбитый на участки. Каждый `RouteSection` — это `{ type, time?, points, transports? }`: `type` — `'car'`, `'walk'`, `'waiting'` или тип транспортного средства (`'bus'`, `'underground'`, …), `transports` сопоставляет каждому типу транспорта названия его линий, а `points` — фрагмент полилинии этого участка. Так маршрут на общественном транспорте читается как «пешком → автобус 42 → пересадка → метро», каждый участок можно отрисовать отдельно. Требует инициализированного MapKit.
+
 ## lite и full
 
-Яндекс поставляет MapKit в двух flavor'ах. Библиотека по умолчанию использует `lite`; выберите `full` через [конфиг-плагин](#2-добавьте-конфиг-плагин), когда понадобятся его возможности (сама библиотека начнёт поддерживать их в v2).
+Яндекс поставляет MapKit в двух flavor'ах. Библиотека по умолчанию использует `lite`; выберите `full` через [конфиг-плагин](#2-добавьте-конфиг-плагин), когда нужны **поиск, саджест, геокодинг или маршрутизация** — все они полностью реализованы и требуют артефакта `full`. На `lite` эти функции реджектятся с понятным сообщением «requires the full flavor», так что lite-приложение на них не падает. `full` подтягивает более крупный SDK (больше бинарник, дольше первая сборка), поэтому оставайтесь на `lite`, если вы только рендерите карты / маркеры / фигуры / кластеризацию / геопозицию / пробки.
 
 | Возможность | `lite` | `full` |
 | --- | --- | --- |
