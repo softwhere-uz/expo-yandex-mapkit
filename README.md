@@ -482,9 +482,33 @@ Keep a marker out of clustering with the `<Marker>` `excludeFromCluster` prop �
 
 > **On `onClusterPlacemarkPress` and imperative `appendClusterMarkers` / `clearClusterMarkers`** (both present in react-native-yamap-plus): this library's declarative design covers them without extra API. A clustered marker's own `onPress` already fires when it's shown un-clustered, so there's no separate placemark-press callback to wire up; and you add/remove/replace clustered markers by rendering `<Marker>` children from state (`setMarkers(...)`), which is the batch API — no imperative `append`/`clear` calls to keep in sync.
 
+### `suggest()` — search-as-you-type
+
+> **Requires the MapKit `full` flavor** — set `flavor: 'full'` in the [config plugin](#2-add-the-config-plugin). On `lite` this rejects with a clear message.
+
+```tsx
+import { suggest, resetSuggest } from 'expo-yandex-mapkit';
+
+const items = await suggest('coffee', {
+  userPosition: { latitude: 41.31, longitude: 69.24 }, // bias toward the user
+  types: ['biz', 'geo'], // organizations + places (also 'transit')
+});
+// items: { title, subtitle?, searchText, uri?, center?, distance? }[]
+// Call resetSuggest() to cancel an in-flight request (e.g. on unmount).
+```
+
+Each result carries its `center` coordinate **directly** (read natively) whenever MapKit provides one — unlike the lineage this parity-targets, which re-parsed the `uri` in JS and [dropped coordinates](https://github.com/Qudaeo/react-native-yamap-plus/issues/27) for org/opaque URIs. When `center` is absent, use `searchText` (run a full search) or `uri`. Requires MapKit to be initialized (via `initialize()` or a build-time key).
+
+| Option | Type | Description |
+| --- | --- | --- |
+| `userPosition` | `Point` | Bias results toward this location. |
+| `boundingBox` | `{ southWest: Point; northEast: Point }` | Bias/restrict results to this box. |
+| `suggestWords` | `boolean` | Also suggest query-word completions. Default `true`. |
+| `types` | `('geo' \| 'biz' \| 'transit')[]` | Which result kinds to return. Default all three. |
+
 ## lite vs full
 
-Yandex ships MapKit in two flavors. This library defaults to `lite`; select `full` via the [config plugin](#2-add-the-config-plugin) when you need its features (the library itself will start exposing them in v2).
+Yandex ships MapKit in two flavors. This library defaults to `lite`; select `full` via the [config plugin](#2-add-the-config-plugin) when you need its features. v2 has begun exposing them — `suggest()` is the first; search, geocoding, and routing follow.
 
 | Capability | `lite` | `full` |
 | --- | --- | --- |

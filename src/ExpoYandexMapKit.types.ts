@@ -243,3 +243,21 @@ export type YandexMapViewRef = {
   // Project screen points to world coordinates. Each result is null when unprojectable.
   getWorldPoints(points: ScreenPoint[]): Promise<(Point | null)[]>;
 };
+
+// ── Suggest (search-as-you-type) — requires the MapKit `full` flavor ────────────────────────────
+
+export type SuggestOptions = {
+  userPosition?: Point; // bias results toward this location
+  boundingBox?: { southWest: Point; northEast: Point }; // bias/restrict results to this box
+  suggestWords?: boolean; // also suggest query-word completions; default true
+  types?: ('geo' | 'biz' | 'transit')[]; // which kinds of result to return; default all three
+};
+
+export type SuggestItem = {
+  title: string; // primary label (e.g. a place or street name)
+  subtitle?: string; // secondary label (e.g. the surrounding address)
+  searchText: string; // the text to run a full search with if the user picks this item
+  uri?: string; // an opaque MapKit URI for the object (resolve via search when center is absent)
+  center?: Point; // the item's coordinate — read natively; present when MapKit provides one
+  distance?: string; // human-readable distance from userPosition, when available
+};

@@ -147,8 +147,14 @@ jobs:
         working-directory: example
       - run: npx expo prebuild --platform android --no-install
         working-directory: example
-      - name: Compile module Kotlin against the pinned MapKit artifact
+      - name: Compile module Kotlin against the pinned MapKit artifact (lite)
         run: ./gradlew :expo-yandex-mapkit:compileDebugKotlin
+        working-directory: example/android
+      # Full-only Kotlin (Search / Suggest / Routing) lives in src/mapkit/full and references classes
+      # the lite artifact omits — it is invisible to the lite compile above, so verify it against the
+      # full artifact too. The -P override flips both the dependency coordinate and the source set.
+      - name: Compile module Kotlin against the pinned MapKit artifact (full)
+        run: ./gradlew :expo-yandex-mapkit:compileDebugKotlin -PexpoYandexMapKit.flavor=full
         working-directory: example/android
 
   # The bare jobs consume the library the way a real bare-RN user does: pack the
@@ -254,7 +260,7 @@ jobs:
       - name: Pod install (pulls the pinned YandexMapsMobile pod)
         run: pod install
         working-directory: example/ios
-      - name: Build for iOS Simulator
+      - name: Build for iOS Simulator (lite)
         working-directory: example/ios
         run: |
           set -o pipefail
@@ -266,3 +272,22 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
             > xcodebuild.log 2>&1 || { tail -n 200 xcodebuild.log; exit 1; }
           tail -n 5 xcodebuild.log
+      # Full-only Swift (Search / Suggest / Routing) is behind `#if YANDEX_MAPS_FULL`, so the lite
+      # build above never compiles it. Re-pod with the full flavor (the podspec then pulls the full
+      # pod and defines the compilation condition) and rebuild to verify it. EXPO_YANDEX_MAPKIT_FLAVOR
+      # takes precedence over the lite value the plugin wrote to Podfile.properties.json.
+      - name: Pod install (full flavor)
+        run: EXPO_YANDEX_MAPKIT_FLAVOR=full pod install
+        working-directory: example/ios
+      - name: Build for iOS Simulator (full)
+        working-directory: example/ios
+        run: |
+          set -o pipefail
+          xcodebuild -workspace expoyandexmapkitexample.xcworkspace \
+            -scheme expoyandexmapkitexample \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -derivedDataPath build-full \
+            CODE_SIGNING_ALLOWED=NO \
+            > xcodebuild-full.log 2>&1 || { tail -n 200 xcodebuild-full.log; exit 1; }
+          tail -n 5 xcodebuild-full.log

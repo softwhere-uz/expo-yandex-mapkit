@@ -6,6 +6,10 @@ plugins {
 group = 'expo.modules.yandexmapkit'
 version = '0.0.1'
 
+// Default MapKit pin — keep in sync with plugin/src/index.ts and ios/ExpoYandexMapKit.podspec.
+def mapkitVersion = findProperty('expoYandexMapKit.version') ?: '4.42.0'
+def mapkitFlavor  = findProperty('expoYandexMapKit.flavor')  ?: 'lite'
+
 android {
   namespace "expo.modules.yandexmapkit"
   defaultConfig {
@@ -17,11 +21,17 @@ android {
   lintOptions {
     abortOnError false
   }
-}
 
-// Default MapKit pin — keep in sync with plugin/src/index.ts and ios/ExpoYandexMapKit.podspec.
-def mapkitVersion = findProperty('expoYandexMapKit.version') ?: '4.42.0'
-def mapkitFlavor  = findProperty('expoYandexMapKit.flavor')  ?: 'lite'
+  // Full-flavor-only Kotlin (Search / Suggest / Routing) references classes the lite artifact does
+  // not ship, so it must stay out of the lite compile entirely. Select the matching source set: the
+  // `full` set has the real implementations; the `lite` set has same-named rejecting stubs. Each
+  // flavor-only Expo module (e.g. ExpoYandexSuggestModule) is provided by exactly one of these.
+  sourceSets {
+    main {
+      java.srcDirs += mapkitFlavor == 'full' ? ['src/mapkit/full'] : ['src/mapkit/lite']
+    }
+  }
+}
 
 dependencies {
   api "com.yandex.android:maps.mobile:${mapkitVersion}-${mapkitFlavor}"

@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **v2 begins: `suggest()` (search-as-you-type)** (#1 → v2 Suggest, `full` flavor). New `suggest(query, options)`
+  → `{ title, subtitle?, searchText, uri?, center?, distance? }[]` plus `resetSuggest()`. Each item's
+  `center` coordinate is read **natively** (MapKit ≥ 4.3.0) so results carry coordinates directly —
+  fixing the recurring bug in this lineage ([yamap-plus#27](https://github.com/Qudaeo/react-native-yamap-plus/issues/27))
+  where coordinates were re-parsed from the `uri` in JS and lost for org/opaque URIs.
+  - This also lands the **flavor-conditional-compilation infrastructure** every v2 feature needs: full-only
+    native code (which references classes the `lite` artifact omits) is kept out of the `lite` compile —
+    iOS behind `#if YANDEX_MAPS_FULL` (the podspec defines it only for `flavor: full`), Android via a
+    `src/mapkit/{full,lite}` source-set split selected by the existing `expoYandexMapKit.flavor`. On `lite`,
+    `suggest()` rejects with a clear "requires the full flavor" message. A new **full-flavor CI compile
+    job** verifies the full-only code on both platforms (the existing jobs only compile `lite`).
+
 ## [1.0.0] - 2026-07-25
 
 First stable release — the v1 feature set (parity with react-native-yamap-plus's lite-flavor
