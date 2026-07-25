@@ -12,7 +12,6 @@ import com.yandex.mapkit.search.SuggestSession
 import com.yandex.mapkit.search.SuggestType
 import com.yandex.runtime.Error
 import expo.modules.kotlin.Promise
-import expo.modules.kotlin.exception.Exceptions
 import expo.modules.kotlin.functions.Queues
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
@@ -23,7 +22,6 @@ import expo.modules.kotlin.modules.ModuleDefinition
 // is read natively (MapKit >= 4.3.0) so results carry coordinates directly — the recurring bug in
 // this lineage (yamap-plus#27) came from re-parsing the URI in JS instead.
 class ExpoYandexSuggestModule : Module() {
-  private var searchInitialized = false
   private var searchManager: SearchManager? = null
   private var suggestSession: SuggestSession? = null
 
@@ -61,14 +59,10 @@ class ExpoYandexSuggestModule : Module() {
     }
   }
 
-  // Create (once) the search manager + suggest session. SearchFactory needs the MapKit API key set,
-  // which the main module's initialize()/build-time key does; a call before that throws.
+  // Create (once) the search manager + suggest session. SearchFactory has no initialize() — the map
+  // subsystem is brought up by the main module's initialize()/build-time key (MapKitFactory), which
+  // is a prerequisite; a call before that fails at runtime.
   private fun ensureSession(): SuggestSession {
-    if (!searchInitialized) {
-      val context = appContext.reactContext ?: throw Exceptions.ReactContextLost()
-      SearchFactory.initialize(context)
-      searchInitialized = true
-    }
     val manager = searchManager
       ?: SearchFactory.getInstance().createSearchManager(SearchManagerType.COMBINED)
         .also { searchManager = it }

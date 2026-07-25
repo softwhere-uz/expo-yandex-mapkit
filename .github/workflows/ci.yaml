@@ -277,7 +277,10 @@ jobs:
       # pod and defines the compilation condition) and rebuild to verify it. EXPO_YANDEX_MAPKIT_FLAVOR
       # takes precedence over the lite value the plugin wrote to Podfile.properties.json.
       - name: Pod install (full flavor)
-        run: EXPO_YANDEX_MAPKIT_FLAVOR=full pod install
+        # Drop the lite Podfile.lock from the build above so CocoaPods re-resolves YandexMapsMobile to
+        # the full pod (a locked version would conflict). A clean install also re-applies the dev
+        # pod's xcconfig, so the YANDEX_MAPS_FULL compilation condition is actually set for the rebuild.
+        run: rm -f Podfile.lock && EXPO_YANDEX_MAPKIT_FLAVOR=full pod install
         working-directory: example/ios
       - name: Build for iOS Simulator (full)
         working-directory: example/ios
