@@ -24,4 +24,11 @@ class SearchOptionsRecord : Record {
   // Reverse-geocoding detail level (searchPoint only).
   @Field
   var zoom: Double? = null
+
+  @Field
+  var disableSpellingCorrection: Boolean = false
+
+  // Any of "rating" | "photos" | "panoramas".
+  @Field
+  var snippets: List<String>? = null
 }

@@ -526,7 +526,7 @@ const here = await searchPoint({ latitude: 41.31, longitude: 69.24 }); // revers
 - `geocodeAddress(address, options?)` — `searchText` restricted to toponyms (`geo`); `geocodePoint(point, options?)` — alias for `searchPoint`.
 - `resolveURI(uri, options?)` — resolve a `ymapsbm1://…` object URI (e.g. a `SuggestItem.uri`) to full results; the documented way to get coordinates for a suggestion that had no `center`.
 
-A toponym result also carries `addressComponents` — the structured breakdown, each `{ name, kinds }` where `kinds` are snake_case (`country`, `province`, `locality`, `district`, `street`, `house`, `metro_station`, …). Options: `userPosition`, `boundingBox`, `searchTypes` (`'geo'` toponyms / `'biz'` organizations, default `['geo']`), `resultPageSize`, `zoom`. Requires MapKit to be initialized.
+A toponym result also carries `addressComponents` — the structured breakdown, each `{ name, kinds }` where `kinds` are snake_case (`country`, `province`, `locality`, `district`, `street`, `house`, `metro_station`, …). An organization result requested with the `'rating'` snippet carries `rating` (0–5) + `ratingsCount`. Options: `userPosition`, `boundingBox`, `searchTypes` (`'geo'` toponyms / `'biz'` organizations, default `['geo']`), `resultPageSize`, `zoom`, `disableSpellingCorrection`, and `snippets` (`'rating'` / `'photos'` / `'panoramas'`). Requires MapKit to be initialized.
 
 ### `findRoutes()` — routing
 

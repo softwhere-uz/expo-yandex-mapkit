@@ -270,6 +270,10 @@ export type SearchOptions = {
   searchTypes?: ('geo' | 'biz')[]; // toponyms and/or organizations; default ['geo']
   resultPageSize?: number; // max results in the first page
   zoom?: number; // reverse-geocoding detail level (searchPoint only)
+  disableSpellingCorrection?: boolean; // turn off the "did you mean" spelling fixups; default false
+  // Extra data to request for results. `'rating'` populates `SearchResult.rating` for organizations;
+  // `'photos'` / `'panoramas'` are requested but their payloads aren't surfaced yet.
+  snippets?: ('rating' | 'photos' | 'panoramas')[];
 };
 
 // One part of a structured address (a toponym result). `kinds` are snake_case, matching MapKit's
@@ -287,6 +291,8 @@ export type SearchResult = {
   point?: Point; // the object's coordinate (a toponym's balloon point, else its geometry)
   formattedAddress?: string; // the full address string for a toponym result
   addressComponents?: AddressComponent[]; // the structured address breakdown for a toponym result
+  rating?: number; // organization rating 0–5 (only when the `'rating'` snippet was requested)
+  ratingsCount?: number; // number of ratings backing `rating`
 };
 
 // ── Routing — requires the MapKit `full` flavor ──────────────────────────────────────────────────

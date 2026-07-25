@@ -4,6 +4,7 @@ import com.yandex.mapkit.GeoObject
 import com.yandex.mapkit.geometry.BoundingBox
 import com.yandex.mapkit.geometry.Geometry
 import com.yandex.mapkit.geometry.Point
+import com.yandex.mapkit.search.BusinessRating1xObjectMetadata
 import com.yandex.mapkit.search.Response
 import com.yandex.mapkit.search.SearchFactory
 import com.yandex.mapkit.search.SearchManager
@@ -11,6 +12,7 @@ import com.yandex.mapkit.search.SearchManagerType
 import com.yandex.mapkit.search.SearchOptions
 import com.yandex.mapkit.search.SearchType
 import com.yandex.mapkit.search.Session
+import com.yandex.mapkit.search.Snippet
 import com.yandex.mapkit.search.ToponymObjectMetadata
 import com.yandex.runtime.Error
 import expo.modules.kotlin.Promise
@@ -79,9 +81,25 @@ class ExpoYandexSearchModule : Module() {
   }
 
   private fun searchOptions(options: SearchOptionsRecord?): SearchOptions {
-    val result = SearchOptions().setSearchTypes(resolveSearchTypes(options?.searchTypes))
+    val result = SearchOptions()
+      .setSearchTypes(resolveSearchTypes(options?.searchTypes))
+      .setDisableSpellingCorrection(options?.disableSpellingCorrection ?: false)
+      .setSnippets(resolveSnippets(options?.snippets))
     options?.userPosition?.let { result.setUserPosition(Point(it.latitude, it.longitude)) }
     options?.resultPageSize?.let { result.setResultPageSize(it.toInt()) }
+    return result
+  }
+
+  private fun resolveSnippets(snippets: List<String>?): Int {
+    var result = Snippet.NONE.value
+    for (snippet in snippets ?: emptyList()) {
+      result = result or when (snippet) {
+        "rating" -> Snippet.BUSINESS_RATING1X.value
+        "photos" -> Snippet.PHOTOS.value
+        "panoramas" -> Snippet.PANORAMAS.value
+        else -> 0
+      }
+    }
     return result
   }
 
@@ -117,6 +135,11 @@ class ExpoYandexSearchModule : Module() {
           "kinds" to component.kinds.map { kind -> kind.name.lowercase() }
         )
       }
+    }
+    // Business rating, present only when the 'rating' snippet was requested (organizations).
+    obj.metadataContainer.getItem(BusinessRating1xObjectMetadata::class.java)?.let { rating ->
+      rating.score?.let { result["rating"] = it }
+      result["ratingsCount"] = rating.ratings
     }
     return result
   }

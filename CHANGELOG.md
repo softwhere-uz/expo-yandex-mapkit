@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Search options: spelling correction + snippets** (#1 → v2 Search, `full` flavor). `SearchOptions` gains
+  `disableSpellingCorrection` (turn off the "did you mean" fixups) and `snippets` (`'rating'` / `'photos'` /
+  `'panoramas'`). Requesting the `'rating'` snippet populates `SearchResult.rating` (0–5) + `ratingsCount`
+  for organizations. This closes the last remaining Search-options item of the v2 parity checklist.
+
 ## [1.3.0] - 2026-07-25
 
 Rounds out the v2 (`full`-flavor) modules: per-section route breakdowns, structured search-address
