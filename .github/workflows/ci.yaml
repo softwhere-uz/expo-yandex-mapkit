@@ -121,8 +121,12 @@ jobs:
   android:
     name: Android build (Kotlin vs real MapKit)
     runs-on: ubuntu-latest
-    if: github.event_name != 'push' || !startsWith(github.event.head_commit.message, 'chore(release):')
-    environment: ${{ github.event_name == 'pull_request' && 'ci-heavy-approval' || 'ci-auto' }}
+    # Heavy native builds do NOT run automatically on pull_request — they used to queue and sit
+    # pending on the ci-heavy-approval gate. Start them manually with "Run workflow"
+    # (workflow_dispatch); they still run automatically on push to main (post-merge), skipping
+    # release-bump commits. The fast quality / prebuild-smoke jobs above keep running on every PR.
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && !startsWith(github.event.head_commit.message, 'chore(release):'))
+    environment: ci-auto
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v6
@@ -152,8 +156,12 @@ jobs:
   bare-android:
     name: Bare RN Android build (tarball consumer)
     runs-on: ubuntu-latest
-    if: github.event_name != 'push' || !startsWith(github.event.head_commit.message, 'chore(release):')
-    environment: ${{ github.event_name == 'pull_request' && 'ci-heavy-approval' || 'ci-auto' }}
+    # Heavy native builds do NOT run automatically on pull_request — they used to queue and sit
+    # pending on the ci-heavy-approval gate. Start them manually with "Run workflow"
+    # (workflow_dispatch); they still run automatically on push to main (post-merge), skipping
+    # release-bump commits. The fast quality / prebuild-smoke jobs above keep running on every PR.
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && !startsWith(github.event.head_commit.message, 'chore(release):'))
+    environment: ci-auto
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v6
@@ -182,8 +190,12 @@ jobs:
   bare-ios:
     name: Bare RN iOS build (tarball consumer)
     runs-on: macos-26
-    if: github.event_name != 'push' || !startsWith(github.event.head_commit.message, 'chore(release):')
-    environment: ${{ github.event_name == 'pull_request' && 'ci-heavy-approval' || 'ci-auto' }}
+    # Heavy native builds do NOT run automatically on pull_request — they used to queue and sit
+    # pending on the ci-heavy-approval gate. Start them manually with "Run workflow"
+    # (workflow_dispatch); they still run automatically on push to main (post-merge), skipping
+    # release-bump commits. The fast quality / prebuild-smoke jobs above keep running on every PR.
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && !startsWith(github.event.head_commit.message, 'chore(release):'))
+    environment: ci-auto
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v6
@@ -218,8 +230,12 @@ jobs:
   ios:
     name: iOS build (Swift vs real MapKit)
     runs-on: macos-26
-    if: github.event_name != 'push' || !startsWith(github.event.head_commit.message, 'chore(release):')
-    environment: ${{ github.event_name == 'pull_request' && 'ci-heavy-approval' || 'ci-auto' }}
+    # Heavy native builds do NOT run automatically on pull_request — they used to queue and sit
+    # pending on the ci-heavy-approval gate. Start them manually with "Run workflow"
+    # (workflow_dispatch); they still run automatically on push to main (post-merge), skipping
+    # release-bump commits. The fast quality / prebuild-smoke jobs above keep running on every PR.
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && !startsWith(github.event.head_commit.message, 'chore(release):'))
+    environment: ci-auto
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v6
