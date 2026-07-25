@@ -21,6 +21,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   in points) — a focus rectangle that keeps the fitted content clear of overlays like a bottom
   sheet or header. Completes the v0 imperative-ref surface.
 
+### Fixed
+
+- **Markers crashed on mount (#19).** Two independent bugs in the marker view, both reproducible on
+  a clean Expo SDK 55 / RN 0.83 app on iOS:
+  - `Event cannot be both direct and bubbling: topPress` — the native marker press event was named
+    `onPress`, which React Native reserves as the bubbling `topPress` while Expo registers view
+    events as direct. The native event is now `onMarkerPress`; the JS `<Marker>` keeps its public
+    `onPress` prop and forwards it, so the public API is unchanged.
+  - `NSInternalInconsistencyException` from `-[YMKPlacemarkMapObject setIconStyleWithStyle:]`
+    ("Supported for single, animated icon and view only") — `updateMarker()` styled the placemark
+    before any icon was set. The icon style is now applied only after an icon is set (image `source`
+    or React-children icon), on both iOS and Android.
+
 ## [0.0.5] - 2026-07-25
 
 ### Added

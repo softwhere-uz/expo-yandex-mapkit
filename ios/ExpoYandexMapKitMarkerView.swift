@@ -20,7 +20,12 @@ class ExpoYandexMapKitMarkerView: ExpoView {
   // Frame rate for the imperative move/rotate animations.
   private static let framesPerSecond = 60.0
 
-  let onPress = EventDispatcher()
+  // Event registration name is deliberately NOT "onPress": React Native reserves the top-level
+  // `topPress` name as a bubbling event, and Expo registers view events as direct, so an "onPress"
+  // event collides ("Event cannot be both direct and bubbling: topPress") and crashes on the first
+  // marker mount. `onMarkerPress` maps to the free `topMarkerPress`; the JS `Marker` keeps its
+  // public `onPress` prop and forwards it to this event.
+  let onMarkerPress = EventDispatcher()
 
   private var placemark: YMKPlacemarkMapObject?
   // MapKit holds the tap listener; keep it strongly retained here (this view is itself kept alive
@@ -198,28 +203,35 @@ class ExpoYandexMapKitMarkerView: ExpoView {
     }
     placemark.geometry = point
     placemark.zIndex = zIndexValue
-    placemark.setIconStyleWith(buildIconStyle())
 
-    // A React-children icon (custom pin) takes precedence over the image source.
+    // A React-children icon (custom pin) takes precedence over the image source; it applies its
+    // own style via setViewWithView, so there is no separate setIconStyleWith here.
     if childView != nil {
       refreshChildIcon()
       updateTracking()
       return
     }
 
-    guard let source = iconSource, !source.isEmpty, source != appliedIconSource else {
+    // `setIconStyleWith` asserts ("Supported for single, animated icon and view only") unless the
+    // placemark already carries an icon, so an icon-less placemark must never be styled. Style only
+    // after an image icon is set: on a source change inside the load callback; on an unchanged
+    // source (a scale/anchor/visibility change) re-apply directly since the icon is already there.
+    guard let source = iconSource, !source.isEmpty else {
       return
     }
-    appliedIconSource = source
-    MarkerImageLoader.load(source) { [weak self] image in
-      guard let self = self, let image = image, let current = self.placemark, current.isValid,
-        source == self.appliedIconSource
-      else {
-        return
+    if source != appliedIconSource {
+      appliedIconSource = source
+      MarkerImageLoader.load(source) { [weak self] image in
+        guard let self = self, let image = image, let current = self.placemark, current.isValid,
+          source == self.appliedIconSource
+        else {
+          return
+        }
+        current.setIconWith(image)
+        current.setIconStyleWith(self.buildIconStyle())
       }
-      current.setIconWith(image)
-      // Re-apply the style so scale/anchor/visibility stick after the icon swap.
-      current.setIconStyleWith(self.buildIconStyle())
+    } else {
+      placemark.setIconStyleWith(buildIconStyle())
     }
   }
 
@@ -236,7 +248,7 @@ class ExpoYandexMapKitMarkerView: ExpoView {
 
   fileprivate func handleTap(_ point: YMKPoint) -> Bool {
     // NSNull (not `nil as Any`) when unset, so the payload matches Android's null identifier.
-    onPress([
+    onMarkerPress([
       "identifier": identifier.map { $0 as Any } ?? NSNull(),
       "point": ["latitude": point.latitude, "longitude": point.longitude],
     ])

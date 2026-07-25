@@ -173,7 +173,7 @@ class ExpoYandexMapKitModule : Module() {
     // 'ExpoYandexMapKitMarkerView'); the map view above stays the module's default view.
     View(ExpoYandexMapKitMarkerView::class) {
       Name("ExpoYandexMapKitMarkerView")
-      Events("onPress")
+      Events("onMarkerPress")
 
       Prop("point") { view: ExpoYandexMapKitMarkerView, point: PointRecord ->
         view.setPoint(Point(point.latitude, point.longitude))

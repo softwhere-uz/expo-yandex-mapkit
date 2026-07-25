@@ -153,7 +153,7 @@ public class ExpoYandexMapKitModule: Module {
     // above stays the module's default view.
     View(ExpoYandexMapKitMarkerView.self) {
       ViewName("ExpoYandexMapKitMarkerView")
-      Events("onPress")
+      Events("onMarkerPress")
 
       Prop("point") { (view: ExpoYandexMapKitMarkerView, point: PointRecord) in
         view.setPoint(point)
