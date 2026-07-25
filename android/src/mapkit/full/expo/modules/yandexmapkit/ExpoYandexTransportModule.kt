@@ -10,6 +10,7 @@ import com.yandex.mapkit.directions.driving.DrivingRouterType
 import com.yandex.mapkit.directions.driving.DrivingSession
 import com.yandex.mapkit.directions.driving.VehicleOptions
 import com.yandex.mapkit.geometry.Point
+import com.yandex.mapkit.geometry.SubpolylineHelper
 import com.yandex.mapkit.transport.TransportFactory
 import com.yandex.mapkit.transport.masstransit.FitnessOptions
 import com.yandex.mapkit.transport.masstransit.MasstransitRouter
@@ -118,7 +119,14 @@ class ExpoYandexTransportModule : Module() {
       "time" to weight.time.text,
       "timeWithTraffic" to weight.timeWithTraffic.text,
       "distance" to weight.distance.value,
-      "points" to geometryPoints(route.geometry.points)
+      "points" to geometryPoints(route.geometry.points),
+      "sections" to route.sections.map { section ->
+        mapOf(
+          "type" to "car",
+          "time" to section.metadata.weight.time.text,
+          "points" to geometryPoints(sectionPoints(route.geometry, section.geometry))
+        )
+      }
     )
   }
 
@@ -128,9 +136,37 @@ class ExpoYandexTransportModule : Module() {
       "time" to weight.time.text,
       "walkingDistance" to weight.walkingDistance.value,
       "transfersCount" to weight.transfersCount,
-      "points" to geometryPoints(route.geometry.points)
+      "points" to geometryPoints(route.geometry.points),
+      "sections" to route.sections.map { section -> serializeSection(route, section) }
     )
   }
+
+  private fun serializeSection(route: Route, section: com.yandex.mapkit.transport.masstransit.Section): Map<String, Any?> {
+    val result = mutableMapOf<String, Any?>(
+      "time" to section.metadata.weight.time.text,
+      "points" to geometryPoints(sectionPoints(route.geometry, section.geometry))
+    )
+    val transports = section.metadata.data.transports
+    if (!transports.isNullOrEmpty()) {
+      // A transit leg (bus / metro / …). Group each vehicle type to the line names serving it.
+      val byType = mutableMapOf<String, MutableList<String>>()
+      for (transport in transports) {
+        for (vehicleType in transport.line.vehicleTypes) {
+          byType.getOrPut(vehicleType) { mutableListOf() }.add(transport.line.name)
+        }
+      }
+      result["type"] = transports.first().line.vehicleTypes.firstOrNull() ?: "transit"
+      result["transports"] = byType
+    } else {
+      // No transports → a walking leg (or a zero-length waiting leg).
+      result["type"] = if (section.metadata.weight.walkingDistance.value > 0) "walk" else "waiting"
+    }
+    return result
+  }
+
+  // A section's geometry is a fragment (Subpolyline) of the route's full polyline; resolve it to points.
+  private fun sectionPoints(routeGeometry: com.yandex.mapkit.geometry.Polyline, subpolyline: com.yandex.mapkit.geometry.Subpolyline): List<Point> =
+    SubpolylineHelper.subpolyline(routeGeometry, subpolyline).points
 
   private fun geometryPoints(points: List<Point>): List<Map<String, Double>> =
     points.map { mapOf("latitude" to it.latitude, "longitude" to it.longitude) }

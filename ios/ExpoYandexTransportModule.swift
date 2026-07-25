@@ -107,8 +107,13 @@ public class ExpoYandexTransportModule: Module {
         "time": weight.time.text,
         "timeWithTraffic": weight.timeWithTraffic.text,
         "distance": weight.distance.value,
-        "points": route.geometry.points.map {
-          ["latitude": $0.latitude, "longitude": $0.longitude]
+        "points": geometryPoints(route.geometry.points),
+        "sections": route.sections.map { section -> [String: Any?] in
+          [
+            "type": "car",
+            "time": section.metadata.weight.time.text,
+            "points": self.sectionPoints(route.geometry, section.geometry),
+          ]
         },
       ]
     }
@@ -119,10 +124,46 @@ public class ExpoYandexTransportModule: Module {
         "time": weight.time.text,
         "walkingDistance": weight.walkingDistance.value,
         "transfersCount": weight.transfersCount,
-        "points": route.geometry.points.map {
-          ["latitude": $0.latitude, "longitude": $0.longitude]
-        },
+        "points": geometryPoints(route.geometry.points),
+        "sections": route.sections.map { self.serializeSection(route, $0) },
       ]
+    }
+
+    private func serializeSection(_ route: YMKMasstransitRoute, _ section: YMKMasstransitSection)
+      -> [String: Any?]
+    {
+      var result: [String: Any?] = [
+        "time": section.metadata.weight.time.text,
+        "points": sectionPoints(route.geometry, section.geometry),
+      ]
+      let transports = section.metadata.data.transports
+      if let transports = transports, !transports.isEmpty {
+        // A transit leg (bus / metro / …): group each vehicle type to the line names serving it.
+        var byType: [String: [String]] = [:]
+        for transport in transports {
+          for vehicleType in transport.line.vehicleTypes {
+            byType[vehicleType, default: []].append(transport.line.name)
+          }
+        }
+        result["type"] = transports.first?.line.vehicleTypes.first ?? "transit"
+        result["transports"] = byType
+      } else {
+        // No transports → a walking leg (or a zero-length waiting leg).
+        result["type"] = section.metadata.weight.walkingDistance.value > 0 ? "walk" : "waiting"
+      }
+      return result
+    }
+
+    // A section's geometry is a fragment (subpolyline) of the route's full polyline; resolve it.
+    private func sectionPoints(_ routeGeometry: YMKPolyline, _ subpolyline: YMKSubpolyline)
+      -> [[String: Double]]
+    {
+      geometryPoints(
+        YMKSubpolylineHelper.subpolyline(with: routeGeometry, subpolyline: subpolyline).points)
+    }
+
+    private func geometryPoints(_ points: [YMKPoint]) -> [[String: Double]] {
+      points.map { ["latitude": $0.latitude, "longitude": $0.longitude] }
     }
 
     private func routeError(_ error: Error) -> String {
