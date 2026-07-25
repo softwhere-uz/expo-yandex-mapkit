@@ -105,6 +105,14 @@ public class ExpoYandexMapKitModule: Module {
         view.setFastTapEnabled(enabled)
       }
 
+      Prop("minZoom") { (view: ExpoYandexMapKitView, zoom: Double?) in
+        view.setMinZoom(zoom)
+      }
+
+      Prop("maxZoom") { (view: ExpoYandexMapKitView, zoom: Double?) in
+        view.setMaxZoom(zoom)
+      }
+
       Prop("interactiveDisabled") { (view: ExpoYandexMapKitView, disabled: Bool) in
         view.setInteractiveDisabled(disabled)
       }

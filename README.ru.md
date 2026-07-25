@@ -22,7 +22,7 @@
 - 🗺️ Нативная карта MapKit `<YandexMapView>` (Fabric / Новая архитектура)
 - 🎥 Декларативная анимируемая камера (`cameraPosition`) + императивные методы через ref — `setCenter`, `setZoom`, `fitMarkers` / `fitAllMarkers` (с отступами по краям), `getCameraPosition`, `getVisibleRegion`, проекция мир↔экран
 - 👆 События нажатий / долгих нажатий / движения камеры / загрузки карты с идентичными payload'ами на iOS и Android
-- 🎨 `mapType` (`map` / `satellite` / `hybrid` / `vector`), JSON-`mapStyle`, ночной режим, переключатели отдельных жестов, размещение логотипа
+- 🎨 `mapType` (`map` / `satellite` / `hybrid` / `vector`), JSON-`mapStyle`, ночной режим, переключатели отдельных жестов, границы зума `minZoom` / `maxZoom`, размещение логотипа
 
 **Объекты карты** (декларативные дети карты)
 - 📍 `<Marker>` — иконки-картинки **или из React-детей** (надёжно, с конвейером повторного снапшота через `tracksViewChanges`), `onPress` с идентифицирующим payload'ом, `animatedMoveTo` / `animatedRotateTo`
@@ -271,6 +271,8 @@ export default function App() {
 | `rotateGesturesEnabled` | `boolean` | `true` | Разрешить поворот карты вращением двумя пальцами. |
 | `fastTapEnabled` | `boolean` | `true` | Сообщать о тапе сразу, не дожидаясь, не станет ли он двойным. |
 | `interactiveDisabled` | `boolean` | `false` | При `true` отключает сразу все четыре жеста перемещения — сокращение, перекрывающее отдельные пропсы `*GesturesEnabled`. События нажатий (`onMapPress`/`onMapLongPress`) продолжают срабатывать. |
+| `minZoom` | `number` | — (дефолт MapKit) | Ограничить минимальный (максимально отдалённый) уровень зума камеры. Действует для жестов и программных перемещений. Запрошено в [yamap#187](https://github.com/volga-volga/react-native-yamap/issues/187) — ни одна другая обёртка этого не даёт. |
+| `maxZoom` | `number` | — (дефолт MapKit) | Ограничить максимальный (максимально приближённый) уровень зума камеры. |
 | `mapType` | `'none' \| 'map' \| 'satellite' \| 'hybrid' \| 'vector'` | — (дефолт SDK) | Базовый слой карты. `'map'`, `'satellite'` и `'hybrid'` — растровые; `'vector'` — стилизуемая векторная схема. Если не задан, карта сохраняет собственный дефолт MapKit (векторный). **`'satellite'` / `'hybrid'` требуют ключа с включённым доступом к спутниковым снимкам** — проп всё равно применяется (карта уходит с дорожной схемы и показывает пустую сетку тайлов), но на ключе MapKit Mobile SDK бесплатного тарифа спутниковые тайлы не загружаются; запросите доступ к снимкам для своего ключа в кабинете Яндекса. |
 | `mapStyle` | `string` | — | [JSON-стиль карты Яндекса](https://yandex.com/dev/mapkit/doc/en/android/generated/style), применяемый к карте. **Влияет только на слои `'vector'` и `'hybrid'`** — оставьте `mapType` незаданным (дефолт — векторный) или задайте `mapType='vector'`; на растровых слоях `'map'` / `'satellite'` это тихий no-op. Передайте `''`, чтобы сбросить ранее применённый стиль. Невалидный JSON игнорируется с предупреждением. |
 | `logoPosition` | `{ horizontal: 'left' \| 'center' \| 'right'; vertical: 'top' \| 'bottom' }` | — | Угол, к которому выравнивается обязательный логотип Яндекса. |

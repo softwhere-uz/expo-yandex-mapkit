@@ -209,6 +209,10 @@ class ExpoYandexMapKitView(context: Context, appContext: AppContext) : ExpoView(
   // the value persists — passing undefined later does not revert it (matches mapType/mapStyle).
   private var logoPosition: LogoPositionRecord? = null
   private var logoPadding: LogoPaddingRecord? = null
+  // Camera zoom-bound hints, null until set. Applied through the map's cameraBounds; a null value
+  // clears that bound back to MapKit's default.
+  private var minZoom: Float? = null
+  private var maxZoom: Float? = null
   private var pendingCameraPosition: CameraPositionRecord? = null
   private var cameraPositionDirty = false
 
@@ -444,6 +448,26 @@ class ExpoYandexMapKitView(context: Context, appContext: AppContext) : ExpoView(
   internal fun setFastTapEnabled(value: Boolean) {
     fastTapEnabled = value
     mapView?.mapWindow?.map?.isFastTapEnabled = value
+  }
+
+  internal fun setMinZoom(zoom: Double?) {
+    minZoom = zoom?.toFloat()
+    applyZoomBounds()
+  }
+
+  internal fun setMaxZoom(zoom: Double?) {
+    maxZoom = zoom?.toFloat()
+    applyZoomBounds()
+  }
+
+  // MapKit's cameraBounds exposes only a combined reset, so re-establish the full state each time:
+  // reset both preferences, then re-apply whichever bound is set. This makes clearing one bound (its
+  // prop set to undefined) restore MapKit's default for that bound while keeping the other.
+  private fun applyZoomBounds() {
+    val bounds = mapView?.mapWindow?.map?.cameraBounds ?: return
+    bounds.resetMinMaxZoomPreference()
+    minZoom?.let { bounds.setMinZoomPreference(it) }
+    maxZoom?.let { bounds.setMaxZoomPreference(it) }
   }
 
   internal fun setMapType(type: YandexMapType) {
@@ -823,6 +847,9 @@ class ExpoYandexMapKitView(context: Context, appContext: AppContext) : ExpoView(
     map.isNightModeEnabled = nightMode
     applyGestureState()
     map.isFastTapEnabled = fastTapEnabled
+    if (minZoom != null || maxZoom != null) {
+      applyZoomBounds()
+    }
     mapType?.let { map.mapType = it }
     applyMapStyle(map)
     applyLogo(map)
