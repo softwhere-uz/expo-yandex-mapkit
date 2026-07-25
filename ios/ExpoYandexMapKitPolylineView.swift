@@ -110,24 +110,27 @@ class ExpoYandexMapKitPolylineView: ExpoView, MapObjectChild {
     if let strokeColor = strokeColor {
       obj.setStrokeColorWith(strokeColor)
     }
+    // Width / dash / outline are configured through a YMKLineStyle (not direct properties) on iOS.
+    let style = YMKLineStyle()
     if let strokeWidth = strokeWidth {
-      obj.strokeWidth = strokeWidth
-    }
-    if let outlineColor = outlineColor {
-      obj.setOutlineColorWith(outlineColor)
-    }
-    if let outlineWidth = outlineWidth {
-      obj.outlineWidth = outlineWidth
+      style.strokeWidth = strokeWidth
     }
     if let dashLength = dashLength {
-      obj.dashLength = dashLength
+      style.dashLength = dashLength
     }
     if let gapLength = gapLength {
-      obj.gapLength = gapLength
+      style.gapLength = gapLength
     }
     if let dashOffset = dashOffset {
-      obj.dashOffset = dashOffset
+      style.dashOffset = dashOffset
     }
+    if let outlineWidth = outlineWidth {
+      style.outlineWidth = outlineWidth
+    }
+    if let outlineColor = outlineColor {
+      style.outlineColor = outlineColor
+    }
+    obj.setStyle(style)
   }
 
   fileprivate func handleTap(_ point: YMKPoint) -> Bool {

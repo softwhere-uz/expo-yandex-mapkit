@@ -3,6 +3,7 @@ package expo.modules.yandexmapkit
 import android.content.Context
 import com.yandex.mapkit.geometry.Point
 import com.yandex.mapkit.geometry.Polyline
+import com.yandex.mapkit.map.LineStyle
 import com.yandex.mapkit.map.MapObject
 import com.yandex.mapkit.map.MapObjectCollection
 import com.yandex.mapkit.map.MapObjectTapListener
@@ -122,13 +123,17 @@ class ExpoYandexMapKitPolylineView(context: Context, appContext: AppContext) :
       return
     }
     obj.zIndex = zIndexValue
+    obj.geometry = Polyline(points)
     strokeColor?.let { obj.setStrokeColor(it) }
-    strokeWidth?.let { obj.setStrokeWidth(it) }
-    outlineColor?.let { obj.setOutlineColor(it) }
-    outlineWidth?.let { obj.setOutlineWidth(it) }
-    dashLength?.let { obj.dashLength = it }
-    gapLength?.let { obj.gapLength = it }
-    dashOffset?.let { obj.dashOffset = it }
+    // Width / dash / outline are configured through a LineStyle (not direct properties).
+    val style = LineStyle()
+    strokeWidth?.let { style.strokeWidth = it }
+    dashLength?.let { style.dashLength = it }
+    gapLength?.let { style.gapLength = it }
+    dashOffset?.let { style.dashOffset = it }
+    outlineColor?.let { style.outlineColor = it }
+    outlineWidth?.let { style.outlineWidth = it }
+    obj.style = style
   }
 
   override fun onMapObjectTap(mapObject: MapObject, point: Point): Boolean {
