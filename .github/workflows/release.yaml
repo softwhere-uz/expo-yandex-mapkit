@@ -5,8 +5,10 @@
 # Publishing uses npm OIDC trusted publishing — configure the "trusted publisher"
 # for expo-yandex-mapkit on npmjs.com (Settings → Publishing access) pointing at
 # this repo + workflow, so no long-lived npm token exists at all. The scoped alias
-# (alias/) tracks this package via a "*" range and is published manually once;
-# it never needs republishing.
+# (alias/) re-exports this package via a "*" range and is version-matched to every
+# release by the "Publish scoped alias" step below, so its npm page never looks stale.
+# That step needs its own trusted-publisher configured for @softwhere-uz/expo-yandex-mapkit
+# (same repo + workflow); until that's set up it no-ops without failing the release.
 name: Release
 
 on:
@@ -67,6 +69,17 @@ jobs:
 
       - name: Publish to npm (with provenance)
         run: npm publish --provenance --access public
+
+      # Version-match the scoped alias @softwhere-uz/expo-yandex-mapkit to this release
+      # so `npm i @softwhere-uz/expo-yandex-mapkit` and its npm page track the real
+      # package. Tolerant of "already published" and a missing trusted-publisher so a
+      # first run (or a hand-published version) never blocks the main release.
+      - name: Publish scoped alias (version-matched)
+        run: |
+          cd alias
+          npm version "${GITHUB_REF_NAME#v}" --no-git-tag-version --allow-same-version
+          npm publish --provenance --access public \
+            || echo "::warning::alias publish skipped — already published, or no trusted-publisher yet for @softwhere-uz/expo-yandex-mapkit"
 
       - name: Create GitHub release
         env:

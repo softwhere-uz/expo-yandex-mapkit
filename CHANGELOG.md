@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.1] - 2026-07-26
+
+Docs/packaging patch — no code changes.
+
+- **README hero on npm.** The `2.0.0` tarball predated the social-card hero image, so
+  the npm package page rendered a README without it. This release ships the current
+  README (hero image + Medium/Habr writeups) so the preview shows on npmjs.com.
+- **Scoped alias kept in lockstep.** `@softwhere-uz/expo-yandex-mapkit` had been
+  published once at `0.0.1` and never bumped, so its npm page looked stale. It is now
+  version-matched to the root package, and the release workflow re-publishes it on every
+  future release so the two never drift.
+
 ## [2.0.0] - 2026-07-26
 
 **Milestone release — full feature parity, device-validated.** `1.0` marked v1 (lite-flavor) parity;
