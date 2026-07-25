@@ -17,6 +17,19 @@ class ExpoYandexMapKitModule extends NativeModule {
   async initialize(_apiKey: string): Promise<void> {
     warnWebNotSupportedOnce();
   }
+
+  async setLocale(_locale: string): Promise<void> {
+    warnWebNotSupportedOnce();
+  }
+
+  async getLocale(): Promise<string | null> {
+    warnWebNotSupportedOnce();
+    return null;
+  }
+
+  async resetLocale(): Promise<void> {
+    warnWebNotSupportedOnce();
+  }
 }
 
 export default registerWebModule(ExpoYandexMapKitModule, 'ExpoYandexMapKit');

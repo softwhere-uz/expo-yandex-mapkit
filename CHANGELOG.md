@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Runtime locale** (#1 → Locale): `setLocale(locale)`, `getLocale()`, and `resetLocale()` module
+  functions to change the map display language at runtime (`"en_US"`, `"ru_RU"`, …). Routed through
+  the SDK's i18n manager on both platforms. Note the SDK's own caveats (surfaced in the JSDoc): on
+  iOS the locale must be set once **before the first map is created**, and on Android a change fully
+  applies only after an app restart. For a build-time language, the config plugin's `locale` option
+  remains the trap-free path.
 - **Config-plugin location permission** (#1 → User location & traffic): a new
   `locationWhenInUsePermission` plugin option. Set it to a usage-description string and the plugin
   writes iOS `NSLocationWhenInUseUsageDescription` and adds `ACCESS_FINE_LOCATION` /

@@ -8,6 +8,7 @@ import android.os.Looper
 import android.util.Log
 import com.yandex.mapkit.MapKitFactory
 import com.yandex.mapkit.geometry.Point
+import com.yandex.runtime.i18n.I18nManagerFactory
 import expo.modules.kotlin.exception.CodedException
 import expo.modules.kotlin.exception.Exceptions
 import expo.modules.kotlin.functions.Queues
@@ -54,6 +55,22 @@ class ExpoYandexMapKitModule : Module() {
 
     AsyncFunction("initialize") { apiKey: String ->
       initializeMapKit(apiKey)
+    }.runOnQueue(Queues.MAIN)
+
+    // Runtime locale. setLocale goes through MapKitFactory (same call as the build-time path);
+    // getLocale / resetLocale go through the runtime I18nManagerFactory (resetLocale = setLocale(null)),
+    // matching react-native-yamap-plus. Locale ops touch the SDK's global i18n state, so they run on
+    // the main thread. Note the SDK caveat: on Android a change fully applies only after an app restart.
+    AsyncFunction("setLocale") { locale: String ->
+      MapKitFactory.setLocale(locale)
+    }.runOnQueue(Queues.MAIN)
+
+    AsyncFunction("getLocale") {
+      I18nManagerFactory.getLocale()
+    }.runOnQueue(Queues.MAIN)
+
+    AsyncFunction("resetLocale") {
+      I18nManagerFactory.setLocale(null)
     }.runOnQueue(Queues.MAIN)
 
     OnActivityEntersForeground {

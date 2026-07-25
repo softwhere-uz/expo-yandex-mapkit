@@ -233,6 +233,12 @@ Initializes the native MapKit SDK. Call it once, before rendering any `YandexMap
 - Idempotent: calling again with the same key resolves silently (including when that key came from the config plugin).
 - Calling with a *different* key after successful initialization rejects with error code `ERR_YANDEX_MAPKIT_REINIT` (the native SDK takes its key once, before initialization).
 
+### `setLocale(locale: string): Promise<void>` · `getLocale(): Promise<string | null>` · `resetLocale(): Promise<void>`
+
+Get/set the map display language at runtime, as `language` or `language_REGION` (e.g. `"en_US"`, `"ru_RU"`, `"tr_TR"`). `getLocale()` resolves `null` when the map follows the device locale; `resetLocale()` returns to it.
+
+> ⚠️ **SDK caveats** (MapKit's, not this library's): on **iOS** the locale only takes effect if set **once, before the first map is created**; on **Android** a change fully applies only after an app restart. For a language known at build time, prefer the config plugin's [`locale`](#config-plugin) option — it applies during startup and avoids the init-order trap entirely.
+
 ### `<YandexMapView />`
 
 | Prop | Type | Default | Description |
