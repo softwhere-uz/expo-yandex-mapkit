@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.6] - 2026-07-25
+
 ### Added
 
 - **User location & traffic** (`YandexMapView` props, #1 → User location & traffic):
@@ -24,9 +26,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   has settled to snapshot the icon once — the react-native-maps convention, for a large perf win.
 - **`fitAllMarkers()` + `fitMarkers` edge padding** (#1 → Imperative ref methods): `fitAllMarkers(options?)`
   moves the camera so every mounted `<Marker>` is visible (read from the marker registry). Both
-  `fitMarkers` and `fitAllMarkers` now accept `options.edgePadding` (`{ top, right, bottom, left }`
-  in points) — a focus rectangle that keeps the fitted content clear of overlays like a bottom
-  sheet or header. Completes the v0 imperative-ref surface.
+  `fitMarkers` and `fitAllMarkers` accept `options.edgePadding` (`{ top, right, bottom, left }` in
+  points) — a focus rectangle that keeps the fitted content clear of overlays like a bottom sheet or
+  header. Edge padding currently applies on **Android**; on iOS the fit frames to the full viewport
+  (iOS edge padding via the map window's focus rect is a follow-up). Completes the v0 imperative-ref surface.
 - **`<Polyline>` component** (#1 → Shapes): render a polyline as a child of `YandexMapView` —
   `points`, `strokeColor`/`strokeWidth`, `outlineColor`/`outlineWidth`, a dash pattern
   (`dashLength`/`gapLength`/`dashOffset`), `zIndex`, `onPress`, and `handled`. The map-object child
@@ -36,6 +39,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   optional `innerRings` holes, `fillColor`/`strokeColor`/`strokeWidth`) and `<Circle>` (`center`,
   `radius` in metres, `fillColor`/`strokeColor`/`strokeWidth`). Both support `zIndex`, `onPress` and
   `handled`, on the shared `MapObjectChild` architecture — completing the v1 Shapes group.
+
+### Fixed
+
+- **Markers no longer crash on mount** (#19). Rendering any `<Marker>` from 0.0.5 red-screened or
+  crashed on the first mount, from two independent bugs:
+  - _Event name collision_ — the marker's native press event was `onPress`, which React Native
+    normalizes to the reserved **bubbling** `topPress` and collides with Expo's **direct** view
+    events (`Event cannot be both direct and bubbling: topPress`). The native events are now
+    `onMarkerPress` / `onShapePress`; the public `onPress` prop is unchanged (the JS wrappers forward
+    it). This also pre-empts the identical crash in the new `<Polyline>`/`<Polygon>`/`<Circle>`.
+  - _Styling an icon-less placemark_ — `updateMarker()` applied the icon style before any icon was
+    set, tripping a native assertion (`Supported for single, animated icon and view only`). The style
+    is now applied only after an icon or view is present, on both platforms.
 
 ## [0.0.5] - 2026-07-25
 
