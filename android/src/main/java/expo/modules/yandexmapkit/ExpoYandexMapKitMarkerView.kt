@@ -2,6 +2,8 @@ package expo.modules.yandexmapkit
 
 import android.animation.ValueAnimator
 import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.Canvas
 import android.graphics.PointF
 import android.view.View
 import android.view.animation.LinearInterpolator
@@ -13,7 +15,6 @@ import com.yandex.mapkit.map.MapObjectTapListener
 import com.yandex.mapkit.map.PlacemarkMapObject
 import com.yandex.mapkit.map.RotationType
 import com.yandex.runtime.image.ImageProvider
-import com.yandex.runtime.ui_view.ViewProvider
 import expo.modules.kotlin.AppContext
 import expo.modules.kotlin.records.Field
 import expo.modules.kotlin.records.Record
@@ -63,11 +64,12 @@ class ExpoYandexMapKitMarkerView(context: Context, appContext: AppContext) :
   private var hasIcon = false
 
   // React-children icon: the marker's content child (a custom pin) is rendered as the placemark
-  // icon via MapKit's ViewProvider — more reliable than snapshotting to a bitmap by hand. It takes
-  // precedence over `source`.
+  // icon. It takes precedence over `source`. The child is snapshotted to a Bitmap by hand rather
+  // than through MapKit's ViewProvider: ViewProvider.snapshot() measures the view with UNSPECIFIED
+  // specs, which a Fabric (new-architecture) ReactViewGroup rejects ("must have an explicit width
+  // and height"), crashing the app. Drawing the already-laid-out child ourselves avoids that.
   private var tracksViewChanges = true
   private var childView: View? = null
-  private var viewProvider: ViewProvider? = null
   private var hasRenderedChild = false
   // Re-render the icon when the child is (re)laid out: always for the first successful render, and
   // thereafter only while tracksViewChanges is on (so a settled bubble is snapshotted once).
@@ -152,7 +154,6 @@ class ExpoYandexMapKitMarkerView(context: Context, appContext: AppContext) :
     super.onViewAdded(child)
     if (childView == null) {
       childView = child
-      viewProvider = null
       hasRenderedChild = false
       child.addOnLayoutChangeListener(childLayoutListener)
       updateMarker()
@@ -164,7 +165,6 @@ class ExpoYandexMapKitMarkerView(context: Context, appContext: AppContext) :
     if (child === childView) {
       child.removeOnLayoutChangeListener(childLayoutListener)
       childView = null
-      viewProvider = null
       hasRenderedChild = false
       // Fall back to the image `source` now that the custom view is gone. Clear hasIcon so a
       // style-only update doesn't run before the source icon has (re)loaded.
@@ -179,7 +179,6 @@ class ExpoYandexMapKitMarkerView(context: Context, appContext: AppContext) :
     placemark = null
     appliedIconSource = null
     hasIcon = false
-    viewProvider = null
     hasRenderedChild = false
   }
 
@@ -198,14 +197,12 @@ class ExpoYandexMapKitMarkerView(context: Context, appContext: AppContext) :
     placemark.geometry = point
     placemark.zIndex = zIndexValue
 
-    // A React-children icon (custom pin) takes precedence over the image source. The actual
-    // snapshot happens in refreshChildIcon once the child has been laid out (childLayoutListener),
-    // where setView sets both the icon and its style together.
-    val child = childView
-    if (child != null) {
-      if (viewProvider == null) {
-        viewProvider = ViewProvider(child)
-      }
+    // A React-children icon (custom pin) takes precedence over the image source. The ViewProvider
+    // is created and the snapshot taken in refreshChildIcon once the child has been laid out — NOT
+    // here: ViewProvider's constructor snapshots the view immediately, which measures it, and a
+    // Fabric ReactViewGroup asserts ("must have an explicit width and height") until it has a real
+    // measured size. On attach the child has none yet, so constructing it here crashed on mount.
+    if (childView != null) {
       refreshChildIcon()
       return
     }
@@ -240,17 +237,21 @@ class ExpoYandexMapKitMarkerView(context: Context, appContext: AppContext) :
     }
   }
 
-  // Snapshot the child view and apply it as the placemark icon. No-op until the child has a real
-  // size (its first layout pass) and the placemark exists.
+  // Snapshot the child view to a bitmap and apply it as the placemark icon. No-op until the child
+  // has a real size (its first Fabric layout pass) and the placemark exists. The child is already
+  // measured and laid out by Fabric at this point, so we draw it directly onto a canvas — we do NOT
+  // go through MapKit's ViewProvider (its snapshot() re-measures the view with UNSPECIFIED specs,
+  // which a Fabric ReactViewGroup rejects, crashing the app on the new architecture).
   private fun refreshChildIcon() {
     val placemark = placemark ?: return
-    val provider = viewProvider ?: return
     val child = childView ?: return
     if (!placemark.isValid || child.width <= 0 || child.height <= 0) {
       return
     }
-    provider.snapshot()
-    placemark.setView(provider, buildIconStyle())
+    val bitmap = Bitmap.createBitmap(child.width, child.height, Bitmap.Config.ARGB_8888)
+    child.draw(Canvas(bitmap))
+    placemark.setIcon(ImageProvider.fromBitmap(bitmap))
+    placemark.setIconStyle(buildIconStyle())
     hasIcon = true
     hasRenderedChild = true
   }
