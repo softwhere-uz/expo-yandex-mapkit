@@ -34,6 +34,18 @@ export default function App() {
             identifier="tashkent-center"
             onPress={(event) => console.log('onMarkerPress', event.nativeEvent)}
           />
+          {/* A custom React-children marker (rendered as the icon). tracksViewChanges={false}
+              because the bubble is static — it is snapshotted once. */}
+          <Marker
+            point={{ latitude: TASHKENT.latitude + 0.03, longitude: TASHKENT.longitude }}
+            anchor={{ x: 0.5, y: 1 }}
+            tracksViewChanges={false}
+            identifier="rating-bubble"
+            onPress={(event) => console.log('onMarkerPress', event.nativeEvent)}>
+            <View style={styles.bubble}>
+              <Text style={styles.bubbleText}>4.8★</Text>
+            </View>
+          </Marker>
         </YandexMapView>
       ) : (
         <View style={styles.placeholder}>
@@ -66,4 +78,11 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
   },
   buttonText: { fontSize: 14, fontWeight: '600' },
+  bubble: {
+    backgroundColor: '#1e88e5',
+    borderRadius: 14,
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+  },
+  bubbleText: { color: '#fff', fontSize: 13, fontWeight: '700' },
 });

@@ -38,6 +38,14 @@ class ExpoYandexMapKitMarkerView: ExpoView {
   // The icon URI currently applied; guards against reloading the same image on unrelated updates.
   private var appliedIconSource: String?
 
+  // React-children icon: the marker's content child (a custom pin) is rendered as the placemark
+  // icon via YRTViewProvider (takes precedence over `source`). `tracksViewChanges` drives a display
+  // link that re-renders the icon so live content stays in sync; set it false once the content has
+  // settled to stop the per-frame work (the react-native-maps convention).
+  private var tracksViewChanges = true
+  private var childView: UIView?
+  private var displayLink: CADisplayLink?
+
   // MARK: - Props
 
   func setPoint(_ value: PointRecord) {
@@ -104,12 +112,82 @@ class ExpoYandexMapKitMarkerView: ExpoView {
     placemark = nil
     tapListener = nil
     appliedIconSource = nil
+    stopTracking()
   }
 
   var isAttached: Bool { placemark != nil }
 
   // The placemark the map view must remove from its collection when this marker unmounts.
   var currentPlacemark: YMKPlacemarkMapObject? { placemark }
+
+  // MARK: - React-children icon
+
+  func setTracksViewChanges(_ value: Bool) {
+    tracksViewChanges = value
+    updateTracking()
+  }
+
+  // The marker's content child arrives through Fabric's child hooks. Only one is supported; it is
+  // NOT added to the view hierarchy (markers own no on-screen UI) — YRTViewProvider renders it from
+  // its Fabric-assigned frame, matching the map view's own child handling.
+  override func mountChildComponentView(_ childComponentView: UIView, index: Int) {
+    guard childView == nil else {
+      return
+    }
+    childView = childComponentView
+    childComponentView.isOpaque = false
+    updateMarker()
+    updateTracking()
+  }
+
+  override func unmountChildComponentView(_ childComponentView: UIView, index: Int) {
+    guard childComponentView === childView else {
+      return
+    }
+    childView = nil
+    stopTracking()
+    // Fall back to the image `source` (or default pin) now that the custom view is gone.
+    appliedIconSource = nil
+    updateMarker()
+  }
+
+  // Render the child's current content as the placemark icon. A fresh provider each call forces a
+  // re-render of whatever the child now shows. No-op until the child has a real (laid-out) size.
+  private func refreshChildIcon() {
+    guard let placemark = placemark, placemark.isValid, let child = childView,
+      child.bounds.width > 0, child.bounds.height > 0
+    else {
+      return
+    }
+    placemark.setViewWithView(YRTViewProvider(uiView: child), style: buildIconStyle())
+  }
+
+  private func updateTracking() {
+    let shouldTrack = tracksViewChanges && childView != nil && placemark != nil
+    if shouldTrack {
+      if displayLink == nil {
+        let link = CADisplayLink(target: self, selector: #selector(onDisplayLink))
+        // Re-render at ~30fps rather than the full refresh rate — enough for live content, far
+        // cheaper than every frame. Set tracksViewChanges=false to stop entirely.
+        link.preferredFramesPerSecond = 30
+        link.add(to: .main, forMode: .common)
+        displayLink = link
+      }
+    } else {
+      stopTracking()
+      // One final render so a settled child is still shown after tracking stops.
+      refreshChildIcon()
+    }
+  }
+
+  private func stopTracking() {
+    displayLink?.invalidate()
+    displayLink = nil
+  }
+
+  @objc private func onDisplayLink() {
+    refreshChildIcon()
+  }
 
   private func updateMarker() {
     guard let placemark = placemark, placemark.isValid, let point = point else {
@@ -118,6 +196,13 @@ class ExpoYandexMapKitMarkerView: ExpoView {
     placemark.geometry = point
     placemark.zIndex = zIndexValue
     placemark.setIconStyleWith(buildIconStyle())
+
+    // A React-children icon (custom pin) takes precedence over the image source.
+    if childView != nil {
+      refreshChildIcon()
+      updateTracking()
+      return
+    }
 
     guard let source = iconSource, !source.isEmpty, source != appliedIconSource else {
       return

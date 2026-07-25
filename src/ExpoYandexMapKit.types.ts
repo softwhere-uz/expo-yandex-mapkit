@@ -78,7 +78,7 @@ export type MarkerPressEvent = {
 
 export type MarkerProps = {
   point: Point; // geographic position of the marker (required)
-  source?: ImageSourcePropType; // icon image — require('./pin.png') or { uri }; omit for MapKit's default pin
+  source?: ImageSourcePropType; // icon image — require('./pin.png') or { uri }; ignored when `children` are provided
   scale?: number; // icon scale multiplier, default 1
   anchor?: MarkerAnchor; // icon anchor in [0,1] fractions; unset uses the icon's own default
   visible?: boolean; // default true
@@ -87,6 +87,12 @@ export type MarkerProps = {
   handled?: boolean; // when true a tap is consumed and does NOT also fire the map's onMapPress, default false
   identifier?: string; // opaque id echoed back in onPress — lets a shared handler identify the marker
   onPress?: (event: { nativeEvent: MarkerPressEvent }) => void;
+  // React children rendered as the marker's icon (a custom pin). Takes precedence over `source`.
+  children?: ReactNode;
+  // Whether to re-render the icon when the `children` change. Default true. When the content has
+  // settled (e.g. a static bubble), set false so the icon is snapshotted once — a large perf win
+  // vs. re-snapshotting every frame (the react-native-maps convention, done reliably here).
+  tracksViewChanges?: boolean;
 };
 
 // Imperative marker methods, called through a ref: `const ref = useRef<MarkerRef>(null)`.
