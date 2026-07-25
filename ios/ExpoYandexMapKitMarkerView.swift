@@ -120,6 +120,9 @@ class ExpoYandexMapKitMarkerView: ExpoView {
   // The placemark the map view must remove from its collection when this marker unmounts.
   var currentPlacemark: YMKPlacemarkMapObject? { placemark }
 
+  // The marker's current geographic position, for fitAllMarkers().
+  var geoPoint: YMKPoint? { point }
+
   // MARK: - React-children icon
 
   func setTracksViewChanges(_ value: Bool) {

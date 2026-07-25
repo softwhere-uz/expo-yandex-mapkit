@@ -172,6 +172,9 @@ class ExpoYandexMapKitMarkerView(context: Context, appContext: AppContext) :
   // The placemark the map view must remove from its collection when this marker unmounts.
   internal fun currentPlacemark(): PlacemarkMapObject? = placemark
 
+  // The marker's current geographic position, for fitAllMarkers().
+  internal fun geoPoint(): Point? = point
+
   private fun updateMarker() {
     val placemark = placemark ?: return
     if (!placemark.isValid) {

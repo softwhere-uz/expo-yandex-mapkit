@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Log
 import com.yandex.mapkit.Animation
 import com.yandex.mapkit.ScreenPoint
+import com.yandex.mapkit.ScreenRect
 import com.yandex.mapkit.geometry.BoundingBox
 import com.yandex.mapkit.geometry.Geometry
 import com.yandex.mapkit.geometry.Point
@@ -135,13 +136,32 @@ enum class CameraAnimationOption(val value: String) : Enumerable {
   }
 }
 
-// Options for the imperative setCenter() move.
+// Edge insets (px) used by fitMarkers / fitAllMarkers to keep content clear of the map edges.
+class EdgePaddingRecord : Record {
+  @Field
+  var top: Double = 0.0
+
+  @Field
+  var right: Double = 0.0
+
+  @Field
+  var bottom: Double = 0.0
+
+  @Field
+  var left: Double = 0.0
+}
+
+// Options for the imperative setCenter() move (and, with edgePadding, the fit moves).
 class CameraMoveOptionsRecord : Record {
   @Field
   var durationSeconds: Double = 0.3
 
   @Field
   var animation: CameraAnimationOption = CameraAnimationOption.smooth
+
+  // Only consulted by fitMarkers / fitAllMarkers; setCenter / setZoom ignore it.
+  @Field
+  var edgePadding: EdgePaddingRecord? = null
 }
 
 class ExpoYandexMapKitView(context: Context, appContext: AppContext) : ExpoView(context, appContext) {
@@ -445,25 +465,59 @@ class ExpoYandexMapKitView(context: Context, appContext: AppContext) : ExpoView(
   // current zoom (a degenerate bounding box would otherwise snap to max zoom).
   internal fun fitMarkers(points: List<PointRecord>, options: CameraMoveOptionsRecord) {
     val map = mapView?.mapWindow?.map ?: return
+    fitToPoints(points.map { Point(it.latitude, it.longitude) }, options, map)
+  }
+
+  // Fit every mounted <Marker> into view. Reads the markers' current geometry from the registry.
+  internal fun fitAllMarkers(options: CameraMoveOptionsRecord) {
+    val map = mapView?.mapWindow?.map ?: return
+    fitToPoints(markerViews.mapNotNull { it.geoPoint() }, options, map)
+  }
+
+  // Move the camera so every point is visible, optionally inset by options.edgePadding. A single
+  // point just recenters at the current zoom (a degenerate bounding box would snap to max zoom).
+  private fun fitToPoints(points: List<Point>, options: CameraMoveOptionsRecord, map: YandexMap) {
     if (points.isEmpty()) {
       return
     }
     val current = map.cameraPosition
     val target = if (points.size == 1) {
-      CameraPosition(
-        Point(points[0].latitude, points[0].longitude),
-        current.zoom,
-        current.azimuth,
-        current.tilt
-      )
+      CameraPosition(points[0], current.zoom, current.azimuth, current.tilt)
     } else {
       val boundingBox = BoundingBox(
         Point(points.minOf { it.latitude }, points.minOf { it.longitude }),
         Point(points.maxOf { it.latitude }, points.maxOf { it.longitude })
       )
-      map.cameraPosition(Geometry.fromBoundingBox(boundingBox))
+      val geometry = Geometry.fromBoundingBox(boundingBox)
+      val focus = focusRect(options.edgePadding)
+      if (focus != null) {
+        map.cameraPosition(geometry, current.azimuth, current.tilt, focus)
+      } else {
+        map.cameraPosition(geometry)
+      }
     }
     moveCameraTo(target, options, map)
+  }
+
+  // The focus rectangle = the map viewport inset by the edge padding. The map's screen coordinates
+  // are pixels, so the dp/point padding is scaled by the display density. Null when there is no
+  // padding or the map has no size yet, so the fit falls back to the whole viewport.
+  private fun focusRect(padding: EdgePaddingRecord?): ScreenRect? {
+    if (padding == null) {
+      return null
+    }
+    val view = mapView ?: return null
+    val width = view.width.toFloat()
+    val height = view.height.toFloat()
+    if (width <= 0f || height <= 0f) {
+      return null
+    }
+    val density = resources.displayMetrics.density
+    val left = (padding.left.toFloat() * density).coerceIn(0f, width - 1f)
+    val top = (padding.top.toFloat() * density).coerceIn(0f, height - 1f)
+    val right = (width - padding.right.toFloat() * density).coerceIn(left + 1f, width)
+    val bottom = (height - padding.bottom.toFloat() * density).coerceIn(top + 1f, height)
+    return ScreenRect(ScreenPoint(left, top), ScreenPoint(right, bottom))
   }
 
   private fun moveCameraTo(target: CameraPosition, options: CameraMoveOptionsRecord, map: YandexMap) {

@@ -126,6 +126,10 @@ public class ExpoYandexMapKitModule: Module {
         view.fitMarkers(points, options: options)
       }
 
+      AsyncFunction("fitAllMarkers") { (view: ExpoYandexMapKitView, options: CameraMoveOptionsRecord) in
+        view.fitAllMarkers(options)
+      }
+
       AsyncFunction("getCameraPosition") { (view: ExpoYandexMapKitView) -> [String: Any]? in
         view.currentCameraPosition()
       }
