@@ -18,6 +18,10 @@ class ExpoYandexSearchModule : Module() {
     AsyncFunction("searchPoint") { _: PointRecord, _: SearchOptionsRecord?, promise: Promise ->
       promise.reject("E_FULL_REQUIRED", FULL_REQUIRED_MESSAGE, null)
     }
+
+    AsyncFunction("resolveURI") { _: String, _: SearchOptionsRecord?, promise: Promise ->
+      promise.reject("E_FULL_REQUIRED", FULL_REQUIRED_MESSAGE, null)
+    }
   }
 }
 

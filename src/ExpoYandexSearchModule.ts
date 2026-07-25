@@ -7,6 +7,7 @@ import { Point, SearchOptions, SearchResult } from './ExpoYandexMapKit.types';
 declare class ExpoYandexSearchModule extends NativeModule {
   searchText(query: string, options?: SearchOptions): Promise<SearchResult[]>;
   searchPoint(point: Point, options?: SearchOptions): Promise<SearchResult[]>;
+  resolveURI(uri: string, options?: SearchOptions): Promise<SearchResult[]>;
 }
 
 export default requireNativeModule<ExpoYandexSearchModule>('ExpoYandexSearch');

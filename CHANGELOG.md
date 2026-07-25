@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`resolveURI()` — resolve a MapKit object URI** (#1 → v2 Search, `full` flavor). `resolveURI(uri, options?)`
+  resolves a `ymapsbm1://…` object URI (e.g. a `SuggestItem.uri`) to full `SearchResult`s — the documented
+  way to get coordinates/details for a suggestion that arrived without a `center`.
 - **Per-section route breakdown** (#1 → v2 Routing, `full` flavor). Each `Route` now includes
   `sections: RouteSection[]` — the route split into legs, each `{ type, time?, points, transports? }`.
   `type` is `'car'` (driving), `'walk'` / `'waiting'`, or a transit vehicle type (`'bus'`,
