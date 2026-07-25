@@ -202,7 +202,7 @@ public class ExpoYandexMapKitModule: Module {
     // above stays the module's default view.
     View(ExpoYandexMapKitMarkerView.self) {
       ViewName("ExpoYandexMapKitMarkerView")
-      Events("onMarkerPress")
+      Events("onMarkerPress", "onMarkerDragStart", "onMarkerDrag", "onMarkerDragEnd")
 
       Prop("point") { (view: ExpoYandexMapKitMarkerView, point: PointRecord) in
         view.setPoint(point)
@@ -238,6 +238,10 @@ public class ExpoYandexMapKitModule: Module {
 
       Prop("identifier") { (view: ExpoYandexMapKitMarkerView, identifier: String?) in
         view.setIdentifier(identifier)
+      }
+
+      Prop("draggable") { (view: ExpoYandexMapKitMarkerView, draggable: Bool) in
+        view.setDraggable(draggable)
       }
 
       Prop("tracksViewChanges") { (view: ExpoYandexMapKitMarkerView, tracks: Bool) in
