@@ -1,5 +1,6 @@
 import { requireNativeView } from 'expo';
 import * as React from 'react';
+import { Image, processColor } from 'react-native';
 
 import {
   CameraMoveOptions,
@@ -11,14 +12,39 @@ import {
   YandexMapViewRef,
 } from './ExpoYandexMapKit.types';
 
+// The native side takes the user-location icon as a plain URI string and colors as processColor()'d
+// values (the marker/shape convention), so those props are transformed before reaching the native
+// view; everything else passes through unchanged.
+type NativeMapViewProps = Omit<
+  YandexMapViewProps,
+  'userLocationIcon' | 'userLocationAccuracyFillColor' | 'userLocationAccuracyStrokeColor'
+> & {
+  userLocationIcon?: string;
+  userLocationAccuracyFillColor?: ReturnType<typeof processColor>;
+  userLocationAccuracyStrokeColor?: ReturnType<typeof processColor>;
+  ref?: React.Ref<unknown>;
+};
+
 // The native component. Expo attaches the view's AsyncFunctions to whatever ref is
 // passed to it, so `nativeRef.current.getCameraPosition()` etc. resolve at runtime.
-const NativeView: React.ComponentType<YandexMapViewProps & { ref?: React.Ref<unknown> }> =
-  requireNativeView('ExpoYandexMapKit');
+const NativeView: React.ComponentType<NativeMapViewProps> = requireNativeView('ExpoYandexMapKit');
 
 export const YandexMapView = React.forwardRef<YandexMapViewRef, YandexMapViewProps>(
-  (props, ref) => {
+  (
+    { userLocationIcon, userLocationAccuracyFillColor, userLocationAccuracyStrokeColor, ...props },
+    ref
+  ) => {
     const nativeRef = React.useRef<any>(null);
+
+    // Resolve the user-location icon (require(...) number or { uri }) to the URI the native side
+    // loads; undefined keeps MapKit's default location dot.
+    const userLocationIconUri = React.useMemo(
+      () =>
+        userLocationIcon == null
+          ? undefined
+          : (Image.resolveAssetSource(userLocationIcon)?.uri ?? undefined),
+      [userLocationIcon]
+    );
 
     React.useImperativeHandle(
       ref,
@@ -44,7 +70,15 @@ export const YandexMapView = React.forwardRef<YandexMapViewRef, YandexMapViewPro
       []
     );
 
-    return <NativeView {...props} ref={nativeRef} />;
+    return (
+      <NativeView
+        {...props}
+        userLocationIcon={userLocationIconUri}
+        userLocationAccuracyFillColor={processColor(userLocationAccuracyFillColor)}
+        userLocationAccuracyStrokeColor={processColor(userLocationAccuracyStrokeColor)}
+        ref={nativeRef}
+      />
+    );
   }
 );
 

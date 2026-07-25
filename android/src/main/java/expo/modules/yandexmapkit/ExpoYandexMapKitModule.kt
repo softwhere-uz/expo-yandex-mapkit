@@ -162,6 +162,26 @@ class ExpoYandexMapKitModule : Module() {
         view.setTrafficVisible(visible)
       }
 
+      Prop("userLocationIcon") { view: ExpoYandexMapKitView, uri: String? ->
+        view.setUserLocationIcon(uri)
+      }
+
+      Prop("userLocationIconScale") { view: ExpoYandexMapKitView, scale: Double ->
+        view.setUserLocationIconScale(scale.toFloat())
+      }
+
+      Prop("userLocationAccuracyFillColor") { view: ExpoYandexMapKitView, color: Int? ->
+        view.setUserLocationAccuracyFillColor(color)
+      }
+
+      Prop("userLocationAccuracyStrokeColor") { view: ExpoYandexMapKitView, color: Int? ->
+        view.setUserLocationAccuracyStrokeColor(color)
+      }
+
+      Prop("userLocationAccuracyStrokeWidth") { view: ExpoYandexMapKitView, width: Double ->
+        view.setUserLocationAccuracyStrokeWidth(width.toFloat())
+      }
+
       OnViewDidUpdateProps { view: ExpoYandexMapKitView ->
         view.applyPendingCameraPosition()
       }

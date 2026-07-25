@@ -1,6 +1,7 @@
 package expo.modules.yandexmapkit
 
 import android.content.Context
+import android.graphics.Bitmap
 import android.graphics.PointF
 import android.util.Log
 import android.view.View
@@ -18,14 +19,20 @@ import com.yandex.mapkit.logo.VerticalAlignment
 import com.yandex.mapkit.map.CameraListener
 import com.yandex.mapkit.map.CameraPosition
 import com.yandex.mapkit.map.CameraUpdateReason
+import com.yandex.mapkit.map.CircleMapObject
+import com.yandex.mapkit.map.IconStyle
 import com.yandex.mapkit.map.InputListener
 import com.yandex.mapkit.map.Map as YandexMap
 import com.yandex.mapkit.map.MapLoadStatistics
 import com.yandex.mapkit.map.MapLoadedListener
 import com.yandex.mapkit.map.MapType as YandexMapType
+import com.yandex.mapkit.layers.ObjectEvent
 import com.yandex.mapkit.mapview.MapView
 import com.yandex.mapkit.traffic.TrafficLayer
 import com.yandex.mapkit.user_location.UserLocationLayer
+import com.yandex.mapkit.user_location.UserLocationObjectListener
+import com.yandex.mapkit.user_location.UserLocationView
+import com.yandex.runtime.image.ImageProvider
 import expo.modules.kotlin.AppContext
 import expo.modules.kotlin.records.Field
 import expo.modules.kotlin.records.Record
@@ -211,6 +218,37 @@ class ExpoYandexMapKitView(context: Context, appContext: AppContext) : ExpoView(
   private var showUserPosition = false
   private var followUser = false
   private var trafficVisible = false
+
+  // Custom user-location dot styling. The UserLocationView (pin/arrow/accuracy-circle) is handed over
+  // by the object listener once the dot appears; it is kept so a later prop change can re-style it.
+  private var userLocationView: UserLocationView? = null
+  private var userLocationIconUri: String? = null
+  private var appliedUserLocationIconUri: String? = null
+  private var userLocationIconBitmap: Bitmap? = null
+  private var userLocationIconScale = 1f
+  private var userLocationAccuracyFillColor: Int? = null
+  private var userLocationAccuracyStrokeColor: Int? = null
+  private var userLocationAccuracyStrokeWidth: Float? = null
+
+  // MapKit holds the object listener weakly (like the map-loaded listener); this strong field keeps
+  // it alive. It styles the location dot on appearance and on every position/heading update.
+  private val userLocationObjectListener = object : UserLocationObjectListener {
+    override fun onObjectAdded(view: UserLocationView) {
+      userLocationView = view
+      applyUserLocationStyle()
+    }
+
+    override fun onObjectRemoved(view: UserLocationView) {
+      if (userLocationView === view) {
+        userLocationView = null
+      }
+    }
+
+    override fun onObjectUpdated(view: UserLocationView, event: ObjectEvent) {
+      userLocationView = view
+      applyUserLocationStyle()
+    }
+  }
 
   // Child <Marker> views, in the order React mounted them. Managed via the module's GroupView
   // actions rather than the Android view hierarchy — markers own no UI, they drive placemarks.
@@ -661,10 +699,44 @@ class ExpoYandexMapKitView(context: Context, appContext: AppContext) : ExpoView(
     applyTraffic()
   }
 
+  internal fun setUserLocationIcon(uri: String?) {
+    if (uri != userLocationIconUri) {
+      userLocationIconUri = uri
+      // The icon changed — drop the cached bitmap so it (re)loads on the next style pass.
+      appliedUserLocationIconUri = null
+      userLocationIconBitmap = null
+    }
+    applyUserLocationStyle()
+  }
+
+  internal fun setUserLocationIconScale(scale: Float) {
+    userLocationIconScale = scale
+    applyUserLocationStyle()
+  }
+
+  internal fun setUserLocationAccuracyFillColor(color: Int?) {
+    userLocationAccuracyFillColor = color
+    applyUserLocationStyle()
+  }
+
+  internal fun setUserLocationAccuracyStrokeColor(color: Int?) {
+    userLocationAccuracyStrokeColor = color
+    applyUserLocationStyle()
+  }
+
+  internal fun setUserLocationAccuracyStrokeWidth(width: Float) {
+    userLocationAccuracyStrokeWidth = width
+    applyUserLocationStyle()
+  }
+
   private fun applyUserLocation() {
     val mapWindow = mapView?.mapWindow ?: return
     val layer = userLocationLayer
-      ?: MapKitFactory.getInstance().createUserLocationLayer(mapWindow).also { userLocationLayer = it }
+      ?: MapKitFactory.getInstance().createUserLocationLayer(mapWindow).also {
+        userLocationLayer = it
+        // MapKit holds the listener weakly (matches setMapLoadedListener); the strong field keeps it.
+        it.setObjectListener(WeakReference(userLocationObjectListener))
+      }
     layer.isVisible = showUserPosition
     val view = mapView
     if (showUserPosition && followUser && view != null && view.width > 0 && view.height > 0) {
@@ -675,6 +747,50 @@ class ExpoYandexMapKitView(context: Context, appContext: AppContext) : ExpoView(
     } else {
       layer.resetAnchor()
     }
+  }
+
+  // Apply the custom icon + accuracy-circle styling to the current location dot. No-op until the dot
+  // exists (the object listener hands over its UserLocationView). Unset values leave MapKit's defaults.
+  private fun applyUserLocationStyle() {
+    val view = userLocationView ?: return
+    val circle: CircleMapObject = view.accuracyCircle
+    userLocationAccuracyFillColor?.let { circle.fillColor = it }
+    userLocationAccuracyStrokeColor?.let { circle.strokeColor = it }
+    userLocationAccuracyStrokeWidth?.let { circle.strokeWidth = it }
+
+    val uri = userLocationIconUri
+    if (uri.isNullOrEmpty()) {
+      return
+    }
+    val bitmap = userLocationIconBitmap
+    if (bitmap != null && uri == appliedUserLocationIconUri) {
+      applyUserLocationIcon(view, bitmap)
+      return
+    }
+    if (uri == appliedUserLocationIconUri) {
+      // Same icon already loading — the load callback will apply it. Avoid a duplicate load.
+      return
+    }
+    appliedUserLocationIconUri = uri
+    MarkerImageLoader.load(context, uri) { loaded ->
+      // Ignore a late load if the icon changed again meanwhile; re-read the view in case it changed.
+      if (loaded != null && uri == appliedUserLocationIconUri) {
+        userLocationIconBitmap = loaded
+        userLocationView?.let { applyUserLocationIcon(it, loaded) }
+      }
+    }
+  }
+
+  // Set the loaded bitmap as the dot's icon on both the resting pin and the heading arrow, at the
+  // configured scale, so the custom icon shows regardless of whether a heading is available.
+  private fun applyUserLocationIcon(view: UserLocationView, bitmap: Bitmap) {
+    val provider = ImageProvider.fromBitmap(bitmap)
+    val style = IconStyle().apply { scale = userLocationIconScale }
+    // Set icon then style separately (matches the <Marker> view) rather than the 2-arg setIcon.
+    view.pin.setIcon(provider)
+    view.pin.setIconStyle(style)
+    view.arrow.setIcon(provider)
+    view.arrow.setIconStyle(style)
   }
 
   private fun applyTraffic() {

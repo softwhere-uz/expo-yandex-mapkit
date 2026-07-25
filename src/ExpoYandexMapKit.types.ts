@@ -55,6 +55,13 @@ export type YandexMapViewProps = {
   logoPadding?: { horizontal: number; vertical: number }; // logo padding in px from the aligned edges (negatives clamped to 0)
   showUserPosition?: boolean; // show the device-location dot — requires the app to hold location permission; default false
   followUser?: boolean; // keep the camera centered on the user's location; default false
+  // Custom icon for the user-location dot (used for both the resting pin and the heading arrow) —
+  // require('./me.png') or { uri }. Requires showUserPosition; unset keeps MapKit's default dot.
+  userLocationIcon?: ImageSourcePropType;
+  userLocationIconScale?: number; // scale multiplier for userLocationIcon, default 1
+  userLocationAccuracyFillColor?: ColorValue; // fill color of the accuracy circle around the dot
+  userLocationAccuracyStrokeColor?: ColorValue; // stroke (border) color of the accuracy circle
+  userLocationAccuracyStrokeWidth?: number; // accuracy-circle stroke width in points
   trafficVisible?: boolean; // show the live traffic-jams layer; default false
   onMapReady?: (event: { nativeEvent: Record<string, never> }) => void;
   onCameraPositionChanged?: (event: { nativeEvent: CameraPositionChangeEvent }) => void;

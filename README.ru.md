@@ -246,6 +246,14 @@ export default function App() {
 | `cameraPosition` | `CameraPosition` | — | Декларативная камера: изменение пропа двигает нативную камеру. Значения, равные текущей позиции (с точностью до 1e-6), игнорируются, поэтому «эхо» из `onCameraPositionChanged` не зацикливается. |
 | `animated` | `boolean` | `true` | Анимировать декларативные перемещения камеры (0,3 с); мгновенно при `false`. |
 | `nightMode` | `boolean` | `false` | Ночная цветовая схема MapKit. |
+| `showUserPosition` | `boolean` | `false` | Показывать точку геопозиции устройства. Требуется разрешение на геопозицию (см. опцию плагина `locationWhenInUsePermission` или запросите его самостоятельно). |
+| `followUser` | `boolean` | `false` | Держать камеру по центру на местоположении пользователя. Требует `showUserPosition`. |
+| `userLocationIcon` | `ImageSourcePropType` | — | Пользовательская иконка точки геопозиции — используется и для статичной точки, и для стрелки направления. `require('./me.png')` или `{ uri }`. Требует `showUserPosition`; без значения остаётся стандартная точка MapKit. |
+| `userLocationIconScale` | `number` | `1` | Множитель масштаба для `userLocationIcon`. |
+| `userLocationAccuracyFillColor` | `ColorValue` | — | Цвет заливки круга точности вокруг точки. Без значения — стандартный для MapKit. |
+| `userLocationAccuracyStrokeColor` | `ColorValue` | — | Цвет обводки (границы) круга точности. Без значения — стандартный для MapKit. |
+| `userLocationAccuracyStrokeWidth` | `number` | — | Толщина обводки круга точности, в пунктах. |
+| `trafficVisible` | `boolean` | `false` | Показывать слой пробок в реальном времени. |
 | `style` | `StyleProp<ViewStyle>` | — | Стандартная стилизация React Native. |
 
 События:
