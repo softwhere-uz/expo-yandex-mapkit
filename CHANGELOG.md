@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Config-plugin location permission** (#1 → User location & traffic): a new
+  `locationWhenInUsePermission` plugin option. Set it to a usage-description string and the plugin
+  writes iOS `NSLocationWhenInUseUsageDescription` and adds `ACCESS_FINE_LOCATION` /
+  `ACCESS_COARSE_LOCATION` to the Android manifest — the permission the `showUserPosition` /
+  `followUser` layer needs. Omit it (or pass a blank string) and the plugin declares nothing, so
+  apps that request location themselves (e.g. via expo-location) are untouched.
+
 ## [0.0.6] - 2026-07-25
 
 ### Added

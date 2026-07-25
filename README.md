@@ -106,6 +106,7 @@ All options are optional:
 | `locale` | `string` | — | Map display language as `language` or `language_REGION` (e.g. `"en_US"`, `"ru_RU"`, `"tr_TR"`). Omit to follow the device locale. Applied on the runtime path too. |
 | `version` | `string` | `"4.42.0"` | Native MapKit SDK version (`x.y.z`). |
 | `flavor` | `"lite" \| "full"` | `"lite"` | MapKit flavor — see [lite vs full](#lite-vs-full). |
+| `locationWhenInUsePermission` | `string` | — | Usage-description for the location permission the user-location layer (`showUserPosition` / `followUser`) needs. When set, it is written to iOS `NSLocationWhenInUseUsageDescription` and adds `ACCESS_FINE_LOCATION` / `ACCESS_COARSE_LOCATION` to the Android manifest. Omit it if your app requests location itself (e.g. via expo-location) or does not show the user's position. |
 | `android` | `{ version?, flavor?, apiKey?, locale? }` | — | Android-only overrides; take precedence over the top-level values. |
 | `ios` | `{ version?, flavor?, apiKey?, locale? }` | — | iOS-only overrides; take precedence over the top-level values. |
 
