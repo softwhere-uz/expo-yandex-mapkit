@@ -3,6 +3,7 @@ package expo.modules.yandexmapkit
 import android.animation.ValueAnimator
 import android.content.Context
 import android.graphics.PointF
+import android.view.View
 import android.view.animation.LinearInterpolator
 import com.yandex.mapkit.geometry.Point
 import com.yandex.mapkit.map.IconStyle
@@ -11,6 +12,7 @@ import com.yandex.mapkit.map.MapObjectTapListener
 import com.yandex.mapkit.map.PlacemarkMapObject
 import com.yandex.mapkit.map.RotationType
 import com.yandex.runtime.image.ImageProvider
+import com.yandex.runtime.ui_view.ViewProvider
 import expo.modules.kotlin.AppContext
 import expo.modules.kotlin.records.Field
 import expo.modules.kotlin.records.Record
@@ -50,6 +52,21 @@ class ExpoYandexMapKitMarkerView(context: Context, appContext: AppContext) :
   // The icon URI currently applied to the placemark; guards against reloading the same image on
   // every unrelated prop change (image loads are async and would otherwise thrash).
   private var appliedIconSource: String? = null
+
+  // React-children icon: the marker's content child (a custom pin) is rendered as the placemark
+  // icon via MapKit's ViewProvider — more reliable than snapshotting to a bitmap by hand. It takes
+  // precedence over `source`.
+  private var tracksViewChanges = true
+  private var childView: View? = null
+  private var viewProvider: ViewProvider? = null
+  private var hasRenderedChild = false
+  // Re-render the icon when the child is (re)laid out: always for the first successful render, and
+  // thereafter only while tracksViewChanges is on (so a settled bubble is snapshotted once).
+  private val childLayoutListener = View.OnLayoutChangeListener { view, _, _, _, _, _, _, _, _ ->
+    if (view.width > 0 && view.height > 0 && (tracksViewChanges || !hasRenderedChild)) {
+      refreshChildIcon()
+    }
+  }
 
   internal fun setPoint(value: Point) {
     point = value
@@ -107,10 +124,46 @@ class ExpoYandexMapKitMarkerView(context: Context, appContext: AppContext) :
     updateMarker()
   }
 
+  internal fun setTracksViewChanges(value: Boolean) {
+    tracksViewChanges = value
+    // Turning tracking back on forces a fresh snapshot of whatever the child currently shows.
+    if (value) {
+      refreshChildIcon()
+    }
+  }
+
+  // The marker's React children (a custom pin) arrive as normal child views. Track the first one
+  // and render it as the icon.
+  override fun onViewAdded(child: View) {
+    super.onViewAdded(child)
+    if (childView == null) {
+      childView = child
+      viewProvider = null
+      hasRenderedChild = false
+      child.addOnLayoutChangeListener(childLayoutListener)
+      updateMarker()
+    }
+  }
+
+  override fun onViewRemoved(child: View) {
+    super.onViewRemoved(child)
+    if (child === childView) {
+      child.removeOnLayoutChangeListener(childLayoutListener)
+      childView = null
+      viewProvider = null
+      hasRenderedChild = false
+      // Fall back to the image `source` (or the default pin) now that the custom view is gone.
+      appliedIconSource = null
+      updateMarker()
+    }
+  }
+
   // Called by the map view right before it removes the placemark from the collection.
   internal fun detach() {
     placemark = null
     appliedIconSource = null
+    viewProvider = null
+    hasRenderedChild = false
   }
 
   internal val isAttached: Boolean
@@ -129,6 +182,17 @@ class ExpoYandexMapKitMarkerView(context: Context, appContext: AppContext) :
     placemark.zIndex = zIndexValue
     placemark.setIconStyle(buildIconStyle())
 
+    // A React-children icon (custom pin) takes precedence over the image source. The actual
+    // snapshot happens in refreshChildIcon once the child has been laid out (childLayoutListener).
+    val child = childView
+    if (child != null) {
+      if (viewProvider == null) {
+        viewProvider = ViewProvider(child)
+      }
+      refreshChildIcon()
+      return
+    }
+
     val source = iconSource
     if (source.isNullOrEmpty()) {
       return
@@ -146,6 +210,20 @@ class ExpoYandexMapKitMarkerView(context: Context, appContext: AppContext) :
         current.setIconStyle(buildIconStyle())
       }
     }
+  }
+
+  // Snapshot the child view and apply it as the placemark icon. No-op until the child has a real
+  // size (its first layout pass) and the placemark exists.
+  private fun refreshChildIcon() {
+    val placemark = placemark ?: return
+    val provider = viewProvider ?: return
+    val child = childView ?: return
+    if (!placemark.isValid || child.width <= 0 || child.height <= 0) {
+      return
+    }
+    provider.snapshot()
+    placemark.setView(provider, buildIconStyle())
+    hasRenderedChild = true
   }
 
   private fun buildIconStyle(): IconStyle {

@@ -27,7 +27,7 @@
 
 | Этап | Объём | Статус |
 | --- | --- | --- |
-| v0 | MapView, управление камерой + события, нажатия, ночной режим, маркеры (вкл. иконки из React-детей) | В работе — маркеры с картинками готовы; иконки из React-детей — в планах |
+| v0 | MapView, управление камерой + события, нажатия, ночной режим, маркеры (вкл. иконки из React-детей) | В работе — маркеры готовы (картинки **и** иконки из React-детей); `fitAllMarkers` — в планах |
 | v1 | Полилинии, полигоны, круги, кластеризация, слой геопозиции, пробки, JSON-стилизация карты | Запланировано |
 | v2 | Возможности flavor `full`: поиск + саджест, геокодинг, маршрутизация | Запланировано |
 | v3 | Поддержка второго бренда — Mappable (mappable.world); `expo-yandex-mapkit-dom` — DOM-компонент-фолбэк, чтобы карта работала в Expo Go и на вебе | Запланировано |
@@ -304,6 +304,18 @@ import { YandexMapView, Marker } from 'expo-yandex-mapkit';
 | `handled` | `boolean` | `false` | Если `true`, нажатие поглощается и **не** вызывает `onMapPress` карты. |
 | `identifier` | `string` | — | Непрозрачный id, возвращаемый в `onPress` — чтобы один обработчик различал маркеры. |
 | `onPress` | `(event) => void` | — | `event.nativeEvent` — это `{ identifier?, point }`. |
+| `children` | `ReactNode` | — | React-контент, отрисованный как иконка маркера (кастомный пин). Имеет приоритет над `source`. Рендерится нативно через view-провайдер MapKit (без хрупкого снапшота в bitmap). |
+| `tracksViewChanges` | `boolean` | `true` | Перерисовывать ли иконку при изменении `children`. Поставьте `false`, когда контент устоялся (например, статичный бабл) — иконка снапшотится один раз (большой выигрыш в производительности вместо перерисовки каждый кадр). |
+
+**Кастомные маркеры (React-дети)** — любой RN-компонент как пин:
+
+```tsx
+<Marker point={{ latitude: 41.31, longitude: 69.24 }} anchor={{ x: 0.5, y: 1 }} tracksViewChanges={false}>
+  <View style={{ backgroundColor: '#1e88e5', borderRadius: 14, paddingVertical: 4, paddingHorizontal: 10 }}>
+    <Text style={{ color: '#fff', fontWeight: '700' }}>4.8★</Text>
+  </View>
+</Marker>
+```
 
 Императивные методы через ref маркера (`const ref = useRef<MarkerRef>(null)`):
 
@@ -312,7 +324,7 @@ import { YandexMapView, Marker } from 'expo-yandex-mapkit';
 | `animatedMoveTo(point, durationMs)` | Линейно анимирует маркер к `point`. |
 | `animatedRotateTo(angle, durationMs)` | Линейно анимирует курс иконки к `angle` градусам. |
 
-> Маркеры, смонтированные до завершения `initialize()`, привязываются автоматически после создания карты — гейтинг готовности для детей не нужен. Иконки из React-детей, `fitAllMarkers` и отступы у `fitMarkers` — в дорожной карте.
+> Маркеры, смонтированные до завершения `initialize()`, привязываются автоматически после создания карты — гейтинг готовности для детей не нужен. `fitAllMarkers()` и отступы у `fitMarkers` — в дорожной карте.
 
 ## lite и full
 

@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **React-children marker icons** (#1 → Markers): a `<Marker>` can now render arbitrary React
+  children as its icon (a custom pin — e.g. a rating bubble), taking precedence over `source`.
+  Rendered natively through MapKit's view provider on both platforms (not a hand-rolled bitmap
+  snapshot), so it avoids the layout drift that made the lineage's version unreliable. New
+  `tracksViewChanges` prop (default `true`) controls re-rendering: set it `false` once the content
+  has settled to snapshot the icon once — the react-native-maps convention, for a large perf win.
+
 ## [0.0.5] - 2026-07-25
 
 ### Added

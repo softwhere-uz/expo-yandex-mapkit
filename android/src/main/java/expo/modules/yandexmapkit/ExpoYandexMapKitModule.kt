@@ -207,6 +207,10 @@ class ExpoYandexMapKitModule : Module() {
         view.setIdentifier(identifier)
       }
 
+      Prop("tracksViewChanges") { view: ExpoYandexMapKitMarkerView, tracks: Boolean ->
+        view.setTracksViewChanges(tracks)
+      }
+
       // The animations drive a ValueAnimator, which must be created and started on a Looper
       // (main) thread — Expo runs AsyncFunctions off the main queue by default.
       AsyncFunction("animatedMoveTo") { view: ExpoYandexMapKitMarkerView, point: PointRecord, durationMs: Double ->

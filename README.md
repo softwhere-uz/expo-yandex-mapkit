@@ -27,7 +27,7 @@ Planned: markers (including React-children icons), polylines/polygons/circles, c
 
 | Phase | Scope | Status |
 | --- | --- | --- |
-| v0 | MapView, camera control + events, press events, night mode, markers (incl. React-children icons) | In progress — image markers shipped; React-children marker icons pending |
+| v0 | MapView, camera control + events, press events, night mode, markers (incl. React-children icons) | In progress — markers shipped (image **and** React-children icons); `fitAllMarkers` pending |
 | v1 | Polylines, polygons, circles, clustering, user-location layer, traffic toggle, JSON map styling | Planned |
 | v2 | Full-flavor features: search + suggest, geocoding, routing | Planned |
 | v3 | Mappable (mappable.world) dual-brand support; `expo-yandex-mapkit-dom` — a DOM-component fallback so a map can render in Expo Go and on web | Planned |
@@ -353,6 +353,18 @@ import { YandexMapView, Marker } from 'expo-yandex-mapkit';
 | `handled` | `boolean` | `false` | When `true`, a tap is consumed and does **not** also fire the map's `onMapPress`. |
 | `identifier` | `string` | — | Opaque id echoed back in `onPress` so one handler can tell markers apart. |
 | `onPress` | `(event) => void` | — | `event.nativeEvent` is `{ identifier?, point }`. |
+| `children` | `ReactNode` | — | React content rendered as the marker's icon (a custom pin). Takes precedence over `source`. Rendered natively via MapKit's view provider (no fragile bitmap snapshotting). |
+| `tracksViewChanges` | `boolean` | `true` | Whether to keep re-rendering the icon as the `children` change. Set `false` once the content has settled (e.g. a static bubble) so it's rendered once — a large perf win vs. re-rendering every frame. |
+
+**Custom (React-children) markers** — render any RN view as the pin:
+
+```tsx
+<Marker point={{ latitude: 41.31, longitude: 69.24 }} anchor={{ x: 0.5, y: 1 }} tracksViewChanges={false}>
+  <View style={{ backgroundColor: '#1e88e5', borderRadius: 14, paddingVertical: 4, paddingHorizontal: 10 }}>
+    <Text style={{ color: '#fff', fontWeight: '700' }}>4.8★</Text>
+  </View>
+</Marker>
+```
 
 Imperative methods via a marker ref (`const ref = useRef<MarkerRef>(null)`):
 
@@ -361,7 +373,7 @@ Imperative methods via a marker ref (`const ref = useRef<MarkerRef>(null)`):
 | `animatedMoveTo(point, durationMs)` | Linearly animate the marker to `point`. |
 | `animatedRotateTo(angle, durationMs)` | Linearly animate the icon heading to `angle` degrees. |
 
-> Markers mounted before `initialize()` resolves attach automatically once the map is created — no ready-gating needed for the children. React-children marker icons, `fitAllMarkers`, and `fitMarkers` edge padding are on the roadmap.
+> Markers mounted before `initialize()` resolves attach automatically once the map is created — no ready-gating needed for the children. `fitAllMarkers()` and `fitMarkers` edge padding are on the roadmap.
 
 ## lite vs full
 

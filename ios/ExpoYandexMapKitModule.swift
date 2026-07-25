@@ -187,6 +187,10 @@ public class ExpoYandexMapKitModule: Module {
         view.setIdentifier(identifier)
       }
 
+      Prop("tracksViewChanges") { (view: ExpoYandexMapKitMarkerView, tracks: Bool) in
+        view.setTracksViewChanges(tracks)
+      }
+
       // Run on the main queue so the placemark is only ever touched on main (Expo runs
       // AsyncFunctions off-main by default; the animation's first frame is applied synchronously).
       AsyncFunction("animatedMoveTo") { (view: ExpoYandexMapKitMarkerView, point: PointRecord, durationMs: Double) in
