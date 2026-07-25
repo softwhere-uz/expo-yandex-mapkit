@@ -2,6 +2,8 @@
 // and on native platforms to ExpoYandexMapKitModule.ts
 import type {
   Point,
+  Route,
+  RouteMode,
   SearchOptions,
   SearchResult,
   SuggestItem,
@@ -10,6 +12,7 @@ import type {
 import ExpoYandexMapKitModule from './ExpoYandexMapKitModule';
 import ExpoYandexSearchModule from './ExpoYandexSearchModule';
 import ExpoYandexSuggestModule from './ExpoYandexSuggestModule';
+import ExpoYandexTransportModule from './ExpoYandexTransportModule';
 
 export { YandexMapView } from './ExpoYandexMapKitView';
 export { Marker } from './ExpoYandexMapKitMarkerView';
@@ -118,3 +121,33 @@ export async function geocodePoint(point: Point, options?: SearchOptions): Promi
 
 // Escape hatch: the raw Search native module.
 export { default as ExpoYandexSearchModule } from './ExpoYandexSearchModule';
+
+/**
+ * Builds routes between `points` (2+ waypoints) for the given travel `mode` (`'driving'`,
+ * `'masstransit'`, or `'pedestrian'`), resolving to one or more {@link Route}s ordered best-first.
+ *
+ * ⚠️ Requires the MapKit **full** flavor (`flavor: 'full'` in the config plugin); rejects on `lite`.
+ * Requires MapKit to be initialized (via {@link initialize} or a build-time key). Draw a route with
+ * `<Polyline points={route.points} />`.
+ */
+export async function findRoutes(points: Point[], mode: RouteMode): Promise<Route[]> {
+  return ExpoYandexTransportModule.findRoutes(points, mode);
+}
+
+/** Driving routes between `points` — {@link findRoutes} with mode `'driving'`. */
+export async function findDrivingRoutes(points: Point[]): Promise<Route[]> {
+  return ExpoYandexTransportModule.findRoutes(points, 'driving');
+}
+
+/** Public-transport routes between `points` — {@link findRoutes} with mode `'masstransit'`. */
+export async function findMasstransitRoutes(points: Point[]): Promise<Route[]> {
+  return ExpoYandexTransportModule.findRoutes(points, 'masstransit');
+}
+
+/** Walking routes between `points` — {@link findRoutes} with mode `'pedestrian'`. */
+export async function findPedestrianRoutes(points: Point[]): Promise<Route[]> {
+  return ExpoYandexTransportModule.findRoutes(points, 'pedestrian');
+}
+
+// Escape hatch: the raw Transport (routing) native module.
+export { default as ExpoYandexTransportModule } from './ExpoYandexTransportModule';

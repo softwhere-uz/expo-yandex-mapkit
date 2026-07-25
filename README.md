@@ -527,6 +527,26 @@ const here = await searchPoint({ latitude: 41.31, longitude: 69.24 }); // revers
 
 Options: `userPosition`, `boundingBox`, `searchTypes` (`'geo'` toponyms / `'biz'` organizations, default `['geo']`), `resultPageSize`, `zoom`. Requires MapKit to be initialized. The structured `Address` component breakdown is a follow-up; `formattedAddress` covers the common case for now.
 
+### `findRoutes()` — routing
+
+> **Requires the MapKit `full` flavor** (rejects on `lite`).
+
+```tsx
+import { findRoutes, findDrivingRoutes } from 'expo-yandex-mapkit';
+
+const routes = await findRoutes(
+  [{ latitude: 41.31, longitude: 69.24 }, { latitude: 41.33, longitude: 69.29 }],
+  'masstransit', // or 'driving' | 'pedestrian'
+);
+// routes[0]: { time?, timeWithTraffic?, distance?, walkingDistance?, transfersCount?, points }
+// Draw it: <Polyline points={routes[0].points} />
+```
+
+- `findRoutes(points, mode)` — 2+ waypoints, `mode` = `'driving'` | `'masstransit'` | `'pedestrian'`; resolves best-route-first.
+- `findDrivingRoutes` / `findMasstransitRoutes` / `findPedestrianRoutes` — convenience wrappers.
+
+Each `Route` carries a summary (`time`; `timeWithTraffic` + `distance` for driving; `walkingDistance` + `transfersCount` for masstransit) plus its `points` geometry. Requires MapKit to be initialized. The per-section transit breakdown (which line, stops, per-leg mode) is a follow-up.
+
 ## lite vs full
 
 Yandex ships MapKit in two flavors. This library defaults to `lite`; select `full` via the [config plugin](#2-add-the-config-plugin) when you need its features. v2 has begun exposing them — `suggest()` is the first; search, geocoding, and routing follow.
