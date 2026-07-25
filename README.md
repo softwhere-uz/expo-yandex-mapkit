@@ -506,6 +506,27 @@ Each result carries its `center` coordinate **directly** (read natively) wheneve
 | `suggestWords` | `boolean` | Also suggest query-word completions. Default `true`. |
 | `types` | `('geo' \| 'biz' \| 'transit')[]` | Which result kinds to return. Default all three. |
 
+### `searchText()` / `searchPoint()` — search & geocoding
+
+> **Requires the MapKit `full` flavor** (rejects on `lite`).
+
+```tsx
+import { searchText, searchPoint, geocodeAddress, geocodePoint } from 'expo-yandex-mapkit';
+
+const places = await searchText('coffee', {
+  boundingBox: { southWest: { latitude: 41.28, longitude: 69.18 }, northEast: { latitude: 41.36, longitude: 69.32 } },
+  searchTypes: ['biz'],
+});
+const here = await searchPoint({ latitude: 41.31, longitude: 69.24 }); // reverse geocoding
+// results: { name?, description?, point?, formattedAddress? }[]
+```
+
+- `searchText(query, options?)` — full-text search near a window (`boundingBox`/`userPosition`, else world-wide).
+- `searchPoint(point, options?)` — reverse geocoding (objects at a coordinate; `options.zoom` sets detail).
+- `geocodeAddress(address, options?)` — `searchText` restricted to toponyms (`geo`); `geocodePoint(point, options?)` — alias for `searchPoint`.
+
+Options: `userPosition`, `boundingBox`, `searchTypes` (`'geo'` toponyms / `'biz'` organizations, default `['geo']`), `resultPageSize`, `zoom`. Requires MapKit to be initialized. The structured `Address` component breakdown is a follow-up; `formattedAddress` covers the common case for now.
+
 ## lite vs full
 
 Yandex ships MapKit in two flavors. This library defaults to `lite`; select `full` via the [config plugin](#2-add-the-config-plugin) when you need its features. v2 has begun exposing them — `suggest()` is the first; search, geocoding, and routing follow.
