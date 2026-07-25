@@ -51,6 +51,17 @@ public class ExpoYandexSearchModule: Module {
         promise.reject("E_FULL_REQUIRED", Self.fullRequiredMessage)
       #endif
     }.runOnQueue(.main)
+
+    AsyncFunction("resolveURI") { (uri: String, options: SearchOptionsRecord?, promise: Promise) in
+      #if YANDEX_MAPS_FULL
+        self.retain(
+          self.manager().resolveURI(
+            withUri: uri, searchOptions: self.searchOptions(options)
+          ) { response, error in self.handle(response, error, promise) })
+      #else
+        promise.reject("E_FULL_REQUIRED", Self.fullRequiredMessage)
+      #endif
+    }.runOnQueue(.main)
   }
 
   private static let fullRequiredMessage =

@@ -119,6 +119,15 @@ export async function geocodePoint(point: Point, options?: SearchOptions): Promi
   return ExpoYandexSearchModule.searchPoint(point, options);
 }
 
+/**
+ * Resolves a MapKit object URI (e.g. a `ymapsbm1://…` from a {@link SuggestItem}'s `uri`) to full
+ * {@link SearchResult}s — handy for getting coordinates/details when a suggestion had no `center`.
+ * Same flavor / initialization requirements as {@link searchText}.
+ */
+export async function resolveURI(uri: string, options?: SearchOptions): Promise<SearchResult[]> {
+  return ExpoYandexSearchModule.resolveURI(uri, options);
+}
+
 // Escape hatch: the raw Search native module.
 export { default as ExpoYandexSearchModule } from './ExpoYandexSearchModule';
 

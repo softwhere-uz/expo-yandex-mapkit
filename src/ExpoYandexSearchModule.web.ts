@@ -14,6 +14,11 @@ class ExpoYandexSearchModule extends NativeModule {
     warnWebNotSupportedOnce();
     return [];
   }
+
+  async resolveURI(_uri: string, _options?: SearchOptions): Promise<SearchResult[]> {
+    warnWebNotSupportedOnce();
+    return [];
+  }
 }
 
 export default registerWebModule(ExpoYandexSearchModule, 'ExpoYandexSearch');

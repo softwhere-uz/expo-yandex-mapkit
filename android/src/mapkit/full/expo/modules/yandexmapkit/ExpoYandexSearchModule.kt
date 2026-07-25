@@ -41,6 +41,11 @@ class ExpoYandexSearchModule : Module() {
         listener(promise)
       )
     }.runOnQueue(Queues.MAIN)
+
+    // Resolve a MapKit object URI (e.g. a `ymapsbm1://…` from a suggest result) to full details.
+    AsyncFunction("resolveURI") { uri: String, options: SearchOptionsRecord?, promise: Promise ->
+      manager().resolveURI(uri, searchOptions(options), listener(promise))
+    }.runOnQueue(Queues.MAIN)
   }
 
   // MapKitFactory (main module initialize()/build-time key) is the prerequisite; SearchFactory has
