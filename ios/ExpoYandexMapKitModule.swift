@@ -59,7 +59,7 @@ public class ExpoYandexMapKitModule: Module {
     // react-native-yamap-plus; resetLocale passes nil. Locale ops touch global i18n state, so they
     // run on the main queue. SDK caveat: on iOS this only takes effect if set before the first map.
     AsyncFunction("setLocale") { (locale: String) in
-      YRTI18nManagerFactory.setLocaleWith(locale)
+      YRTI18nManagerFactory.setLocaleWithLocale(locale)
     }.runOnQueue(.main)
 
     AsyncFunction("getLocale") { () -> String? in
@@ -67,7 +67,7 @@ public class ExpoYandexMapKitModule: Module {
     }.runOnQueue(.main)
 
     AsyncFunction("resetLocale") {
-      YRTI18nManagerFactory.setLocaleWith(nil)
+      YRTI18nManagerFactory.setLocaleWithLocale(nil)
     }.runOnQueue(.main)
 
     View(ExpoYandexMapKitView.self) {
