@@ -10,27 +10,40 @@ Yandex Maps (MapKit) for Expo — built on the Expo Modules API, configured by a
 
 ## Features
 
-- 🗺️ Native Yandex MapKit map view on Android and iOS (Fabric / New Architecture)
-- 🎥 Declarative camera with optional animation (`cameraPosition` + `animated`)
-- 👆 Camera, press, and long-press events with identical payloads on both platforms
-- 🌙 Night mode
-- 🔑 API key at **runtime** via `initialize(apiKey)` **or** at **build time** via the config plugin (`apiKey`) — no `AndroidManifest.xml` / `AppDelegate` edits either way; a build-time key auto-initializes at startup, so there is no init ceremony and no init-order footgun
-- 🔧 Config plugin: MapKit version and `lite`/`full` flavor, build-time API key and map `locale` (all with per-platform overrides), Android minSdk floor — `npx expo prebuild` is the whole setup
-- 📦 Also installable as the scoped alias [`@softwhere-uz/expo-yandex-mapkit`](https://www.npmjs.com/package/@softwhere-uz/expo-yandex-mapkit)
-- 🌍 Documentation in [English](./README.md) and [Russian](./README.ru.md)
+A complete Yandex Maps SDK for Expo — full feature parity with the most capable community wrapper ([tracked in #1](https://github.com/softwhere-uz/expo-yandex-mapkit/issues/1)), built on the Expo Modules API, New-Architecture ready, and configured entirely by a config plugin. Everything below works on **both platforms** with identical JS.
 
-Planned: markers (including React-children icons), polylines/polygons/circles, clustering, user location, traffic, JSON styling, search/geocoding/routing (`full` flavor), [Mappable](https://github.com/mappable-world) dual-brand support, and a DOM-component fallback for Expo Go and web. See the roadmap below.
+**Map & camera**
+- 🗺️ Native MapKit `<YandexMapView>` (Fabric / New Architecture)
+- 🎥 Declarative, animatable camera (`cameraPosition`) + imperative ref methods — `setCenter`, `setZoom`, `fitMarkers` / `fitAllMarkers` (with edge padding), `getCameraPosition`, `getVisibleRegion`, world↔screen projection
+- 👆 Press / long-press / camera-move / map-loaded events with identical payloads on iOS and Android
+- 🎨 `mapType` (`map` / `satellite` / `hybrid` / `vector`), JSON `mapStyle`, night mode, per-gesture toggles, logo placement
+
+**Map objects** (declarative children of the map)
+- 📍 `<Marker>` — image **or React-children** icons (reliable, with a `tracksViewChanges` re-snapshot pipeline), `onPress` with an identifying payload, `animatedMoveTo` / `animatedRotateTo`
+- 〰️ `<Polyline>` (dash + outline), `<Polygon>` (holes via `innerRings`), `<Circle>`
+- 🔵 `<Clusterer>` — declarative clustering where your own `<Marker>`s are the render-prop; custom badge (color / size / **icon**), `excludeFromCluster`, tap-to-fit, configurable radius / minZoom
+- 📡 User-location layer (custom dot icon + accuracy-circle styling) and a live 🚦 traffic layer
+
+**Full-flavor modules** — set `flavor: 'full'` ([lite vs full](#lite-vs-full))
+- 🔎 **Search & geocoding** — `searchText`, `searchPoint` (reverse), `geocodeAddress` / `geocodePoint`, `resolveURI`; structured `addressComponents`, business `rating`, spelling / snippets options
+- ⌨️ **Suggest** — search-as-you-type; coordinates read **natively** (no lost `center`)
+- 🧭 **Routing** — `findRoutes` for driving / masstransit / pedestrian, with a per-section leg breakdown (walk → bus → transfer → metro)
+
+**Setup & DX**
+- 🔑 API key at **build time** (config plugin) or **runtime** (`initialize`) — no `AndroidManifest.xml` / `AppDelegate` edits; a build-time key auto-initializes at startup (no init-order footgun)
+- 🔧 One config plugin: MapKit version, `lite`/`full` flavor, API key, map `locale`, location permission, Android minSdk floor (per-platform overrides for all) — `npx expo prebuild` is the whole setup
+- 📦 Also installable as the scoped alias [`@softwhere-uz/expo-yandex-mapkit`](https://www.npmjs.com/package/@softwhere-uz/expo-yandex-mapkit) · 🌍 docs in [English](./README.md) + [Russian](./README.ru.md)
 
 ## Status
 
-**Early development (v0.0.x).** What ships today: a native `YandexMapView` for Android and iOS with declarative camera control, camera/press events and night mode, a JS-side `initialize(apiKey)` (no native file edits), and a config plugin that selects the MapKit version and flavor, optionally injects a build-time API key and map locale, and enforces Android minSdk 26. Expect breaking changes between 0.0.x releases.
+**Stable — feature-complete.** The library reached full parity with [`react-native-yamap-plus`](https://github.com/Qudaeo/react-native-yamap-plus)'s surface (and does several things better) across `1.0.0` → `2.0.0`; the parity checklist ([#1](https://github.com/softwhere-uz/expo-yandex-mapkit/issues/1)) is closed. The entire surface — including the `full`-flavor Search / Suggest / Routing — is **runtime-verified on iOS** and compiles against the real MapKit SDK on both platforms in CI. Follows [semver](https://semver.org/): additive changes bump minor, so upgrading within `2.x` needs no migration.
 
 | Phase | Scope | Status |
 | --- | --- | --- |
-| v0 | MapView, camera control + events, press events, night mode, markers (incl. React-children icons) | **Complete** — MapView, camera + events, night mode, image **and** React-children markers, imperative ref methods |
-| v1 | Polylines, polygons, circles, clustering, user-location layer, traffic toggle, JSON map styling | Planned |
-| v2 | Full-flavor features: search + suggest, geocoding, routing | Planned |
-| v3 | Mappable (mappable.world) dual-brand support; `expo-yandex-mapkit-dom` — a DOM-component fallback so a map can render in Expo Go and on web | Planned |
+| v0 | MapView, camera + events, night mode, image & React-children markers, imperative ref methods | ✅ **Complete** |
+| v1 | Polylines / polygons / circles, clustering, user location, traffic, JSON styling, locale | ✅ **Complete** (1.0.0) |
+| v2 | `full`-flavor modules: Search + geocoding, Suggest, Routing | ✅ **Complete** (1.1.0 → 2.0.0) |
+| v3 | [Mappable](https://github.com/mappable-world) dual-brand support; `expo-yandex-mapkit-dom` — a DOM-component fallback so a map can render in Expo Go and on web | Planned |
 
 ## Why
 
@@ -42,7 +55,7 @@ This project aims to be the maintained, open-source option documented in both En
 
 ## Alternatives
 
-An honest comparison, as of July 2026. If you need markers, routing, or clustering **today**, the incumbents below are more feature-complete than this library's v0 — the trade-offs are in the other rows.
+An honest comparison, as of July 2026. This library now **matches the incumbents on feature depth** (full parity — markers, shapes, clustering, user location, traffic, search, suggest, routing) while adding the Expo Modules API, a real config plugin, both React Native architectures, and English + Russian docs.
 
 | | `expo-yandex-mapkit` (this) | [`react-native-yamap-plus`](https://github.com/Qudaeo/react-native-yamap-plus) | `@yoyomobility/expo-yandex-maps` | [`react-native-yamap`](https://github.com/volga-volga/react-native-yamap) |
 | --- | --- | --- | --- | --- |
@@ -53,7 +66,7 @@ An honest comparison, as of July 2026. If you need markers, routing, or clusteri
 | New Architecture | ✓ | ✓ (v5+) | ✓ | — |
 | Documentation | English + Russian | Russian | partial English | partial |
 | Extra peer dependencies | none | none | `react-native-reanimated ^4` | none |
-| Feature depth today | map, camera, events, night mode | deep (markers, shapes, routing…) | deep (clustering, routing…) | deepest, but broken on current Expo SDKs |
+| Feature depth today | **full** (markers, shapes, clustering, user location, traffic, search, suggest, routing) | deep (markers, shapes, routing…) | deep (clustering, routing…) | deepest, but broken on current Expo SDKs |
 
 ## Compatibility
 
@@ -252,7 +265,7 @@ Get/set the map display language at runtime, as `language` or `language_REGION` 
 | `rotateGesturesEnabled` | `boolean` | `true` | Allow the two-finger twist that rotates the map. |
 | `fastTapEnabled` | `boolean` | `true` | Report a tap immediately instead of waiting to see if it becomes a double-tap. |
 | `interactiveDisabled` | `boolean` | `false` | When `true`, disables all four movement gestures at once — a shorthand that overrides the individual `*GesturesEnabled` props. Tap events (`onMapPress`/`onMapLongPress`) still fire. |
-| `mapType` | `'none' \| 'map' \| 'satellite' \| 'hybrid' \| 'vector'` | — (SDK default) | Base map layer. `'map'`, `'satellite'` and `'hybrid'` are raster; `'vector'` is the styleable vector scheme. Left unset, the map keeps MapKit's own default (vector). `'satellite'` / `'hybrid'` may require a Yandex-app API key. |
+| `mapType` | `'none' \| 'map' \| 'satellite' \| 'hybrid' \| 'vector'` | — (SDK default) | Base map layer. `'map'`, `'satellite'` and `'hybrid'` are raster; `'vector'` is the styleable vector scheme. Left unset, the map keeps MapKit's own default (vector). **`'satellite'` / `'hybrid'` need a key with satellite-imagery access enabled** — the prop still takes effect (the map leaves the road scheme and shows the empty tile grid), but no aerial tiles load on a free-tier MapKit Mobile SDK key; request imagery access for your key in the Yandex dashboard. |
 | `mapStyle` | `string` | — | A [Yandex JSON map style](https://yandex.com/dev/mapkit/doc/en/android/generated/style) applied to the map. **Only affects the `'vector'` and `'hybrid'` layers** — leave `mapType` unset (the default is vector) or set `mapType='vector'`; it is a silent no-op on the raster `'map'` / `'satellite'` layers. Pass `''` to clear a previously applied style. Invalid JSON is ignored with a warning. |
 | `logoPosition` | `{ horizontal: 'left' \| 'center' \| 'right'; vertical: 'top' \| 'bottom' }` | — | Corner the mandatory Yandex logo is aligned to. |
 | `logoPadding` | `{ horizontal: number; vertical: number }` | — | Logo padding, in px, from the aligned edges (negatives are clamped to `0`). |
@@ -550,7 +563,7 @@ Each `Route` carries a summary (`time`; `timeWithTraffic` + `distance` for drivi
 
 ## lite vs full
 
-Yandex ships MapKit in two flavors. This library defaults to `lite`; select `full` via the [config plugin](#2-add-the-config-plugin) when you need its features. v2 has begun exposing them — `suggest()` is the first; search, geocoding, and routing follow.
+Yandex ships MapKit in two flavors. This library defaults to `lite`; select `full` via the [config plugin](#2-add-the-config-plugin) when you need **search, suggest, geocoding, or routing** — all of which are fully implemented and require the `full` artifact. On `lite`, those functions reject with a clear "requires the full flavor" message, so a lite app never crashes on them. `full` pulls a larger SDK (bigger binary, longer first build), so stay on `lite` if you only render maps / markers / shapes / clustering / user location / traffic.
 
 | Capability | `lite` | `full` |
 | --- | --- | --- |
