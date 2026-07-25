@@ -103,9 +103,16 @@ class ExpoYandexSearchModule : Module() {
     val toponym = obj.metadataContainer.getItem(ToponymObjectMetadata::class.java)
     val point = toponym?.balloonPoint ?: obj.geometry.firstOrNull()?.point
     point?.let { result["point"] = mapOf("latitude" to it.latitude, "longitude" to it.longitude) }
-    // The structured Address components (with the 20 address kinds) are a follow-up slice; the
-    // formatted string covers the common geocoding case.
-    toponym?.address?.let { result["formattedAddress"] = it.formattedAddress }
+    toponym?.address?.let { address ->
+      result["formattedAddress"] = address.formattedAddress
+      result["addressComponents"] = address.components.map { component ->
+        mapOf(
+          "name" to component.name,
+          // Kind enum name lowercased → snake_case (e.g. METRO_STATION → "metro_station"), matching iOS.
+          "kinds" to component.kinds.map { kind -> kind.name.lowercase() }
+        )
+      }
+    }
     return result
   }
 }

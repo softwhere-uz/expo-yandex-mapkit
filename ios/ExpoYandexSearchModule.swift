@@ -133,12 +133,44 @@ public class ExpoYandexSearchModule: Module {
       if let point = toponym?.balloonPoint ?? obj.geometry.first?.point {
         result["point"] = ["latitude": point.latitude, "longitude": point.longitude]
       }
-      // The structured Address components (with the 20 address kinds) are a follow-up slice; the
-      // formatted string covers the common geocoding case.
       if let address = toponym?.address {
         result["formattedAddress"] = address.formattedAddress
+        result["addressComponents"] = address.components.map { component -> [String: Any?] in
+          ["name": component.name, "kinds": component.kinds.map { self.kindName($0) }]
+        }
       }
       return result
+    }
+
+    // iOS boxes each address-component kind as an NSNumber (the YMKSearchComponentKind raw value).
+    // Map it to the same snake_case string Android produces from the enum's `name`.
+    private func kindName(_ boxed: NSNumber) -> String {
+      guard let kind = YMKSearchComponentKind(rawValue: UInt(truncating: boxed)) else {
+        return "unknown"
+      }
+      switch kind {
+      case .unknown: return "unknown"
+      case .country: return "country"
+      case .region: return "region"
+      case .province: return "province"
+      case .area: return "area"
+      case .locality: return "locality"
+      case .district: return "district"
+      case .street: return "street"
+      case .house: return "house"
+      case .entrance: return "entrance"
+      case .level: return "level"
+      case .apartment: return "apartment"
+      case .route: return "route"
+      case .station: return "station"
+      case .metroStation: return "metro_station"
+      case .railwayStation: return "railway_station"
+      case .vegetation: return "vegetation"
+      case .hydro: return "hydro"
+      case .airport: return "airport"
+      case .other: return "other"
+      @unknown default: return "unknown"
+      }
     }
   #endif
 }

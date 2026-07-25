@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Structured address components for search** (#1 → v2 Search, `full` flavor). A toponym `SearchResult`
+  now includes `addressComponents: { name, kinds }[]` — the structured address breakdown, with
+  snake_case `kinds` (`country`, `province`, `locality`, `district`, `street`, `house`, `metro_station`,
+  …) consistent across platforms (iOS maps MapKit's boxed `YMKSearchComponentKind` to the same strings
+  Android's `Address.Component.Kind` produces). `formattedAddress` is still there for the simple case.
+
 ## [1.2.0] - 2026-07-25
 
 Adds **Routing** — the last v2 (`full`-flavor) module group. Additive and `full`-flavor only.

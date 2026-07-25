@@ -272,11 +272,21 @@ export type SearchOptions = {
   zoom?: number; // reverse-geocoding detail level (searchPoint only)
 };
 
+// One part of a structured address (a toponym result). `kinds` are snake_case, matching MapKit's
+// address-component kinds, e.g. `country`, `province`, `area`, `locality`, `district`, `street`,
+// `house`, `metro_station`, `railway_station`, `airport`, `hydro`, … (a component may carry more
+// than one, e.g. `['station', 'metro_station']`).
+export type AddressComponent = {
+  name: string;
+  kinds: string[];
+};
+
 export type SearchResult = {
   name?: string; // the object's name / short label
   description?: string; // a longer description, when provided
   point?: Point; // the object's coordinate (a toponym's balloon point, else its geometry)
   formattedAddress?: string; // the full address string for a toponym result
+  addressComponents?: AddressComponent[]; // the structured address breakdown for a toponym result
 };
 
 // ── Routing — requires the MapKit `full` flavor ──────────────────────────────────────────────────
