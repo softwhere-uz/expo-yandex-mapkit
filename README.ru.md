@@ -345,7 +345,12 @@ import { YandexMapView, Polyline } from 'expo-yandex-mapkit';
 
 Пропсы: `points` (2+, обязателен), `strokeColor`, `strokeWidth`, `outlineColor`/`outlineWidth`, штрихи `dashLength`/`gapLength`/`dashOffset`, `zIndex`, `handled`, `onPress` (`event.nativeEvent` — `{ point }`).
 
-> `<Polygon>` и `<Circle>` — следующими, на той же архитектуре дочерних объектов.
+### `<Polygon />` и `<Circle />`
+
+Тоже как дети карты:
+
+- **`<Polygon>`**: `points` (внешнее кольцо, 3+), `innerRings?` (дырки), `fillColor`, `strokeColor`, `strokeWidth`, `zIndex`, `onPress`, `handled`.
+- **`<Circle>`**: `center`, `radius` (в метрах), `fillColor`, `strokeColor`, `strokeWidth`, `zIndex`, `onPress`, `handled`.
 
 ## lite и full
 

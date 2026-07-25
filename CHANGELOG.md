@@ -25,6 +25,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (`dashLength`/`gapLength`/`dashOffset`), `zIndex`, `onPress`, and `handled`. The map-object child
   handling (shared with `<Marker>`) is now generalized behind a `MapObjectChild` interface, so the
   upcoming `<Polygon>` and `<Circle>` plug into the same attach/detach machinery.
+- **`<Polygon>` and `<Circle>` components** (#1 → Shapes): `<Polygon>` (an outer ring of `points`,
+  optional `innerRings` holes, `fillColor`/`strokeColor`/`strokeWidth`) and `<Circle>` (`center`,
+  `radius` in metres, `fillColor`/`strokeColor`/`strokeWidth`). Both support `zIndex`, `onPress` and
+  `handled`, on the shared `MapObjectChild` architecture — completing the v1 Shapes group.
 
 ## [0.0.5] - 2026-07-25
 
