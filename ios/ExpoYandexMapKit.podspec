@@ -35,10 +35,17 @@ Pod::Spec.new do |s|
   s.dependency 'ExpoModulesCore'
   s.dependency 'YandexMapsMobile', "#{mapkit_version}-#{mapkit_flavor}"
 
-  # Swift/Objective-C compatibility
-  s.pod_target_xcconfig = {
+  # Swift/Objective-C compatibility. When the full flavor is selected, define the YANDEX_MAPS_FULL
+  # Swift compilation condition so the full-only Search/Suggest/Routing code (guarded with
+  # `#if YANDEX_MAPS_FULL`) compiles — it references classes the lite pod does not ship, so it must
+  # stay out of the lite compile entirely.
+  xcconfig = {
     'DEFINES_MODULE' => 'YES',
   }
+  if mapkit_flavor == 'full'
+    xcconfig['SWIFT_ACTIVE_COMPILATION_CONDITIONS'] = '$(inherited) YANDEX_MAPS_FULL'
+  end
+  s.pod_target_xcconfig = xcconfig
 
   s.source_files = "**/*.{h,m,mm,swift,hpp,cpp}"
 end

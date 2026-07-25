@@ -1,6 +1,8 @@
 // Reexport the native module. On web, it will be resolved to ExpoYandexMapKitModule.web.ts
 // and on native platforms to ExpoYandexMapKitModule.ts
+import type { SuggestItem, SuggestOptions } from './ExpoYandexMapKit.types';
 import ExpoYandexMapKitModule from './ExpoYandexMapKitModule';
+import ExpoYandexSuggestModule from './ExpoYandexSuggestModule';
 
 export { YandexMapView } from './ExpoYandexMapKitView';
 export { Marker } from './ExpoYandexMapKitMarkerView';
@@ -52,3 +54,25 @@ export async function getLocale(): Promise<string | null> {
 export async function resetLocale(): Promise<void> {
   return ExpoYandexMapKitModule.resetLocale();
 }
+
+/**
+ * Search-as-you-type suggestions for `query` (place / address / organization names).
+ *
+ * ⚠️ Requires the MapKit **full** flavor — set `flavor: 'full'` in the config plugin. On the `lite`
+ * flavor this rejects with a clear message.
+ *
+ * Each {@link SuggestItem} carries its `center` coordinate directly (read natively) when MapKit
+ * provides one; when it doesn't, use `uri` (resolve it via search) or run a full search with
+ * `searchText`. Requires MapKit to be initialized (via {@link initialize} or a build-time key).
+ */
+export async function suggest(query: string, options?: SuggestOptions): Promise<SuggestItem[]> {
+  return ExpoYandexSuggestModule.suggest(query, options);
+}
+
+/** Cancels the in-flight suggest request and resets the suggest session. No-op on the lite flavor. */
+export function resetSuggest(): void {
+  ExpoYandexSuggestModule.reset();
+}
+
+// Escape hatch: the raw Suggest native module.
+export { default as ExpoYandexSuggestModule } from './ExpoYandexSuggestModule';
