@@ -184,7 +184,7 @@ class ExpoYandexMapKitMarkerView: ExpoView, MapObjectChild {
     created.addTapListener(with: listener)
     let dragListener = MarkerDragListener(view: self)
     self.dragListener = dragListener
-    created.setDragListener(with: dragListener)
+    created.setDragListenerWith(dragListener)
     created.isDraggable = draggable
     appliedIconSource = nil
     hasIcon = false
