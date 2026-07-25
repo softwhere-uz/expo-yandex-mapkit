@@ -1,6 +1,6 @@
 import { requireNativeView } from 'expo';
 import * as React from 'react';
-import { Image } from 'react-native';
+import { Image, StyleSheet, View } from 'react-native';
 
 import { MarkerProps, MarkerRef, Point } from './ExpoYandexMapKit.types';
 
@@ -33,7 +33,7 @@ const NativeMarkerView: React.ComponentType<NativeMarkerProps> = requireNativeVi
  * ```
  */
 export const Marker = React.forwardRef<MarkerRef, MarkerProps>(
-  ({ source, zIndex, onPress, ...props }, ref) => {
+  ({ source, zIndex, onPress, children, ...props }, ref) => {
     const nativeRef = React.useRef<any>(null);
 
     // Turn an ImageSourcePropType (require(...) number or { uri }) into the URI the native side
@@ -62,10 +62,19 @@ export const Marker = React.forwardRef<MarkerRef, MarkerProps>(
         source={uri}
         zI={zIndex}
         onMarkerPress={onPress}
-        ref={nativeRef}
-      />
+        ref={nativeRef}>
+        {children != null ? <View style={styles.childWrap}>{children}</View> : null}
+      </NativeMarkerView>
     );
   }
 );
 
 Marker.displayName = 'YandexMarker';
+
+const styles = StyleSheet.create({
+  // Wrap the marker's React children so they size to their own content. The native marker view is
+  // laid out at the map's full width, and a child with the default `alignItems: stretch` would
+  // otherwise fill it — snapshotting a small pin/bubble as a full-width icon. `flex-start` makes the
+  // wrapper hug its content instead.
+  childWrap: { alignSelf: 'flex-start' },
+});
