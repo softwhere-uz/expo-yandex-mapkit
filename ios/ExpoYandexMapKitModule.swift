@@ -55,6 +55,21 @@ public class ExpoYandexMapKitModule: Module {
       try Self.initializeMapKit(apiKey: apiKey)
     }.runOnQueue(.main)
 
+    // Runtime locale via the SDK's i18n manager (setLocaleWithLocale: / getLocale), matching
+    // react-native-yamap-plus; resetLocale passes nil. Locale ops touch global i18n state, so they
+    // run on the main queue. SDK caveat: on iOS this only takes effect if set before the first map.
+    AsyncFunction("setLocale") { (locale: String) in
+      YRTI18nManagerFactory.setLocaleWith(locale)
+    }.runOnQueue(.main)
+
+    AsyncFunction("getLocale") { () -> String? in
+      YRTI18nManagerFactory.getLocale()
+    }.runOnQueue(.main)
+
+    AsyncFunction("resetLocale") {
+      YRTI18nManagerFactory.setLocaleWith(nil)
+    }.runOnQueue(.main)
+
     View(ExpoYandexMapKitView.self) {
       Events("onMapReady", "onCameraPositionChanged", "onMapPress", "onMapLongPress", "onMapLoaded")
 

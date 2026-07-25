@@ -25,3 +25,29 @@ export { default as ExpoYandexMapKitModule } from './ExpoYandexMapKitModule';
 export async function initialize(apiKey: string): Promise<void> {
   return ExpoYandexMapKitModule.initialize(apiKey);
 }
+
+/**
+ * Sets the map display language at runtime, as `language` or `language_REGION`
+ * (e.g. `"en_US"`, `"ru_RU"`, `"tr_TR"`).
+ *
+ * ⚠️ Platform caveats (MapKit SDK limitations, not this library's):
+ * - **iOS** — takes effect only if set **once, before the first map is created** (before MapKit
+ *   initializes). Changing it after a map exists has no effect until the app restarts.
+ * - **Android** — a full app restart is required for the change to fully apply.
+ *
+ * For a language known at build time, prefer the config plugin's `locale` option, which applies
+ * during startup and sidesteps this init-order trap entirely.
+ */
+export async function setLocale(locale: string): Promise<void> {
+  return ExpoYandexMapKitModule.setLocale(locale);
+}
+
+/** The current map language (`language` / `language_REGION`), or `null` if following the device locale. */
+export async function getLocale(): Promise<string | null> {
+  return ExpoYandexMapKitModule.getLocale();
+}
+
+/** Clears any runtime/build-time locale so the map follows the device locale (same caveats as {@link setLocale}). */
+export async function resetLocale(): Promise<void> {
+  return ExpoYandexMapKitModule.resetLocale();
+}
