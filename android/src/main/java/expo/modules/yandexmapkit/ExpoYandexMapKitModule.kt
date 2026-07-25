@@ -266,7 +266,7 @@ class ExpoYandexMapKitModule : Module() {
       }
 
       Prop("excludeFromCluster") { view: ExpoYandexMapKitMarkerView, exclude: Boolean ->
-        view.setExcludeFromCluster(exclude)
+        view.excludeFromCluster = exclude
       }
 
       // The animations drive a ValueAnimator, which must be created and started on a Looper
