@@ -261,3 +261,20 @@ export type SuggestItem = {
   center?: Point; // the item's coordinate — read natively; present when MapKit provides one
   distance?: string; // human-readable distance from userPosition, when available
 };
+
+// ── Search & geocoding — requires the MapKit `full` flavor ───────────────────────────────────────
+
+export type SearchOptions = {
+  userPosition?: Point; // bias results toward this location
+  boundingBox?: { southWest: Point; northEast: Point }; // search window for searchText (a box)
+  searchTypes?: ('geo' | 'biz')[]; // toponyms and/or organizations; default ['geo']
+  resultPageSize?: number; // max results in the first page
+  zoom?: number; // reverse-geocoding detail level (searchPoint only)
+};
+
+export type SearchResult = {
+  name?: string; // the object's name / short label
+  description?: string; // a longer description, when provided
+  point?: Point; // the object's coordinate (a toponym's balloon point, else its geometry)
+  formattedAddress?: string; // the full address string for a toponym result
+};

@@ -1,7 +1,14 @@
 // Reexport the native module. On web, it will be resolved to ExpoYandexMapKitModule.web.ts
 // and on native platforms to ExpoYandexMapKitModule.ts
-import type { SuggestItem, SuggestOptions } from './ExpoYandexMapKit.types';
+import type {
+  Point,
+  SearchOptions,
+  SearchResult,
+  SuggestItem,
+  SuggestOptions,
+} from './ExpoYandexMapKit.types';
 import ExpoYandexMapKitModule from './ExpoYandexMapKitModule';
+import ExpoYandexSearchModule from './ExpoYandexSearchModule';
 import ExpoYandexSuggestModule from './ExpoYandexSuggestModule';
 
 export { YandexMapView } from './ExpoYandexMapKitView';
@@ -76,3 +83,38 @@ export function resetSuggest(): void {
 
 // Escape hatch: the raw Suggest native module.
 export { default as ExpoYandexSuggestModule } from './ExpoYandexSuggestModule';
+
+/**
+ * Full-text search for `query` (places, addresses, organizations), returning {@link SearchResult}s.
+ *
+ * ⚠️ Requires the MapKit **full** flavor (`flavor: 'full'` in the config plugin); rejects on `lite`.
+ * Requires MapKit to be initialized (via {@link initialize} or a build-time key). Pass
+ * `options.boundingBox` (or `userPosition`) to focus the search area — otherwise it spans the world.
+ */
+export async function searchText(query: string, options?: SearchOptions): Promise<SearchResult[]> {
+  return ExpoYandexSearchModule.searchText(query, options);
+}
+
+/**
+ * Reverse geocoding: the objects at `point` (e.g. the address of a tapped location). Same flavor /
+ * initialization requirements as {@link searchText}.
+ */
+export async function searchPoint(point: Point, options?: SearchOptions): Promise<SearchResult[]> {
+  return ExpoYandexSearchModule.searchPoint(point, options);
+}
+
+/** Geocode an address string to coordinates — {@link searchText} restricted to toponyms (`geo`). */
+export async function geocodeAddress(
+  address: string,
+  options?: SearchOptions
+): Promise<SearchResult[]> {
+  return ExpoYandexSearchModule.searchText(address, { ...options, searchTypes: ['geo'] });
+}
+
+/** Reverse-geocode a coordinate to an address — an alias for {@link searchPoint}. */
+export async function geocodePoint(point: Point, options?: SearchOptions): Promise<SearchResult[]> {
+  return ExpoYandexSearchModule.searchPoint(point, options);
+}
+
+// Escape hatch: the raw Search native module.
+export { default as ExpoYandexSearchModule } from './ExpoYandexSearchModule';

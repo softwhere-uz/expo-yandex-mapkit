@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **v2: Search & geocoding** (#1 → v2 Search, `full` flavor). `searchText(query, options)` (full-text
+  search) and `searchPoint(point, options)` (reverse geocoding), plus `geocodeAddress` / `geocodePoint`
+  convenience aliases. Results are `{ name?, description?, point?, formattedAddress? }[]`. Options:
+  `userPosition`, `boundingBox` (search window), `searchTypes` (`geo` / `biz`), `resultPageSize`, `zoom`.
+  Reuses the v2 flavor-conditional-compilation infrastructure (a new `ExpoYandexSearch` module, real in
+  `src/mapkit/full` / iOS `#if YANDEX_MAPS_FULL`, rejecting stub on `lite`). The structured `Address`
+  component breakdown (the 20 address kinds) is a follow-up; `formattedAddress` covers the common case.
 - **v2 begins: `suggest()` (search-as-you-type)** (#1 → v2 Suggest, `full` flavor). New `suggest(query, options)`
   → `{ title, subtitle?, searchText, uri?, center?, distance? }[]` plus `resetSuggest()`. Each item's
   `center` coordinate is read **natively** (MapKit ≥ 4.3.0) so results carry coordinates directly —

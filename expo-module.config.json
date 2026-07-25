@@ -1,12 +1,13 @@
 {
   "platforms": ["apple", "android"],
   "apple": {
-    "modules": ["ExpoYandexMapKitModule", "ExpoYandexSuggestModule"]
+    "modules": ["ExpoYandexMapKitModule", "ExpoYandexSuggestModule", "ExpoYandexSearchModule"]
   },
   "android": {
     "modules": [
       "expo.modules.yandexmapkit.ExpoYandexMapKitModule",
-      "expo.modules.yandexmapkit.ExpoYandexSuggestModule"
+      "expo.modules.yandexmapkit.ExpoYandexSuggestModule",
+      "expo.modules.yandexmapkit.ExpoYandexSearchModule"
     ]
   }
 }
