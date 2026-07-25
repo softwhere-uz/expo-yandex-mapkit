@@ -76,6 +76,23 @@ class ExpoYandexMapKitMarkerView(context: Context, appContext: AppContext) :
   // Set by a <Clusterer> parent while this marker is clustered, so a geometry change re-triggers
   // clustering. Null when the marker is a direct child of the map (un-clustered).
   internal var onClusterInvalidate: (() -> Unit)? = null
+  // Set by a <Clusterer> parent so a change to `excludeFromCluster` after attach re-routes this
+  // marker between the cluster and root collections. Null when un-clustered.
+  internal var onExclusionChanged: (() -> Unit)? = null
+  // Whether this marker opts out of clustering. Read by the owning <Clusterer> to route the marker to
+  // the map's root collection instead of the cluster collection. Its setter (not a separate
+  // setExcludeFromCluster function — that would clash with the property's own JVM setter) re-routes
+  // an already-attached marker when the flag flips; otherwise the clusterer's attach path reads it.
+  internal var excludeFromCluster = false
+    set(value) {
+      if (value == field) {
+        return
+      }
+      field = value
+      if (placemark != null) {
+        onExclusionChanged?.invoke()
+      }
+    }
   // Re-render the icon when the child is (re)laid out: always for the first successful render, and
   // thereafter only while tracksViewChanges is on (so a settled bubble is snapshotted once).
   private val childLayoutListener = View.OnLayoutChangeListener { view, _, _, _, _, _, _, _, _ ->

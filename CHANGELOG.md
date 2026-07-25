@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Clustering group completed** (#1 → Clustering): two follow-ups to the `<Clusterer>` shipped in
+  #32. `<Marker excludeFromCluster>` keeps a marker out of clustering — it stays a standalone
+  placemark at every zoom (e.g. a "you are here" pin among clustered data points), routed to the
+  map's root collection instead of the cluster collection (with re-routing if the flag flips after
+  mount). `<Clusterer clusterIcon>` replaces the drawn count disc with a custom badge image
+  (`require()`/`{ uri }`); the count is still composited on top, positioned by the new
+  `clusterTextOffset` (which also nudges the disc's count). This closes the v1 Clustering group. The
+  remaining yamap-plus parity items are covered by the declarative design rather than added as new
+  API: a clustered marker's own `onPress` already fires when shown un-clustered (no separate
+  `onClusterPlacemarkPress`), and rendering `<Marker>` children from state replaces the imperative
+  `appendClusterMarkers` / `clearClusterMarkers`.
 - **Custom user-location dot** (#1 → User location): `userLocationIcon` (+ `userLocationIconScale`)
   replaces MapKit's default location dot with your own image — `require('./me.png')` or `{ uri }`,
   the same source shape as `<Marker>`. The icon is applied to both the resting pin and the heading

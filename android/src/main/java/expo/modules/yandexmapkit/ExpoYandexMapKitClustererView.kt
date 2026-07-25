@@ -17,6 +17,8 @@ import com.yandex.mapkit.map.ClusterizedPlacemarkCollection
 import com.yandex.mapkit.map.MapObjectCollection
 import com.yandex.runtime.image.ImageProvider
 import expo.modules.kotlin.AppContext
+import expo.modules.kotlin.records.Field
+import expo.modules.kotlin.records.Record
 import expo.modules.kotlin.viewevent.EventDispatcher
 import expo.modules.kotlin.views.ExpoView
 import java.lang.ref.WeakReference
@@ -28,6 +30,15 @@ private val DEFAULT_TEXT_COLOR = Color.WHITE
 private const val DEFAULT_TEXT_SIZE = 13f
 private const val DEFAULT_CLUSTER_SIZE = 36f
 
+// Offset (in dp) for the count text within the cluster badge — positive x → right, y → down.
+class ClusterOffsetRecord : Record {
+  @Field
+  var x: Double = 0.0
+
+  @Field
+  var y: Double = 0.0
+}
+
 // A `<Clusterer>`. An (invisible) ExpoView that groups its `<Marker>` children into a MapKit
 // ClusterizedPlacemarkCollection. It is itself a MapObjectChild — attaching to the map creates its
 // cluster collection off the map's root collection, and its own `<Marker>` children then attach to
@@ -38,6 +49,12 @@ class ExpoYandexMapKitClustererView(context: Context, appContext: AppContext) :
   private val onClusterPress by EventDispatcher<Map<String, Any>>()
 
   private var clusterCollection: ClusterizedPlacemarkCollection? = null
+  // The map's root collection (passed to attachToMap). Kept so a marker with `excludeFromCluster`
+  // can be attached here — as a standalone placemark — instead of the cluster collection.
+  private var rootCollection: MapObjectCollection? = null
+  // Markers currently attached to the root collection (excluded from clustering), by identity. Lets
+  // detach remove each marker from the collection it actually lives in, even across an exclusion flip.
+  private val excludedMarkers = mutableSetOf<View>()
   // The map view that owns this clusterer, for the tap-to-fit camera move. Weak: the map view owns
   // this view (via its child list), so a strong ref here would be a retain cycle.
   private var mapViewRef: WeakReference<ExpoYandexMapKitView>? = null
@@ -51,6 +68,15 @@ class ExpoYandexMapKitClustererView(context: Context, appContext: AppContext) :
   private var clusterTextSize = DEFAULT_TEXT_SIZE
   private var clusterSize = DEFAULT_CLUSTER_SIZE
   private var fitOnPress = true
+
+  // Custom badge icon (replaces the drawn disc). Loaded async by URI (the marker convention); once
+  // loaded, a recluster re-runs onClusterAdded so every badge redraws with the image. The count text
+  // is still drawn on top at `clusterTextOffset` (dp from center).
+  private var clusterIconSource: String? = null
+  private var appliedClusterIconSource: String? = null
+  private var clusterIconBitmap: Bitmap? = null
+  private var clusterTextOffsetX = 0f
+  private var clusterTextOffsetY = 0f
 
   // Child <Marker> views, in mount order. Managed via the module's GroupView actions (like the map
   // view's own children). A marker mounted before this clusterer attaches stays here un-attached and
@@ -108,6 +134,8 @@ class ExpoYandexMapKitClustererView(context: Context, appContext: AppContext) :
     if (clusterCollection != null) {
       return
     }
+    // Keep the root collection first — attachMarker routes excluded markers into it.
+    rootCollection = collection
     // MapKit holds the ClusterListener weakly (4.41+); this view is the strong owner and is itself
     // kept alive by the map view's child list while mounted.
     val created = collection.addClusterizedPlacemarkCollection(WeakReference(this))
@@ -121,6 +149,8 @@ class ExpoYandexMapKitClustererView(context: Context, appContext: AppContext) :
     childViews.forEach { detachMarker(it) }
     collection.remove(created)
     clusterCollection = null
+    rootCollection = null
+    excludedMarkers.clear()
   }
 
   override val isAttachedToMap: Boolean
@@ -141,18 +171,33 @@ class ExpoYandexMapKitClustererView(context: Context, appContext: AppContext) :
     childViews.filterIsInstance<ExpoYandexMapKitMarkerView>().mapNotNull { it.geoPoint() }
 
   private fun attachMarker(child: View) {
-    val collection = clusterCollection ?: return
-    (child as? ExpoYandexMapKitMarkerView)?.let {
-      it.attachToCluster(collection)
-      // A marker move must re-cluster; route the marker's geometry change back to this clusterer.
-      it.onClusterInvalidate = { scheduleRecluster() }
+    val marker = child as? ExpoYandexMapKitMarkerView ?: return
+    // A marker move must re-cluster; route the marker's geometry change back to this clusterer.
+    marker.onClusterInvalidate = { scheduleRecluster() }
+    // A flip of excludeFromCluster after attach re-routes this marker between the two collections.
+    marker.onExclusionChanged = {
+      detachMarker(marker)
+      attachMarker(marker)
+      scheduleRecluster()
+    }
+    val root = rootCollection
+    if (marker.excludeFromCluster && root != null) {
+      // Excluded: a standalone placemark on the map's root collection — never clustered.
+      marker.attachToMap(root)
+      excludedMarkers.add(marker)
+    } else {
+      clusterCollection?.let { marker.attachToCluster(it) }
     }
   }
 
   private fun detachMarker(child: View) {
-    (child as? ExpoYandexMapKitMarkerView)?.let {
-      it.onClusterInvalidate = null
-      clusterCollection?.let { collection -> it.detachFromCluster(collection) }
+    val marker = child as? ExpoYandexMapKitMarkerView ?: return
+    marker.onClusterInvalidate = null
+    marker.onExclusionChanged = null
+    if (excludedMarkers.remove(marker)) {
+      rootCollection?.let { marker.detachFromMap(it) }
+    } else {
+      clusterCollection?.let { marker.detachFromCluster(it) }
     }
   }
 
@@ -202,6 +247,42 @@ class ExpoYandexMapKitClustererView(context: Context, appContext: AppContext) :
     fitOnPress = value
   }
 
+  internal fun setClusterIcon(uri: String?) {
+    if (uri != clusterIconSource) {
+      clusterIconSource = uri
+      // The icon changed — drop the cached bitmap so it (re)loads (or clears) on the next pass.
+      appliedClusterIconSource = null
+      clusterIconBitmap = null
+      loadClusterIconIfNeeded()
+    }
+  }
+
+  internal fun setClusterTextOffset(offset: ClusterOffsetRecord?) {
+    clusterTextOffsetX = offset?.x?.toFloat() ?: 0f
+    clusterTextOffsetY = offset?.y?.toFloat() ?: 0f
+    scheduleRecluster()
+  }
+
+  // Load the badge icon by URI (async) and, once decoded, recluster so every badge redraws with it.
+  // Clearing the icon reclusters immediately to restore the drawn disc.
+  private fun loadClusterIconIfNeeded() {
+    val source = clusterIconSource
+    if (source.isNullOrEmpty()) {
+      scheduleRecluster()
+      return
+    }
+    if (source == appliedClusterIconSource) {
+      return
+    }
+    appliedClusterIconSource = source
+    MarkerImageLoader.load(context, source) { loaded ->
+      if (loaded != null && source == appliedClusterIconSource) {
+        clusterIconBitmap = loaded
+        scheduleRecluster()
+      }
+    }
+  }
+
   // ClusterListener: style each cluster's badge and wire its tap listener as MapKit creates it.
 
   override fun onClusterAdded(cluster: Cluster) {
@@ -222,11 +303,22 @@ class ExpoYandexMapKitClustererView(context: Context, appContext: AppContext) :
     }
   }
 
-  // A round badge: a filled disc of clusterColor with a thin white border, and the count centered in
-  // bold. The disc grows for 3+ digit counts so long numbers still fit. Drawn at display density.
+  // A cluster badge with the count drawn on top. When a `clusterIcon` image is set it is used as the
+  // badge (at its own size); otherwise a filled disc of clusterColor with a thin white border is
+  // drawn (growing for 3+ digit counts so long numbers still fit). Drawn at display density.
   private fun renderClusterBadge(count: Int): Bitmap {
     val density = resources.displayMetrics.density
     val label = count.toString()
+    val icon = clusterIconBitmap
+    if (icon != null) {
+      // copy() may return null (e.g. OOM); fall through to the drawn disc if so.
+      val bitmap = icon.copy(Bitmap.Config.ARGB_8888, true)
+      if (bitmap != null) {
+        val canvas = Canvas(bitmap)
+        drawCount(canvas, label, bitmap.width / 2f, bitmap.height / 2f, density)
+        return bitmap
+      }
+    }
     val extraDigits = (label.length - 2).coerceAtLeast(0)
     val diameter = ((clusterSize + extraDigits * 8f) * density).toInt().coerceAtLeast(1)
     val bitmap = Bitmap.createBitmap(diameter, diameter, Bitmap.Config.ARGB_8888)
@@ -237,6 +329,13 @@ class ExpoYandexMapKitClustererView(context: Context, appContext: AppContext) :
     canvas.drawCircle(center, center, center, ringPaint)
     val fillPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = clusterColor }
     canvas.drawCircle(center, center, center - border, fillPaint)
+    drawCount(canvas, label, center, center, density)
+    return bitmap
+  }
+
+  // Draw the count centered at (cx, cy) in bold, shifted by clusterTextOffset (dp). Shared by the
+  // disc and icon badges.
+  private fun drawCount(canvas: Canvas, label: String, cx: Float, cy: Float, density: Float) {
     val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
       color = clusterTextColor
       textSize = clusterTextSize * density
@@ -244,8 +343,7 @@ class ExpoYandexMapKitClustererView(context: Context, appContext: AppContext) :
       typeface = Typeface.DEFAULT_BOLD
     }
     val metrics = textPaint.fontMetrics
-    val baseline = center - (metrics.ascent + metrics.descent) / 2f
-    canvas.drawText(label, center, baseline, textPaint)
-    return bitmap
+    val baseline = cy - (metrics.ascent + metrics.descent) / 2f + clusterTextOffsetY * density
+    canvas.drawText(label, cx + clusterTextOffsetX * density, baseline, textPaint)
   }
 }

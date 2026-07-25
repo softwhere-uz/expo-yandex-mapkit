@@ -103,6 +103,9 @@ export type MarkerProps = {
   // settled (e.g. a static bubble), set false so the icon is snapshotted once — a large perf win
   // vs. re-snapshotting every frame (the react-native-maps convention, done reliably here).
   tracksViewChanges?: boolean;
+  // Only meaningful inside a `<Clusterer>`: when true this marker is never merged into a cluster —
+  // it stays a standalone placemark on the map regardless of zoom. Default false.
+  excludeFromCluster?: boolean;
 };
 
 // Imperative marker methods, called through a ref: `const ref = useRef<MarkerRef>(null)`.
@@ -171,8 +174,16 @@ export type ClustererProps = {
   clusterTextColor?: ColorValue;
   // Cluster badge count-text size in points. Default 13.
   clusterTextSize?: number;
-  // Cluster badge diameter in points (grows for 3+ digit counts). Default 36.
+  // Cluster badge diameter in points (grows for 3+ digit counts). Default 36. Ignored when
+  // `clusterIcon` is set — a custom icon badge is drawn at the image's own size.
   clusterSize?: number;
+  // Custom image for the cluster badge — require('./cluster.png') or { uri }. Replaces the drawn
+  // color disc; the count is still drawn on top (honoring clusterTextColor/Size/Offset). Unset
+  // draws the default color disc.
+  clusterIcon?: ImageSourcePropType;
+  // Nudges the count text within the badge, in points (positive x → right, positive y → down).
+  // Default { x: 0, y: 0 } (centered). Applies to both the drawn disc and a `clusterIcon` badge.
+  clusterTextOffset?: { x: number; y: number };
   // Whether tapping a cluster animates the camera to fit its markers. Default true.
   fitClusterOnPress?: boolean;
   // Fires when a cluster badge is tapped, with the cluster's size and center.

@@ -265,6 +265,10 @@ class ExpoYandexMapKitModule : Module() {
         view.setTracksViewChanges(tracks)
       }
 
+      Prop("excludeFromCluster") { view: ExpoYandexMapKitMarkerView, exclude: Boolean ->
+        view.excludeFromCluster = exclude
+      }
+
       // The animations drive a ValueAnimator, which must be created and started on a Looper
       // (main) thread — Expo runs AsyncFunctions off the main queue by default.
       AsyncFunction("animatedMoveTo") { view: ExpoYandexMapKitMarkerView, point: PointRecord, durationMs: Double ->
@@ -312,6 +316,12 @@ class ExpoYandexMapKitModule : Module() {
       }
       Prop("clusterSize") { view: ExpoYandexMapKitClustererView, size: Double ->
         view.setClusterSize(size.toFloat())
+      }
+      Prop("clusterIcon") { view: ExpoYandexMapKitClustererView, uri: String? ->
+        view.setClusterIcon(uri)
+      }
+      Prop("clusterTextOffset") { view: ExpoYandexMapKitClustererView, offset: ClusterOffsetRecord? ->
+        view.setClusterTextOffset(offset)
       }
       Prop("fitClusterOnPress") { view: ExpoYandexMapKitClustererView, fit: Boolean ->
         view.setFitOnPress(fit)
