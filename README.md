@@ -545,7 +545,7 @@ const routes = await findRoutes(
 - `findRoutes(points, mode)` — 2+ waypoints, `mode` = `'driving'` | `'masstransit'` | `'pedestrian'`; resolves best-route-first.
 - `findDrivingRoutes` / `findMasstransitRoutes` / `findPedestrianRoutes` — convenience wrappers.
 
-Each `Route` carries a summary (`time`; `timeWithTraffic` + `distance` for driving; `walkingDistance` + `transfersCount` for masstransit) plus its `points` geometry. Requires MapKit to be initialized. The per-section transit breakdown (which line, stops, per-leg mode) is a follow-up.
+Each `Route` carries a summary (`time`; `timeWithTraffic` + `distance` for driving; `walkingDistance` + `transfersCount` for masstransit), its `points` geometry, and `sections` — the route split into legs. Each `RouteSection` is `{ type, time?, points, transports? }`: `type` is `'car'`, `'walk'`, `'waiting'`, or a transit vehicle type (`'bus'`, `'underground'`, …), `transports` maps each vehicle type to its line names, and `points` is that leg's own polyline fragment. So a masstransit route reads as "walk → bus 42 → transfer → metro", each leg drawable on its own. Requires MapKit to be initialized.
 
 ## lite vs full
 

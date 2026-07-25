@@ -293,6 +293,15 @@ export type SearchResult = {
 
 export type RouteMode = 'driving' | 'masstransit' | 'pedestrian';
 
+// One leg of a route. `type` is `'car'` (driving), `'walk'` / `'waiting'`, or a public-transport
+// vehicle type (`'bus'`, `'underground'`, `'tramway'`, `'minibus'`, `'railway'`, …).
+export type RouteSection = {
+  type: string;
+  time?: string; // formatted duration of this leg
+  points: Point[]; // this leg's polyline geometry (a fragment of the route's line)
+  transports?: Record<string, string[]>; // transit legs: vehicle type → the line names serving it
+};
+
 export type Route = {
   time?: string; // formatted total duration (e.g. "23 min")
   timeWithTraffic?: string; // driving: duration accounting for live traffic
@@ -300,4 +309,5 @@ export type Route = {
   walkingDistance?: number; // masstransit / pedestrian: total walking distance in metres
   transfersCount?: number; // masstransit: number of transfers
   points: Point[]; // the route's polyline geometry (draw with <Polyline>)
+  sections: RouteSection[]; // the route broken into legs (walk / transit / drive)
 };

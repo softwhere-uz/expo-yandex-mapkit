@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Per-section route breakdown** (#1 → v2 Routing, `full` flavor). Each `Route` now includes
+  `sections: RouteSection[]` — the route split into legs, each `{ type, time?, points, transports? }`.
+  `type` is `'car'` (driving), `'walk'` / `'waiting'`, or a transit vehicle type (`'bus'`,
+  `'underground'`, …); `transports` maps each vehicle type to the line names serving that leg; `points`
+  is the leg's own polyline fragment (resolved via `SubpolylineHelper`). This makes masstransit routes
+  actionable ("walk → bus 42 → transfer → metro") rather than just a total.
 - **Structured address components for search** (#1 → v2 Search, `full` flavor). A toponym `SearchResult`
   now includes `addressComponents: { name, kinds }[]` — the structured address breakdown, with
   snake_case `kinds` (`country`, `province`, `locality`, `district`, `street`, `house`, `metro_station`,
