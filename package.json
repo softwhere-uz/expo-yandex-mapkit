@@ -40,7 +40,6 @@
   "author": "softwhere.uz <kamuranbek1998@gmail.com> (https://github.com/softwhere-uz)",
   "license": "MIT",
   "homepage": "https://github.com/softwhere-uz/expo-yandex-mapkit#readme",
-  "dependencies": {},
   "devDependencies": {
     "@babel/core": "^7.26.0",
     "@types/jest": "^29.2.1",
@@ -49,6 +48,7 @@
     "eslint": "~9.39.4",
     "eslint-config-universe": "^15.0.3",
     "expo": "^57.0.7",
+    "expo-modules-core": "~57.0.7",
     "jest": "^29.7.0",
     "jest-expo": "~57.0.2",
     "prettier": "^3.0.0",

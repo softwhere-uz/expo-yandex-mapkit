@@ -256,6 +256,14 @@ Get/set the map display language at runtime, as `language` or `language_REGION` 
 | `mapStyle` | `string` | — | A [Yandex JSON map style](https://yandex.com/dev/mapkit/doc/en/android/generated/style) applied to the map. **Only affects the `'vector'` and `'hybrid'` layers** — leave `mapType` unset (the default is vector) or set `mapType='vector'`; it is a silent no-op on the raster `'map'` / `'satellite'` layers. Pass `''` to clear a previously applied style. Invalid JSON is ignored with a warning. |
 | `logoPosition` | `{ horizontal: 'left' \| 'center' \| 'right'; vertical: 'top' \| 'bottom' }` | — | Corner the mandatory Yandex logo is aligned to. |
 | `logoPadding` | `{ horizontal: number; vertical: number }` | — | Logo padding, in px, from the aligned edges (negatives are clamped to `0`). |
+| `showUserPosition` | `boolean` | `false` | Show the device-location dot. Requires the app to hold location permission (see the `locationWhenInUsePermission` plugin option, or request it yourself). |
+| `followUser` | `boolean` | `false` | Keep the camera centered on the user's location. Requires `showUserPosition`. |
+| `userLocationIcon` | `ImageSourcePropType` | — | Custom icon for the user-location dot — used for both the resting pin and the heading arrow. `require('./me.png')` or `{ uri }`. Requires `showUserPosition`; unset keeps MapKit's default dot. |
+| `userLocationIconScale` | `number` | `1` | Scale multiplier applied to `userLocationIcon`. |
+| `userLocationAccuracyFillColor` | `ColorValue` | — | Fill colour of the accuracy circle around the dot. Unset keeps MapKit's default. |
+| `userLocationAccuracyStrokeColor` | `ColorValue` | — | Stroke (border) colour of the accuracy circle. Unset keeps MapKit's default. |
+| `userLocationAccuracyStrokeWidth` | `number` | — | Accuracy-circle stroke width, in points. |
+| `trafficVisible` | `boolean` | `false` | Show the live traffic-jams layer. |
 | `style` | `StyleProp<ViewStyle>` | — | Standard React Native view styling. |
 
 > For a non-interactive map (e.g. a static preview) set `interactiveDisabled` (shorthand for disabling all four movement gestures); toggle `rotateGesturesEnabled` / `tiltGesturesEnabled` off to keep the map flat and north-up.

@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Custom user-location dot** (#1 → User location): `userLocationIcon` (+ `userLocationIconScale`)
+  replaces MapKit's default location dot with your own image — `require('./me.png')` or `{ uri }`,
+  the same source shape as `<Marker>`. The icon is applied to both the resting pin and the heading
+  arrow and re-applied on every location update, so it survives MapKit swapping the two internally
+  (the failure mode behind yamap-plus's [reportedly broken `userLocationIcon`](https://github.com/Qudaeo/react-native-yamap-plus/issues/31)).
+  The accuracy circle around the dot is stylable via `userLocationAccuracyFillColor` /
+  `userLocationAccuracyStrokeColor` / `userLocationAccuracyStrokeWidth`. All require `showUserPosition`;
+  each unset value leaves MapKit's default untouched. A JS regression test pins the prop transform
+  (asset → URI string, colours → `processColor`) so the JS side can't silently hand the native layer
+  a value it can't load. `showUserPosition` / `followUser` / `trafficVisible` are now documented in
+  the `<YandexMapView>` prop table.
 - **Marker clustering** (#1 → Clustering): a new `<Clusterer>` component groups its `<Marker>`
   children into clusters, backed by MapKit's `ClusterizedPlacemarkCollection` on both platforms.
   Rather than yamap-plus's separate `clusteredMarkers` array + `renderMarker` render-prop, this

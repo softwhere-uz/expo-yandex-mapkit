@@ -177,6 +177,19 @@ class ExpoYandexMapKitView: ExpoView {
   private var followUser = false
   private var trafficVisible = false
 
+  // Custom user-location dot styling. The YMKUserLocationView (pin/arrow/accuracy-circle) is handed
+  // over by the object listener once the dot appears; it is kept so a later prop change can re-style
+  // it. The listener is retained strongly here — MapKit holds it weakly (matches the map listeners).
+  private var userLocationObjectListener: UserLocationObjectListener?
+  private var userLocationView: YMKUserLocationView?
+  private var userLocationIconSource: String?
+  private var appliedUserLocationIconSource: String?
+  private var userLocationIconImage: UIImage?
+  private var userLocationIconScale: NSNumber = 1
+  private var userLocationAccuracyFillColor: UIColor?
+  private var userLocationAccuracyStrokeColor: UIColor?
+  private var userLocationAccuracyStrokeWidth: Float?
+
   required init(appContext: AppContext? = nil) {
     super.init(appContext: appContext)
     clipsToBounds = true
@@ -264,6 +277,36 @@ class ExpoYandexMapKitView: ExpoView {
     applyUserLocation()
   }
 
+  func setUserLocationIcon(_ uri: String?) {
+    if uri != userLocationIconSource {
+      userLocationIconSource = uri
+      // The icon changed — drop the cached image so it (re)loads on the next style pass.
+      appliedUserLocationIconSource = nil
+      userLocationIconImage = nil
+    }
+    applyUserLocationStyle()
+  }
+
+  func setUserLocationIconScale(_ value: Double) {
+    userLocationIconScale = NSNumber(value: value)
+    applyUserLocationStyle()
+  }
+
+  func setUserLocationAccuracyFillColor(_ value: UIColor?) {
+    userLocationAccuracyFillColor = value
+    applyUserLocationStyle()
+  }
+
+  func setUserLocationAccuracyStrokeColor(_ value: UIColor?) {
+    userLocationAccuracyStrokeColor = value
+    applyUserLocationStyle()
+  }
+
+  func setUserLocationAccuracyStrokeWidth(_ value: Double) {
+    userLocationAccuracyStrokeWidth = Float(value)
+    applyUserLocationStyle()
+  }
+
   func setTrafficVisible(_ value: Bool) {
     trafficVisible = value
     applyTraffic()
@@ -279,6 +322,10 @@ class ExpoYandexMapKitView: ExpoView {
     } else {
       layer = YMKMapKit.sharedInstance().createUserLocationLayer(with: mapWindow)
       userLocationLayer = layer
+      // MapKit holds the object listener weakly (matches the map listeners); the strong field keeps it.
+      let listener = UserLocationObjectListener(view: self)
+      userLocationObjectListener = listener
+      layer.setObjectListenerWith(listener)
     }
     layer.setVisibleWithOn(showUserPosition)
     if showUserPosition, followUser, let mapView = mapView, mapView.bounds.width > 0 {
@@ -291,6 +338,72 @@ class ExpoYandexMapKitView: ExpoView {
     } else {
       layer.resetAnchor()
     }
+  }
+
+  // Called by the object listener when the location dot appears or updates. Keeps the view so a later
+  // prop change can re-style it, then applies the current icon + accuracy-circle styling.
+  func onUserLocationObjectAvailable(_ view: YMKUserLocationView) {
+    userLocationView = view
+    applyUserLocationStyle()
+  }
+
+  func onUserLocationObjectRemoved(_ view: YMKUserLocationView) {
+    if userLocationView === view {
+      userLocationView = nil
+    }
+  }
+
+  // Apply the custom icon + accuracy-circle styling to the current location dot. No-op until the dot
+  // exists (the object listener hands over its YMKUserLocationView). Unset values leave MapKit's
+  // defaults.
+  private func applyUserLocationStyle() {
+    guard let view = userLocationView else {
+      return
+    }
+    let circle = view.accuracyCircle
+    if let fill = userLocationAccuracyFillColor {
+      circle.fillColor = fill
+    }
+    if let stroke = userLocationAccuracyStrokeColor {
+      circle.strokeColor = stroke
+    }
+    if let width = userLocationAccuracyStrokeWidth {
+      circle.strokeWidth = width
+    }
+
+    guard let source = userLocationIconSource, !source.isEmpty else {
+      return
+    }
+    if let image = userLocationIconImage, source == appliedUserLocationIconSource {
+      applyUserLocationIcon(view, image: image)
+      return
+    }
+    if source == appliedUserLocationIconSource {
+      // Same icon already loading — the load callback will apply it. Avoid a duplicate load.
+      return
+    }
+    appliedUserLocationIconSource = source
+    MarkerImageLoader.load(source) { [weak self] image in
+      // Ignore a late load if the icon changed again meanwhile; re-read the view in case it changed.
+      guard let self = self, let image = image, source == self.appliedUserLocationIconSource else {
+        return
+      }
+      self.userLocationIconImage = image
+      if let view = self.userLocationView {
+        self.applyUserLocationIcon(view, image: image)
+      }
+    }
+  }
+
+  // Set the loaded image as the dot's icon on both the resting pin and the heading arrow, at the
+  // configured scale, so the custom icon shows regardless of whether a heading is available.
+  private func applyUserLocationIcon(_ view: YMKUserLocationView, image: UIImage) {
+    let style = YMKIconStyle()
+    style.scale = userLocationIconScale
+    view.pin.setIconWith(image)
+    view.pin.setIconStyleWith(style)
+    view.arrow.setIconWith(image)
+    view.arrow.setIconStyleWith(style)
   }
 
   private func applyTraffic() {
@@ -827,5 +940,25 @@ private final class MapLoadedListener: NSObject, YMKMapLoadedListener {
 
   func onMapLoaded(with statistics: YMKMapLoadStatistics) {
     view?.dispatchMapLoaded(statistics)
+  }
+}
+
+private final class UserLocationObjectListener: NSObject, YMKUserLocationObjectListener {
+  private weak var view: ExpoYandexMapKitView?
+
+  init(view: ExpoYandexMapKitView) {
+    self.view = view
+  }
+
+  func onObjectAdded(with userLocationView: YMKUserLocationView) {
+    view?.onUserLocationObjectAvailable(userLocationView)
+  }
+
+  func onObjectRemoved(with userLocationView: YMKUserLocationView) {
+    view?.onUserLocationObjectRemoved(userLocationView)
+  }
+
+  func onObjectUpdated(with userLocationView: YMKUserLocationView, event: YMKObjectEvent) {
+    view?.onUserLocationObjectAvailable(userLocationView)
   }
 }

@@ -133,6 +133,28 @@ public class ExpoYandexMapKitModule: Module {
         view.setFollowUser(follow)
       }
 
+      // Custom user-location dot styling. The icon arrives as the resolved URI string (the marker
+      // convention); accuracy-circle colors arrive as processColor()'d values (Expo → UIColor).
+      Prop("userLocationIcon") { (view: ExpoYandexMapKitView, uri: String?) in
+        view.setUserLocationIcon(uri)
+      }
+
+      Prop("userLocationIconScale") { (view: ExpoYandexMapKitView, scale: Double) in
+        view.setUserLocationIconScale(scale)
+      }
+
+      Prop("userLocationAccuracyFillColor") { (view: ExpoYandexMapKitView, color: UIColor?) in
+        view.setUserLocationAccuracyFillColor(color)
+      }
+
+      Prop("userLocationAccuracyStrokeColor") { (view: ExpoYandexMapKitView, color: UIColor?) in
+        view.setUserLocationAccuracyStrokeColor(color)
+      }
+
+      Prop("userLocationAccuracyStrokeWidth") { (view: ExpoYandexMapKitView, width: Double) in
+        view.setUserLocationAccuracyStrokeWidth(width)
+      }
+
       Prop("trafficVisible") { (view: ExpoYandexMapKitView, visible: Bool) in
         view.setTrafficVisible(visible)
       }
