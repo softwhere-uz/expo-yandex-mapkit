@@ -145,6 +145,38 @@ export type CircleProps = {
   onPress?: (event: { nativeEvent: ShapePressEvent }) => void;
 };
 
+// Payload for a cluster badge tap — how many markers it groups and where its badge sits.
+export type ClusterPressEvent = {
+  size: number; // number of markers grouped under the tapped cluster (2+)
+  point: Point; // the cluster badge's geographic position (the group's weighted center)
+};
+
+export type ClustererProps = {
+  // Distance in points/dp within which markers merge into one cluster — larger groups more
+  // aggressively. Default 60. (react-native-yamap-plus hardcodes 50; here it is configurable.)
+  clusterRadius?: number;
+  // Clustering applies at zoom levels at or below this value; zooming in past it splits a cluster
+  // back into individual markers. Default 12. (yamap-plus hardcodes 12; here it is configurable.)
+  minZoom?: number;
+  // Cluster badge fill color. Default a blue (#3478F6).
+  clusterColor?: ColorValue;
+  // Cluster badge count-text color. Default white.
+  clusterTextColor?: ColorValue;
+  // Cluster badge count-text size in points. Default 13.
+  clusterTextSize?: number;
+  // Cluster badge diameter in points (grows for 3+ digit counts). Default 36.
+  clusterSize?: number;
+  // Whether tapping a cluster animates the camera to fit its markers. Default true.
+  fitClusterOnPress?: boolean;
+  // Fires when a cluster badge is tapped, with the cluster's size and center.
+  onClusterPress?: (event: { nativeEvent: ClusterPressEvent }) => void;
+  // The `<Marker>` children to cluster. Each marker keeps all its usual features (image or
+  // React-children icon, `onPress`, `identifier`); an individual marker's `onPress` still fires
+  // when it is shown un-clustered. Only `<Marker>` children are clustered — other map objects
+  // (shapes) belong directly under the map, not inside a `<Clusterer>`.
+  children?: ReactNode;
+};
+
 export type ScreenPoint = {
   x: number; // pixels from the left of the map view
   y: number; // pixels from the top of the map view

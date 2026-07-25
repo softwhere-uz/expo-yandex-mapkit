@@ -480,14 +480,20 @@ class ExpoYandexMapKitView(context: Context, appContext: AppContext) : ExpoView(
     fitToPoints(points.map { Point(it.latitude, it.longitude) }, options, map)
   }
 
-  // Fit every mounted <Marker> into view. Reads the markers' current geometry from the registry.
+  // Fit every mounted <Marker> into view — direct children AND those inside a <Clusterer>. Reads the
+  // markers' current geometry from the registry.
   internal fun fitAllMarkers(options: CameraMoveOptionsRecord) {
     val map = mapView?.mapWindow?.map ?: return
-    fitToPoints(
-      childViews.filterIsInstance<ExpoYandexMapKitMarkerView>().mapNotNull { it.geoPoint() },
-      options,
-      map
-    )
+    val direct = childViews.filterIsInstance<ExpoYandexMapKitMarkerView>().mapNotNull { it.geoPoint() }
+    val clustered = childViews.filterIsInstance<ExpoYandexMapKitClustererView>().flatMap { it.markerGeoPoints() }
+    fitToPoints(direct + clustered, options, map)
+  }
+
+  // Fit the camera to a tapped cluster's placemarks. Reuses the fit-to-points path with default move
+  // options (no edge padding). Called by a child <Clusterer> on a cluster tap.
+  internal fun fitToClusterPoints(points: List<Point>) {
+    val map = mapView?.mapWindow?.map ?: return
+    fitToPoints(points, CameraMoveOptionsRecord(), map)
   }
 
   // Move the camera so every point is visible, optionally inset by options.edgePadding. A single
@@ -620,6 +626,8 @@ class ExpoYandexMapKitView(context: Context, appContext: AppContext) : ExpoView(
   private fun attachChild(child: View) {
     val collection = mapView?.mapWindow?.map?.mapObjects ?: return
     (child as? MapObjectChild)?.let {
+      // A clusterer needs this map view to fit the camera on a cluster tap.
+      (child as? ExpoYandexMapKitClustererView)?.bindMapView(this)
       if (!it.isAttachedToMap) {
         it.attachToMap(collection)
       }
@@ -629,6 +637,7 @@ class ExpoYandexMapKitView(context: Context, appContext: AppContext) : ExpoView(
   private fun detachChild(child: View) {
     val collection = mapView?.mapWindow?.map?.mapObjects ?: return
     (child as? MapObjectChild)?.detachFromMap(collection)
+    (child as? ExpoYandexMapKitClustererView)?.unbindMapView()
   }
 
   private fun attachPendingChildren() {

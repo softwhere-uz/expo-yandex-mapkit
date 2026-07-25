@@ -433,6 +433,40 @@ import { YandexMapView, Polygon, Circle } from 'expo-yandex-mapkit';
 - **`<Polygon>`**: `points` (outer ring, 3+), `innerRings?` (holes), `fillColor`, `strokeColor`, `strokeWidth`, `zIndex`, `onPress`, `handled`.
 - **`<Circle>`**: `center`, `radius` (metres), `fillColor`, `strokeColor`, `strokeWidth`, `zIndex`, `onPress`, `handled`.
 
+### `<Clusterer />`
+
+Group `<Marker>` children into clusters. Wrap the markers to cluster in a `<Clusterer>` — each marker keeps all its usual features (image or React-children icon, `onPress`, `identifier`):
+
+```tsx
+import { YandexMapView, Clusterer, Marker } from 'expo-yandex-mapkit';
+
+<YandexMapView style={StyleSheet.absoluteFill} cameraPosition={{ latitude: 41.31, longitude: 69.24, zoom: 10 }}>
+  <Clusterer
+    clusterRadius={60}
+    minZoom={12}
+    clusterColor="#2E7D32"
+    onClusterPress={({ nativeEvent }) => console.log(`cluster of ${nativeEvent.size}`)}
+  >
+    {places.map((p) => (
+      <Marker key={p.id} point={p.point} identifier={p.id} onPress={onMarkerPress} />
+    ))}
+  </Clusterer>
+</YandexMapView>;
+```
+
+There is no separate "clustered marker" API and no `renderMarker` render-prop — the same `<Marker>` you use elsewhere is the render-prop. Tapping a cluster fits the camera to its markers (`fitClusterOnPress`, on by default) and fires `onClusterPress`. Individual `<Marker>` `onPress` still fires once a marker is shown un-clustered (zoomed in past `minZoom`). Only `<Marker>` children are clustered; shapes belong directly under the map.
+
+| Prop | Type | Description |
+| --- | --- | --- |
+| `clusterRadius` | `number` | Merge distance in points/dp — larger groups more aggressively. Default `60`. |
+| `minZoom` | `number` | Clustering applies at zoom ≤ this; zooming in past it splits clusters apart. Default `12`. |
+| `clusterColor` | `ColorValue` | Cluster badge fill color. Default `#3478F6`. |
+| `clusterTextColor` | `ColorValue` | Cluster badge count-text color. Default white. |
+| `clusterTextSize` | `number` | Cluster badge count-text size (points). Default `13`. |
+| `clusterSize` | `number` | Cluster badge diameter (points); grows for 3+ digit counts. Default `36`. |
+| `fitClusterOnPress` | `boolean` | Animate the camera to fit a tapped cluster's markers. Default `true`. |
+| `onClusterPress` | `(event) => void` | `event.nativeEvent` is `{ size, point }`. |
+
 ## lite vs full
 
 Yandex ships MapKit in two flavors. This library defaults to `lite`; select `full` via the [config plugin](#2-add-the-config-plugin) when you need its features (the library itself will start exposing them in v2).

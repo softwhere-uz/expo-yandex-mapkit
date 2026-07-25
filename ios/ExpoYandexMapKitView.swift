@@ -227,9 +227,13 @@ class ExpoYandexMapKitView: ExpoView {
   // Attach a child's map object to the collection. No-op if the map is not ready yet (the child
   // stays in the list and is attached later by attachPendingChildren) or already attached.
   private func attachChild(_ child: UIView) {
-    guard let mapChild = child as? MapObjectChild, !mapChild.isAttachedToMap,
-      let collection = mapView?.mapWindow.map.mapObjects
+    guard let mapChild = child as? MapObjectChild, let collection = mapView?.mapWindow.map.mapObjects
     else {
+      return
+    }
+    // A clusterer needs this map view to fit the camera on a cluster tap.
+    (child as? ExpoYandexMapKitClustererView)?.ownerMapView = self
+    guard !mapChild.isAttachedToMap else {
       return
     }
     mapChild.attachToMap(collection)
@@ -241,6 +245,7 @@ class ExpoYandexMapKitView: ExpoView {
       return
     }
     mapChild.detachFromMap(collection)
+    (child as? ExpoYandexMapKitClustererView)?.ownerMapView = nil
   }
 
   private func attachPendingChildren() {
@@ -471,14 +476,24 @@ class ExpoYandexMapKitView: ExpoView {
       on: map)
   }
 
-  // Fit every mounted <Marker> into view. Reads the markers' current geometry from the registry.
+  // Fit every mounted <Marker> into view — direct children AND those inside a <Clusterer>. Reads the
+  // markers' current geometry from the registry.
   func fitAllMarkers(_ options: CameraMoveOptionsRecord) {
     guard let map = mapView?.mapWindow.map else {
       return
     }
-    fitToPoints(
-      childViews.compactMap { ($0 as? ExpoYandexMapKitMarkerView)?.geoPoint }, options: options,
-      on: map)
+    let direct = childViews.compactMap { ($0 as? ExpoYandexMapKitMarkerView)?.geoPoint }
+    let clustered = childViews.compactMap { $0 as? ExpoYandexMapKitClustererView }.flatMap { $0.markerGeoPoints }
+    fitToPoints(direct + clustered, options: options, on: map)
+  }
+
+  // Fit the camera to a tapped cluster's placemarks. Reuses the fit-to-points path with default move
+  // options (no edge padding). Called by a child <Clusterer> on a cluster tap.
+  func fitToClusterPoints(_ points: [YMKPoint]) {
+    guard let map = mapView?.mapWindow.map else {
+      return
+    }
+    fitToPoints(points, options: CameraMoveOptionsRecord(), on: map)
   }
 
   // Move the camera so every point is visible, optionally inset by options.edgePadding. A single

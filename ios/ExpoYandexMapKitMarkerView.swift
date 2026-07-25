@@ -54,11 +54,17 @@ class ExpoYandexMapKitMarkerView: ExpoView, MapObjectChild {
   private var childView: UIView?
   private var displayLink: CADisplayLink?
 
+  // Set by a <Clusterer> parent while this marker is clustered, so a geometry change re-triggers
+  // clustering. Nil when the marker is a direct child of the map (un-clustered).
+  var onGeometryChanged: (() -> Void)?
+
   // MARK: - Props
 
   func setPoint(_ value: PointRecord) {
     point = YMKPoint(latitude: value.latitude, longitude: value.longitude)
     updateMarker()
+    // A clustered marker moving must re-cluster; no-op when un-clustered.
+    onGeometryChanged?()
   }
 
   func setScale(_ value: Double) {
@@ -111,20 +117,45 @@ class ExpoYandexMapKitMarkerView: ExpoView, MapObjectChild {
     guard placemark == nil else {
       return
     }
-    let placemark = collection.addPlacemark()
-    self.placemark = placemark
-    let listener = MarkerTapListener(view: self)
-    tapListener = listener
-    placemark.addTapListener(with: listener)
-    appliedIconSource = nil
-    hasIcon = false
-    updateMarker()
+    bind(placemark: collection.addPlacemark())
+  }
+
+  // Attach into a <Clusterer>'s cluster collection instead of the map's root collection, so this
+  // marker participates in clustering. Mirrors attachToMap — a YMKClusterizedPlacemarkCollection is
+  // a YMKBaseMapObjectCollection, so addPlacemark() / remove(with:) behave identically.
+  func attachToCluster(_ collection: YMKClusterizedPlacemarkCollection) {
+    guard placemark == nil else {
+      return
+    }
+    bind(placemark: collection.addPlacemark())
+  }
+
+  func detachFromCluster(_ collection: YMKClusterizedPlacemarkCollection) {
+    if let placemark = placemark {
+      collection.remove(with: placemark)
+    }
+    clearPlacemark()
   }
 
   func detachFromMap(_ collection: YMKMapObjectCollection) {
     if let placemark = placemark {
       collection.remove(with: placemark)
     }
+    clearPlacemark()
+  }
+
+  // Wire a freshly created placemark (from either the root or a cluster collection) up to this view.
+  private func bind(placemark created: YMKPlacemarkMapObject) {
+    placemark = created
+    let listener = MarkerTapListener(view: self)
+    tapListener = listener
+    created.addTapListener(with: listener)
+    appliedIconSource = nil
+    hasIcon = false
+    updateMarker()
+  }
+
+  private func clearPlacemark() {
     placemark = nil
     tapListener = nil
     appliedIconSource = nil

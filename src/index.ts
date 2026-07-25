@@ -4,6 +4,7 @@ import ExpoYandexMapKitModule from './ExpoYandexMapKitModule';
 
 export { YandexMapView } from './ExpoYandexMapKitView';
 export { Marker } from './ExpoYandexMapKitMarkerView';
+export { Clusterer } from './ExpoYandexMapKitClustererView';
 export { Polyline } from './ExpoYandexMapKitPolylineView';
 export { Polygon } from './ExpoYandexMapKitPolygonView';
 export { Circle } from './ExpoYandexMapKitCircleView';
