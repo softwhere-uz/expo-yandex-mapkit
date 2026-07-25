@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-07-25
+
+First stable release — the v1 feature set (parity with react-native-yamap-plus's lite-flavor
+surface) is complete: markers, shapes, clustering, user location, traffic, locale, and the config
+plugin. See the [tracking issue](https://github.com/softwhere-uz/expo-yandex-mapkit/issues/1).
+
 ### Added
 
 - **Clustering group completed** (#1 → Clustering): two follow-ups to the `<Clusterer>` shipped in
@@ -237,7 +243,8 @@ Initial scaffold.
 - Web stubs that warn once and render nothing instead of crashing.
 - Official scoped alias package `@softwhere-uz/expo-yandex-mapkit`.
 
-[Unreleased]: https://github.com/softwhere-uz/expo-yandex-mapkit/compare/v0.0.5...HEAD
+[Unreleased]: https://github.com/softwhere-uz/expo-yandex-mapkit/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/softwhere-uz/expo-yandex-mapkit/releases/tag/v1.0.0
 [0.0.5]: https://github.com/softwhere-uz/expo-yandex-mapkit/releases/tag/v0.0.5
 [0.0.4]: https://github.com/softwhere-uz/expo-yandex-mapkit/releases/tag/v0.0.4
 [0.0.3]: https://github.com/softwhere-uz/expo-yandex-mapkit/releases/tag/v0.0.3
