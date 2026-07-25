@@ -57,12 +57,7 @@ export const Marker = React.forwardRef<MarkerRef, MarkerProps>(
     );
 
     return (
-      <NativeMarkerView
-        {...props}
-        source={uri}
-        zI={zIndex}
-        onMarkerPress={onPress}
-        ref={nativeRef}>
+      <NativeMarkerView {...props} source={uri} zI={zIndex} onMarkerPress={onPress} ref={nativeRef}>
         {children != null ? <View style={styles.childWrap}>{children}</View> : null}
       </NativeMarkerView>
     );
