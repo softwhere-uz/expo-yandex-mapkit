@@ -8,9 +8,13 @@ import { MarkerProps, MarkerRef, Point } from './ExpoYandexMapKit.types';
 // so it is required by name; the map view stays the module's default view. `source` is resolved
 // to a plain URI string here — the native side only deals in URIs. `zIndex` is sent as `zI` so
 // React Native's own layout `zIndex` doesn't intercept it (the marker owns no laid-out view).
-type NativeMarkerProps = Omit<MarkerProps, 'source' | 'zIndex'> & {
+// The public `onPress` prop is forwarded to the native `onMarkerPress` event: React Native reserves
+// `onPress`/`topPress` as a bubbling event, which collides with Expo's direct view events and
+// red-screens on mount ("Event cannot be both direct and bubbling: topPress").
+type NativeMarkerProps = Omit<MarkerProps, 'source' | 'zIndex' | 'onPress'> & {
   source?: string;
   zI?: number;
+  onMarkerPress?: MarkerProps['onPress'];
   ref?: React.Ref<unknown>;
 };
 
@@ -29,7 +33,7 @@ const NativeMarkerView: React.ComponentType<NativeMarkerProps> = requireNativeVi
  * ```
  */
 export const Marker = React.forwardRef<MarkerRef, MarkerProps>(
-  ({ source, zIndex, ...props }, ref) => {
+  ({ source, zIndex, onPress, ...props }, ref) => {
     const nativeRef = React.useRef<any>(null);
 
     // Turn an ImageSourcePropType (require(...) number or { uri }) into the URI the native side
@@ -52,7 +56,15 @@ export const Marker = React.forwardRef<MarkerRef, MarkerProps>(
       []
     );
 
-    return <NativeMarkerView {...props} source={uri} zI={zIndex} ref={nativeRef} />;
+    return (
+      <NativeMarkerView
+        {...props}
+        source={uri}
+        zI={zIndex}
+        onMarkerPress={onPress}
+        ref={nativeRef}
+      />
+    );
   }
 );
 

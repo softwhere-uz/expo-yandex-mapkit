@@ -165,7 +165,7 @@ public class ExpoYandexMapKitModule: Module {
     // above stays the module's default view.
     View(ExpoYandexMapKitMarkerView.self) {
       ViewName("ExpoYandexMapKitMarkerView")
-      Events("onPress")
+      Events("onMarkerPress")
 
       Prop("point") { (view: ExpoYandexMapKitMarkerView, point: PointRecord) in
         view.setPoint(point)
@@ -222,7 +222,7 @@ public class ExpoYandexMapKitModule: Module {
     // The <Polyline> child view. Colors arrive as processColor()'d values (Expo → UIColor).
     View(ExpoYandexMapKitPolylineView.self) {
       ViewName("ExpoYandexMapKitPolylineView")
-      Events("onPress")
+      Events("onShapePress")
 
       Prop("points") { (view: ExpoYandexMapKitPolylineView, points: [PointRecord]) in
         view.setPoints(points)
@@ -259,7 +259,7 @@ public class ExpoYandexMapKitModule: Module {
     // The <Polygon> child view.
     View(ExpoYandexMapKitPolygonView.self) {
       ViewName("ExpoYandexMapKitPolygonView")
-      Events("onPress")
+      Events("onShapePress")
 
       Prop("points") { (view: ExpoYandexMapKitPolygonView, points: [PointRecord]) in
         view.setPoints(points)
@@ -283,7 +283,7 @@ public class ExpoYandexMapKitModule: Module {
     // The <Circle> child view.
     View(ExpoYandexMapKitCircleView.self) {
       ViewName("ExpoYandexMapKitCircleView")
-      Events("onPress")
+      Events("onShapePress")
 
       Prop("center") { (view: ExpoYandexMapKitCircleView, c: PointRecord) in
         view.setCenter(c)

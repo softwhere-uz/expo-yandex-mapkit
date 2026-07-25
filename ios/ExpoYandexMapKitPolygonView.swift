@@ -4,7 +4,7 @@ import YandexMapsMobile
 // One `<Polygon>`. Drives a MapKit YMKPolygonMapObject; created lazily once the collection and an
 // outer ring of at least three points are available.
 class ExpoYandexMapKitPolygonView: ExpoView, MapObjectChild {
-  let onPress = EventDispatcher()
+  let onShapePress = EventDispatcher()
 
   private var collection: YMKMapObjectCollection?
   private var mapObject: YMKPolygonMapObject?
@@ -110,7 +110,7 @@ class ExpoYandexMapKitPolygonView: ExpoView, MapObjectChild {
   }
 
   fileprivate func handleTap(_ point: YMKPoint) -> Bool {
-    onPress(["point": ["latitude": point.latitude, "longitude": point.longitude]])
+    onShapePress(["point": ["latitude": point.latitude, "longitude": point.longitude]])
     return handled
   }
 }

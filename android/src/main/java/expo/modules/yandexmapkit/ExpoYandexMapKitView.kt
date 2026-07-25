@@ -1,6 +1,7 @@
 package expo.modules.yandexmapkit
 
 import android.content.Context
+import android.graphics.PointF
 import android.util.Log
 import android.view.View
 import com.yandex.mapkit.Animation
@@ -658,8 +659,9 @@ class ExpoYandexMapKitView(context: Context, appContext: AppContext) : ExpoView(
     layer.isVisible = showUserPosition
     val view = mapView
     if (showUserPosition && followUser && view != null && view.width > 0 && view.height > 0) {
-      // Anchoring the layer keeps the user dot centered — the map follows the user.
-      val center = ScreenPoint(view.width / 2f, view.height / 2f)
+      // Anchoring the layer keeps the user dot centered — the map follows the user. setAnchor
+      // takes screen offsets as PointF (in pixels), not ScreenPoint.
+      val center = PointF(view.width / 2f, view.height / 2f)
       layer.setAnchor(center, center)
     } else {
       layer.resetAnchor()

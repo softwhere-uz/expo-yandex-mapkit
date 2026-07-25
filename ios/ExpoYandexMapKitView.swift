@@ -277,10 +277,11 @@ class ExpoYandexMapKitView: ExpoView {
     }
     layer.setVisibleWithOn(showUserPosition)
     if showUserPosition, followUser, let mapView = mapView, mapView.bounds.width > 0 {
-      // Anchoring the layer keeps the user dot centered — the map follows the user.
-      let scale = Float(UIScreen.main.scale)
-      let center = YMKScreenPoint(
-        x: Float(mapView.bounds.width) * scale / 2, y: Float(mapView.bounds.height) * scale / 2)
+      // Anchoring the layer keeps the user dot centered — the map follows the user. The anchor is a
+      // CGPoint in physical pixels (points × screen scale), not a YMKScreenPoint.
+      let scale = UIScreen.main.scale
+      let center = CGPoint(
+        x: mapView.bounds.width * scale / 2, y: mapView.bounds.height * scale / 2)
       layer.setAnchorWithAnchorNormal(center, anchorCourse: center)
     } else {
       layer.resetAnchor()
@@ -500,8 +501,13 @@ class ExpoYandexMapKitView: ExpoView {
       )
       let geometry = YMKGeometry(boundingBox: boundingBox)
       if let focus = focusRect(options.edgePadding) {
+        // cameraPositionWithGeometry:focusRect:azimuth:tilt: — focusRect precedes azimuth/tilt,
+        // and azimuth/tilt are NSNumber? (keep the current heading/tilt while fitting).
         target = map.cameraPosition(
-          with: geometry, azimuth: current.azimuth, tilt: current.tilt, focus: focus)
+          with: geometry,
+          focusRect: focus,
+          azimuth: NSNumber(value: current.azimuth),
+          tilt: NSNumber(value: current.tilt))
       } else {
         target = map.cameraPosition(with: geometry)
       }
