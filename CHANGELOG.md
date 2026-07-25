@@ -16,6 +16,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   rect persists after the fit, so follow-up camera moves keep the same inset until the next `fit*` call
   changes it (pass no `edgePadding` to reset to the full viewport).
 
+### Fixed
+
+- **React-children markers no longer crash on the new architecture** (Android, #1 → Markers, #7).
+  Found by on-device testing: mounting a `<Marker>` with React children fatal-crashed with
+  `IllegalStateException: A catalyst view must have an explicit width and height`. MapKit's
+  `ViewProvider.snapshot()` re-measures the view with `UNSPECIFIED` measure specs, which a Fabric
+  (new-architecture) `ReactViewGroup` rejects — so `ViewProvider` cannot snapshot a new-arch React
+  view at all. The child is now snapshotted to a bitmap directly (`ImageProvider.fromBitmap`), which
+  also removes the layout-drift the lineage's `ViewProvider` approach suffered. iOS was unaffected.
+- **Custom React-children pins now size to their content** (#7). The native marker view is laid out at
+  the map's full width, so a child with the default `alignItems: stretch` was snapshotted full-width
+  (a small rating bubble stretched edge-to-edge). Children are wrapped so they hug their own content.
+
 ## [0.0.7] - 2026-07-25
 
 ### Added
