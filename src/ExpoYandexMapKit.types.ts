@@ -120,6 +120,14 @@ export type CameraMoveOptions = {
   animation?: 'smooth' | 'linear'; // easing, default 'smooth'
 };
 
+// Insets in React Native points (dp) that keep fitted markers clear of the map edges / overlays
+// (e.g. a bottom sheet or header). Applied as a focus rectangle, so the fitted content sits inside
+// these margins. Converted to device pixels natively via the screen density/scale.
+export type EdgePadding = { top?: number; right?: number; bottom?: number; left?: number };
+
+// Options for the fit-to-markers moves — the camera-move options plus optional edge padding.
+export type FitOptions = CameraMoveOptions & { edgePadding?: EdgePadding };
+
 // Imperative methods, called through a ref: `const ref = useRef<YandexMapViewRef>(null)`.
 export type YandexMapViewRef = {
   // Animate/move the camera to `position`. Sets the FULL camera — omitting `azimuth`/`tilt`
@@ -127,8 +135,12 @@ export type YandexMapViewRef = {
   setCenter(position: CameraPosition, options?: CameraMoveOptions): Promise<void>;
   // Animate the zoom, keeping the current center / azimuth / tilt.
   setZoom(zoom: number, options?: CameraMoveOptions): Promise<void>;
-  // Move the camera so every point is visible. A single point recenters at the current zoom.
-  fitMarkers(points: Point[], options?: CameraMoveOptions): Promise<void>;
+  // Move the camera so every point is visible, optionally inset by `edgePadding`. A single point
+  // recenters at the current zoom.
+  fitMarkers(points: Point[], options?: FitOptions): Promise<void>;
+  // Move the camera so every mounted `<Marker>` is visible (optionally inset by `edgePadding`).
+  // No-op when there are no markers; a single marker recenters at the current zoom.
+  fitAllMarkers(options?: FitOptions): Promise<void>;
   // Current camera position, or null if the map is not ready.
   getCameraPosition(): Promise<Required<CameraPosition> | null>;
   // The geographic quad currently visible, or null if the map is not ready.

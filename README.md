@@ -27,7 +27,7 @@ Planned: markers (including React-children icons), polylines/polygons/circles, c
 
 | Phase | Scope | Status |
 | --- | --- | --- |
-| v0 | MapView, camera control + events, press events, night mode, markers (incl. React-children icons) | In progress — markers shipped (image **and** React-children icons); `fitAllMarkers` pending |
+| v0 | MapView, camera control + events, press events, night mode, markers (incl. React-children icons) | **Complete** — MapView, camera + events, night mode, image **and** React-children markers, imperative ref methods |
 | v1 | Polylines, polygons, circles, clustering, user-location layer, traffic toggle, JSON map styling | Planned |
 | v2 | Full-flavor features: search + suggest, geocoding, routing | Planned |
 | v3 | Mappable (mappable.world) dual-brand support; `expo-yandex-mapkit-dom` — a DOM-component fallback so a map can render in Expo Go and on web | Planned |
@@ -307,7 +307,8 @@ Call these through a ref (`const mapRef = useRef<YandexMapViewRef>(null)`). All 
 | --- | --- | --- |
 | `setCenter(position, options?)` | `Promise<void>` | Move / animate the camera. `options.durationSeconds` (default `0.3`, `0` = instant) and `options.animation` (`'smooth' \| 'linear'`). Sets the full camera — omitting `azimuth`/`tilt` resets them to `0` (flat, north-up). No-op until the map is ready. |
 | `setZoom(zoom, options?)` | `Promise<void>` | Animate the zoom, keeping the current center / azimuth / tilt. |
-| `fitMarkers(points, options?)` | `Promise<void>` | Move the camera so every point is visible. A single point recenters at the current zoom. |
+| `fitMarkers(points, options?)` | `Promise<void>` | Move the camera so every point is visible. A single point recenters at the current zoom. `options.edgePadding` (`{ top, right, bottom, left }`, in points) keeps the fit clear of overlays. |
+| `fitAllMarkers(options?)` | `Promise<void>` | Like `fitMarkers` but for every mounted `<Marker>` — no need to pass the points. No-op when there are no markers. |
 | `getCameraPosition()` | `Promise<CameraPosition \| null>` | Current camera; `null` until the map is ready. |
 | `getVisibleRegion()` | `Promise<VisibleRegion \| null>` | The visible geographic quad (`topLeft` / `topRight` / `bottomLeft` / `bottomRight`). |
 | `getScreenPoints(points)` | `Promise<(ScreenPoint \| null)[]>` | Project world coordinates to screen pixels; `null` per point that can't be projected (off-globe / behind the camera). |
@@ -373,7 +374,7 @@ Imperative methods via a marker ref (`const ref = useRef<MarkerRef>(null)`):
 | `animatedMoveTo(point, durationMs)` | Linearly animate the marker to `point`. |
 | `animatedRotateTo(angle, durationMs)` | Linearly animate the icon heading to `angle` degrees. |
 
-> Markers mounted before `initialize()` resolves attach automatically once the map is created — no ready-gating needed for the children. `fitAllMarkers()` and `fitMarkers` edge padding are on the roadmap.
+> Markers mounted before `initialize()` resolves attach automatically once the map is created — no ready-gating needed for the children.
 
 ## lite vs full
 

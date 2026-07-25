@@ -92,9 +92,20 @@ internal enum CameraAnimationOption: String, Enumerable {
 }
 
 // Options for the imperative setCenter() move.
+// Edge insets (React Native points) used by fitMarkers / fitAllMarkers to keep content clear of the
+// map edges; converted to pixels for the focus rect.
+internal struct EdgePaddingRecord: Record {
+  @Field var top: Double = 0
+  @Field var right: Double = 0
+  @Field var bottom: Double = 0
+  @Field var left: Double = 0
+}
+
 internal struct CameraMoveOptionsRecord: Record {
   @Field var durationSeconds: Double = 0.3
   @Field var animation: CameraAnimationOption = .smooth
+  // Only consulted by fitMarkers / fitAllMarkers; setCenter / setZoom ignore it.
+  @Field var edgePadding: EdgePaddingRecord?
 }
 
 // This view will be used as a native component. Make sure to inherit from `ExpoView`
@@ -387,18 +398,33 @@ class ExpoYandexMapKitView: ExpoView {
   // Fit the camera so every point is visible. A single point just recenters at the
   // current zoom (a degenerate bounding box would otherwise snap to max zoom).
   func fitMarkers(_ points: [PointRecord], options: CameraMoveOptionsRecord) {
-    guard let map = mapView?.mapWindow.map, !points.isEmpty else {
+    guard let map = mapView?.mapWindow.map else {
+      return
+    }
+    fitToPoints(
+      points.map { YMKPoint(latitude: $0.latitude, longitude: $0.longitude) }, options: options,
+      on: map)
+  }
+
+  // Fit every mounted <Marker> into view. Reads the markers' current geometry from the registry.
+  func fitAllMarkers(_ options: CameraMoveOptionsRecord) {
+    guard let map = mapView?.mapWindow.map else {
+      return
+    }
+    fitToPoints(markerViews.compactMap { $0.geoPoint }, options: options, on: map)
+  }
+
+  // Move the camera so every point is visible, optionally inset by options.edgePadding. A single
+  // point just recenters at the current zoom.
+  private func fitToPoints(_ points: [YMKPoint], options: CameraMoveOptionsRecord, on map: YMKMap) {
+    guard !points.isEmpty else {
       return
     }
     let current = map.cameraPosition
     let target: YMKCameraPosition
     if points.count == 1 {
       target = YMKCameraPosition(
-        target: YMKPoint(latitude: points[0].latitude, longitude: points[0].longitude),
-        zoom: current.zoom,
-        azimuth: current.azimuth,
-        tilt: current.tilt
-      )
+        target: points[0], zoom: current.zoom, azimuth: current.azimuth, tilt: current.tilt)
     } else {
       let latitudes = points.map { $0.latitude }
       let longitudes = points.map { $0.longitude }
@@ -406,9 +432,37 @@ class ExpoYandexMapKitView: ExpoView {
         southWest: YMKPoint(latitude: latitudes.min() ?? 0, longitude: longitudes.min() ?? 0),
         northEast: YMKPoint(latitude: latitudes.max() ?? 0, longitude: longitudes.max() ?? 0)
       )
-      target = map.cameraPosition(with: YMKGeometry(boundingBox: boundingBox))
+      let geometry = YMKGeometry(boundingBox: boundingBox)
+      if let focus = focusRect(options.edgePadding) {
+        target = map.cameraPosition(
+          with: geometry, azimuth: current.azimuth, tilt: current.tilt, focus: focus)
+      } else {
+        target = map.cameraPosition(with: geometry)
+      }
     }
     moveCamera(to: target, options: options, on: map)
+  }
+
+  // The focus rectangle = the map's bounds inset by the edge padding. The map's screen coordinates
+  // are pixels, so the point-based padding and bounds are scaled by the screen scale. Nil when
+  // there is no padding or the map has no size yet.
+  private func focusRect(_ padding: EdgePaddingRecord?) -> YMKScreenRect? {
+    guard let padding = padding, let mapView = mapView else {
+      return nil
+    }
+    let scale = Float(UIScreen.main.scale)
+    let width = Float(mapView.bounds.width) * scale
+    let height = Float(mapView.bounds.height) * scale
+    guard width > 0, height > 0 else {
+      return nil
+    }
+    let left = min(max(Float(padding.left) * scale, 0), width - 1)
+    let top = min(max(Float(padding.top) * scale, 0), height - 1)
+    let right = min(max(width - Float(padding.right) * scale, left + 1), width)
+    let bottom = min(max(height - Float(padding.bottom) * scale, top + 1), height)
+    return YMKScreenRect(
+      topLeft: YMKScreenPoint(x: left, y: top),
+      bottomRight: YMKScreenPoint(x: right, y: bottom))
   }
 
   private func moveCamera(to target: YMKCameraPosition, options: CameraMoveOptionsRecord, on map: YMKMap) {

@@ -4,6 +4,7 @@ import * as React from 'react';
 import {
   CameraMoveOptions,
   CameraPosition,
+  FitOptions,
   Point,
   ScreenPoint,
   YandexMapViewProps,
@@ -29,8 +30,10 @@ export const YandexMapView = React.forwardRef<YandexMapViewRef, YandexMapViewPro
           nativeRef.current?.setCenter(position, options ?? {}) ?? Promise.resolve(),
         setZoom: (zoom: number, options?: CameraMoveOptions) =>
           nativeRef.current?.setZoom(zoom, options ?? {}) ?? Promise.resolve(),
-        fitMarkers: (points: Point[], options?: CameraMoveOptions) =>
+        fitMarkers: (points: Point[], options?: FitOptions) =>
           nativeRef.current?.fitMarkers(points, options ?? {}) ?? Promise.resolve(),
+        fitAllMarkers: (options?: FitOptions) =>
+          nativeRef.current?.fitAllMarkers(options ?? {}) ?? Promise.resolve(),
         getCameraPosition: () => nativeRef.current?.getCameraPosition() ?? Promise.resolve(null),
         getVisibleRegion: () => nativeRef.current?.getVisibleRegion() ?? Promise.resolve(null),
         getScreenPoints: (points: Point[]) =>

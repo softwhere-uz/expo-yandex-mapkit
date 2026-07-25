@@ -15,6 +15,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   snapshot), so it avoids the layout drift that made the lineage's version unreliable. New
   `tracksViewChanges` prop (default `true`) controls re-rendering: set it `false` once the content
   has settled to snapshot the icon once — the react-native-maps convention, for a large perf win.
+- **`fitAllMarkers()` + `fitMarkers` edge padding** (#1 → Imperative ref methods): `fitAllMarkers(options?)`
+  moves the camera so every mounted `<Marker>` is visible (read from the marker registry). Both
+  `fitMarkers` and `fitAllMarkers` now accept `options.edgePadding` (`{ top, right, bottom, left }`
+  in points) — a focus rectangle that keeps the fitted content clear of overlays like a bottom
+  sheet or header. Completes the v0 imperative-ref surface.
 
 ## [0.0.5] - 2026-07-25
 

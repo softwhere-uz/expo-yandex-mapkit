@@ -15,6 +15,7 @@ export const YandexMapView = React.forwardRef<YandexMapViewRef, YandexMapViewPro
         setCenter: unsupported,
         setZoom: unsupported,
         fitMarkers: unsupported,
+        fitAllMarkers: unsupported,
         getCameraPosition: unsupported,
         getVisibleRegion: unsupported,
         getScreenPoints: unsupported,
