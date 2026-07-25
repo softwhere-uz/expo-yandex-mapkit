@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **User location & traffic** (`YandexMapView` props, #1 → User location & traffic):
+  `showUserPosition` (the device-location dot — needs the app to hold location permission),
+  `followUser` (keep the camera centered on the user), and `trafficVisible` (the live
+  traffic-jams layer). The `UserLocationLayer` / `TrafficLayer` are created lazily and applied
+  on map creation. (Custom user-location icon, accuracy-circle styling, and config-plugin
+  location permission strings are follow-ups.)
+
 - **React-children marker icons** (#1 → Markers): a `<Marker>` can now render arbitrary React
   children as its icon (a custom pin — e.g. a rating bubble), taking precedence over `source`.
   Rendered natively through MapKit's view provider on both platforms (not a hand-rolled bitmap

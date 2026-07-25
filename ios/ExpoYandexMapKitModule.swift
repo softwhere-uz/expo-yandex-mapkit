@@ -110,6 +110,18 @@ public class ExpoYandexMapKitModule: Module {
         view.setLogoPadding(logoPadding)
       }
 
+      Prop("showUserPosition") { (view: ExpoYandexMapKitView, show: Bool) in
+        view.setShowUserPosition(show)
+      }
+
+      Prop("followUser") { (view: ExpoYandexMapKitView, follow: Bool) in
+        view.setFollowUser(follow)
+      }
+
+      Prop("trafficVisible") { (view: ExpoYandexMapKitView, visible: Bool) in
+        view.setTrafficVisible(visible)
+      }
+
       OnViewDidUpdateProps { (view: ExpoYandexMapKitView) in
         view.applyPendingCameraPosition()
       }

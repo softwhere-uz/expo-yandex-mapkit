@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Log
 import android.view.View
 import com.yandex.mapkit.Animation
+import com.yandex.mapkit.MapKitFactory
 import com.yandex.mapkit.ScreenPoint
 import com.yandex.mapkit.ScreenRect
 import com.yandex.mapkit.geometry.BoundingBox
@@ -22,6 +23,8 @@ import com.yandex.mapkit.map.MapLoadStatistics
 import com.yandex.mapkit.map.MapLoadedListener
 import com.yandex.mapkit.map.MapType as YandexMapType
 import com.yandex.mapkit.mapview.MapView
+import com.yandex.mapkit.traffic.TrafficLayer
+import com.yandex.mapkit.user_location.UserLocationLayer
 import expo.modules.kotlin.AppContext
 import expo.modules.kotlin.records.Field
 import expo.modules.kotlin.records.Record
@@ -200,6 +203,13 @@ class ExpoYandexMapKitView(context: Context, appContext: AppContext) : ExpoView(
   private var logoPadding: LogoPaddingRecord? = null
   private var pendingCameraPosition: CameraPositionRecord? = null
   private var cameraPositionDirty = false
+
+  // User-location and traffic layers, created lazily on first use (they need the map window).
+  private var userLocationLayer: UserLocationLayer? = null
+  private var trafficLayer: TrafficLayer? = null
+  private var showUserPosition = false
+  private var followUser = false
+  private var trafficVisible = false
 
   // Child <Marker> views, in the order React mounted them. Managed via the module's GroupView
   // actions rather than the Android view hierarchy — markers own no UI, they drive placemarks.
@@ -624,6 +634,45 @@ class ExpoYandexMapKitView(context: Context, appContext: AppContext) : ExpoView(
     childViews.forEach { attachChild(it) }
   }
 
+  // User location & traffic layers (lazily created; need the map window).
+
+  internal fun setShowUserPosition(value: Boolean) {
+    showUserPosition = value
+    applyUserLocation()
+  }
+
+  internal fun setFollowUser(value: Boolean) {
+    followUser = value
+    applyUserLocation()
+  }
+
+  internal fun setTrafficVisible(value: Boolean) {
+    trafficVisible = value
+    applyTraffic()
+  }
+
+  private fun applyUserLocation() {
+    val mapWindow = mapView?.mapWindow ?: return
+    val layer = userLocationLayer
+      ?: MapKitFactory.getInstance().createUserLocationLayer(mapWindow).also { userLocationLayer = it }
+    layer.isVisible = showUserPosition
+    val view = mapView
+    if (showUserPosition && followUser && view != null && view.width > 0 && view.height > 0) {
+      // Anchoring the layer keeps the user dot centered — the map follows the user.
+      val center = ScreenPoint(view.width / 2f, view.height / 2f)
+      layer.setAnchor(center, center)
+    } else {
+      layer.resetAnchor()
+    }
+  }
+
+  private fun applyTraffic() {
+    val mapWindow = mapView?.mapWindow ?: return
+    val layer = trafficLayer
+      ?: MapKitFactory.getInstance().createTrafficLayer(mapWindow).also { trafficLayer = it }
+    layer.isTrafficVisible = trafficVisible
+  }
+
   private fun maybeCreateMapView() {
     if (mapView != null) {
       return
@@ -654,6 +703,13 @@ class ExpoYandexMapKitView(context: Context, appContext: AppContext) : ExpoView(
     applyPendingCameraPosition(allowAnimation = false)
     // Wire up any <Marker> children that mounted before the map existed.
     attachPendingChildren()
+    // Apply user-location / traffic props set before the map was created.
+    if (showUserPosition || followUser) {
+      applyUserLocation()
+    }
+    if (trafficVisible) {
+      applyTraffic()
+    }
     if (isAttachedToWindow) {
       // React Native has already laid this view out; measure the freshly added child manually.
       post { measureAndLayout() }
