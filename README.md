@@ -518,14 +518,14 @@ const places = await searchText('coffee', {
   searchTypes: ['biz'],
 });
 const here = await searchPoint({ latitude: 41.31, longitude: 69.24 }); // reverse geocoding
-// results: { name?, description?, point?, formattedAddress? }[]
+// results: { name?, description?, point?, formattedAddress?, addressComponents? }[]
 ```
 
 - `searchText(query, options?)` — full-text search near a window (`boundingBox`/`userPosition`, else world-wide).
 - `searchPoint(point, options?)` — reverse geocoding (objects at a coordinate; `options.zoom` sets detail).
 - `geocodeAddress(address, options?)` — `searchText` restricted to toponyms (`geo`); `geocodePoint(point, options?)` — alias for `searchPoint`.
 
-Options: `userPosition`, `boundingBox`, `searchTypes` (`'geo'` toponyms / `'biz'` organizations, default `['geo']`), `resultPageSize`, `zoom`. Requires MapKit to be initialized. The structured `Address` component breakdown is a follow-up; `formattedAddress` covers the common case for now.
+A toponym result also carries `addressComponents` — the structured breakdown, each `{ name, kinds }` where `kinds` are snake_case (`country`, `province`, `locality`, `district`, `street`, `house`, `metro_station`, …). Options: `userPosition`, `boundingBox`, `searchTypes` (`'geo'` toponyms / `'biz'` organizations, default `['geo']`), `resultPageSize`, `zoom`. Requires MapKit to be initialized.
 
 ### `findRoutes()` — routing
 
