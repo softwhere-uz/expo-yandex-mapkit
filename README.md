@@ -371,6 +371,7 @@ import { YandexMapView, Marker } from 'expo-yandex-mapkit';
 | `onPress` | `(event) => void` | — | `event.nativeEvent` is `{ identifier?, point }`. |
 | `children` | `ReactNode` | — | React content rendered as the marker's icon (a custom pin). Takes precedence over `source`. Rendered natively via MapKit's view provider (no fragile bitmap snapshotting). |
 | `tracksViewChanges` | `boolean` | `true` | Whether to keep re-rendering the icon as the `children` change. Set `false` once the content has settled (e.g. a static bubble) so it's rendered once — a large perf win vs. re-rendering every frame. |
+| `excludeFromCluster` | `boolean` | `false` | Only meaningful inside a `<Clusterer>`: when `true`, this marker is never merged into a cluster — it stays a standalone placemark at every zoom. |
 
 **Custom (React-children) markers** — render any RN view as the pin:
 
@@ -471,9 +472,15 @@ There is no separate "clustered marker" API and no `renderMarker` render-prop �
 | `clusterColor` | `ColorValue` | Cluster badge fill color. Default `#3478F6`. |
 | `clusterTextColor` | `ColorValue` | Cluster badge count-text color. Default white. |
 | `clusterTextSize` | `number` | Cluster badge count-text size (points). Default `13`. |
-| `clusterSize` | `number` | Cluster badge diameter (points); grows for 3+ digit counts. Default `36`. |
+| `clusterSize` | `number` | Cluster badge diameter (points); grows for 3+ digit counts. Default `36`. Ignored when `clusterIcon` is set. |
+| `clusterIcon` | `ImageSourcePropType` | Custom badge image — `require('./cluster.png')` or `{ uri }`. Replaces the drawn color disc; the count is still drawn on top (honoring `clusterTextColor`/`clusterTextSize`/`clusterTextOffset`), at the image's own size. Unset draws the default disc. |
+| `clusterTextOffset` | `{ x: number; y: number }` | Nudge the count text within the badge, in points (positive `x` → right, `y` → down). Default centered. Applies to both the disc and a `clusterIcon` badge. |
 | `fitClusterOnPress` | `boolean` | Animate the camera to fit a tapped cluster's markers. Default `true`. |
 | `onClusterPress` | `(event) => void` | `event.nativeEvent` is `{ size, point }`. |
+
+Keep a marker out of clustering with the `<Marker>` `excludeFromCluster` prop — it stays a standalone placemark at every zoom (handy for a "you are here" pin among clustered data points).
+
+> **On `onClusterPlacemarkPress` and imperative `appendClusterMarkers` / `clearClusterMarkers`** (both present in react-native-yamap-plus): this library's declarative design covers them without extra API. A clustered marker's own `onPress` already fires when it's shown un-clustered, so there's no separate placemark-press callback to wire up; and you add/remove/replace clustered markers by rendering `<Marker>` children from state (`setMarkers(...)`), which is the batch API — no imperative `append`/`clear` calls to keep in sync.
 
 ## lite vs full
 

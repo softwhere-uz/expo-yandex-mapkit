@@ -58,6 +58,13 @@ class ExpoYandexMapKitMarkerView: ExpoView, MapObjectChild {
   // clustering. Nil when the marker is a direct child of the map (un-clustered).
   var onGeometryChanged: (() -> Void)?
 
+  // Whether this marker opts out of clustering. Read by the owning <Clusterer> to route the marker
+  // to the map's root collection instead of the cluster collection.
+  var excludeFromCluster = false
+  // Set by a <Clusterer> parent so a change to `excludeFromCluster` after attach re-routes this
+  // marker between the cluster and root collections. Nil when un-clustered.
+  var onExclusionChanged: (() -> Void)?
+
   // MARK: - Props
 
   func setPoint(_ value: PointRecord) {
@@ -104,6 +111,17 @@ class ExpoYandexMapKitMarkerView: ExpoView, MapObjectChild {
 
   func setIdentifier(_ value: String?) {
     identifier = value
+  }
+
+  func setExcludeFromCluster(_ value: Bool) {
+    guard value != excludeFromCluster else {
+      return
+    }
+    excludeFromCluster = value
+    // Re-route only if already attached; otherwise the clusterer's attach path reads the new value.
+    if placemark != nil {
+      onExclusionChanged?()
+    }
   }
 
   func setIconSource(_ value: String?) {

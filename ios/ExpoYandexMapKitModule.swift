@@ -244,6 +244,10 @@ public class ExpoYandexMapKitModule: Module {
         view.setTracksViewChanges(tracks)
       }
 
+      Prop("excludeFromCluster") { (view: ExpoYandexMapKitMarkerView, exclude: Bool) in
+        view.setExcludeFromCluster(exclude)
+      }
+
       // Run on the main queue so the placemark is only ever touched on main (Expo runs
       // AsyncFunctions off-main by default; the animation's first frame is applied synchronously).
       AsyncFunction("animatedMoveTo") { (view: ExpoYandexMapKitMarkerView, point: PointRecord, durationMs: Double) in
@@ -280,6 +284,12 @@ public class ExpoYandexMapKitModule: Module {
       }
       Prop("clusterSize") { (view: ExpoYandexMapKitClustererView, size: Double) in
         view.setClusterSize(size)
+      }
+      Prop("clusterIcon") { (view: ExpoYandexMapKitClustererView, uri: String?) in
+        view.setClusterIcon(uri)
+      }
+      Prop("clusterTextOffset") { (view: ExpoYandexMapKitClustererView, offset: ClusterOffsetRecord?) in
+        view.setClusterTextOffset(offset)
       }
       Prop("fitClusterOnPress") { (view: ExpoYandexMapKitClustererView, fit: Bool) in
         view.setFitOnPress(fit)

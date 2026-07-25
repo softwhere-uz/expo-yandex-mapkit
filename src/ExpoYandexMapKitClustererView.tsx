@@ -1,18 +1,23 @@
 import { requireNativeView } from 'expo';
 import * as React from 'react';
-import { processColor } from 'react-native';
+import { Image, processColor } from 'react-native';
 
 import { ClustererProps } from './ExpoYandexMapKit.types';
 
 // Native clusterer view. It is a named module view (`ExpoYandexMapKitClustererView`), like the
 // shape/marker children, so it is required by name; the map view stays the module's default view.
 // It groups its `<Marker>` children into a MapKit ClusterizedPlacemarkCollection. Colors are sent
-// through processColor (the marker/shape convention). `onClusterPress` is not one of RN's reserved
-// bubbling event names (only `onPress`/`topPress` is), so — unlike the marker's `onPress` →
-// `onMarkerPress` rename — it is forwarded to the native event of the same name directly.
-type NativeClustererProps = Omit<ClustererProps, 'clusterColor' | 'clusterTextColor'> & {
+// through processColor and `clusterIcon` is resolved to a URI string (the marker/shape convention).
+// `onClusterPress` is not one of RN's reserved bubbling event names (only `onPress`/`topPress` is),
+// so — unlike the marker's `onPress` → `onMarkerPress` rename — it is forwarded to the native event
+// of the same name directly.
+type NativeClustererProps = Omit<
+  ClustererProps,
+  'clusterColor' | 'clusterTextColor' | 'clusterIcon'
+> & {
   clusterColor?: ReturnType<typeof processColor>;
   clusterTextColor?: ReturnType<typeof processColor>;
+  clusterIcon?: string;
 };
 
 const NativeClustererView: React.ComponentType<NativeClustererProps> = requireNativeView(
@@ -38,12 +43,26 @@ const NativeClustererView: React.ComponentType<NativeClustererProps> = requireNa
  * Tapping a cluster fits the camera to its markers by default (`fitClusterOnPress`) and reports
  * `onClusterPress`. Only `<Marker>` children are clustered — shapes belong directly under the map.
  */
-export function Clusterer({ clusterColor, clusterTextColor, ...props }: ClustererProps) {
+export function Clusterer({
+  clusterColor,
+  clusterTextColor,
+  clusterIcon,
+  ...props
+}: ClustererProps) {
+  // Resolve the badge icon (require(...) number or { uri }) to the URI the native side loads;
+  // undefined leaves the default drawn color disc.
+  const clusterIconUri = React.useMemo(
+    () =>
+      clusterIcon == null ? undefined : (Image.resolveAssetSource(clusterIcon)?.uri ?? undefined),
+    [clusterIcon]
+  );
+
   return (
     <NativeClustererView
       {...props}
       clusterColor={processColor(clusterColor)}
       clusterTextColor={processColor(clusterTextColor)}
+      clusterIcon={clusterIconUri}
     />
   );
 }
