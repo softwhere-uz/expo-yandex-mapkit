@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **v2: Routing** (#1 → v2 Routing, `full` flavor). `findRoutes(points, mode)` builds driving /
+  masstransit / pedestrian routes, with `findDrivingRoutes` / `findMasstransitRoutes` /
+  `findPedestrianRoutes` convenience wrappers. Each `Route` carries a summary — `time`,
+  `timeWithTraffic` (driving), `distance` (driving), `walkingDistance` + `transfersCount`
+  (masstransit) — and its `points` geometry (draw with `<Polyline>`). A new `ExpoYandexTransport`
+  module reusing the v2 flavor-conditional-compilation split (rejects on `lite`). The per-section
+  transit breakdown (which line, stops, per-leg mode) is a follow-up.
+
 ## [1.1.0] - 2026-07-25
 
 Starts v2 (the MapKit `full`-flavor modules) with **Suggest** and **Search & geocoding**, plus the

@@ -278,3 +278,16 @@ export type SearchResult = {
   point?: Point; // the object's coordinate (a toponym's balloon point, else its geometry)
   formattedAddress?: string; // the full address string for a toponym result
 };
+
+// ── Routing — requires the MapKit `full` flavor ──────────────────────────────────────────────────
+
+export type RouteMode = 'driving' | 'masstransit' | 'pedestrian';
+
+export type Route = {
+  time?: string; // formatted total duration (e.g. "23 min")
+  timeWithTraffic?: string; // driving: duration accounting for live traffic
+  distance?: number; // driving: total distance in metres
+  walkingDistance?: number; // masstransit / pedestrian: total walking distance in metres
+  transfersCount?: number; // masstransit: number of transfers
+  points: Point[]; // the route's polyline geometry (draw with <Polyline>)
+};
