@@ -21,6 +21,12 @@ type PlatformOptions = {
 export type ExpoYandexMapKitPluginProps = PlatformOptions & {
   android?: PlatformOptions;
   ios?: PlatformOptions;
+  // Opt-in location permission for the user-location layer (`showUserPosition` / `followUser`).
+  // When set to a usage-description string, the plugin writes it to iOS
+  // `NSLocationWhenInUseUsageDescription` and adds `ACCESS_FINE_LOCATION` / `ACCESS_COARSE_LOCATION`
+  // to the Android manifest. Omit it if your app already requests location itself (e.g. via
+  // expo-location) or does not show the user's position — the plugin then declares nothing.
+  locationWhenInUsePermission?: string;
 };
 
 // `version`/`flavor` always resolve to a concrete value; `apiKey`/`locale` stay optional.
@@ -50,6 +56,14 @@ const ANDROID_API_KEY_METADATA = 'expo.modules.yandexmapkit.API_KEY';
 const ANDROID_LOCALE_METADATA = 'expo.modules.yandexmapkit.LOCALE';
 const IOS_API_KEY_INFO_PLIST_KEY = 'ExpoYandexMapKitApiKey';
 const IOS_LOCALE_INFO_PLIST_KEY = 'ExpoYandexMapKitLocale';
+
+// iOS usage-description key + Android runtime permissions declared when `locationWhenInUsePermission`
+// is set — everything the user-location layer needs to request "while in use" location.
+const IOS_LOCATION_WHEN_IN_USE_KEY = 'NSLocationWhenInUseUsageDescription';
+const ANDROID_LOCATION_PERMISSIONS = [
+  'android.permission.ACCESS_FINE_LOCATION',
+  'android.permission.ACCESS_COARSE_LOCATION',
+];
 
 const VALID_FLAVORS = ['lite', 'full'];
 const VERSION_PATTERN = /^\d+\.\d+\.\d+$/;
@@ -103,6 +117,15 @@ function validateProps(props: ExpoYandexMapKitPluginProps): void {
   validatePlatformOptions(props, '');
   validatePlatformOptions(props.android ?? {}, 'android.');
   validatePlatformOptions(props.ios ?? {}, 'ios.');
+  // Read as unknown: config-plugin props are untyped JSON, so a caller can pass a non-string.
+  // A present, non-string value is a genuine misconfiguration; an empty/whitespace-only string is
+  // normalized to "not provided" later (normalizeApiKey-style), so it need not throw here.
+  const permission: unknown = props.locationWhenInUsePermission;
+  if (permission != null && typeof permission !== 'string') {
+    throw new Error(
+      `expo-yandex-mapkit config plugin: invalid locationWhenInUsePermission — must be a usage-description string (or omit it to declare no location permission).`
+    );
+  }
 }
 
 // Trim the key so a whitespace-padded value (e.g. a dashboard copy-paste with a trailing newline)
@@ -312,6 +335,26 @@ const withIosDeploymentTarget: ConfigPlugin = (config) => {
   });
 };
 
+// Opt-in location permission → iOS Info.plist NSLocationWhenInUseUsageDescription. Set from the
+// plugin prop (authoritative, matching expo-location's convention) so the value shown in the
+// permission prompt is exactly what the developer configured.
+const withIosLocationPermission: ConfigPlugin<string> = (config, description) => {
+  return withInfoPlist(config, (config) => {
+    config.modResults[IOS_LOCATION_WHEN_IN_USE_KEY] = description;
+    return config;
+  });
+};
+
+// Opt-in location permission → Android ACCESS_FINE_LOCATION / ACCESS_COARSE_LOCATION.
+// ensurePermissions upserts (deduping against an app that already declares them), so re-runs of
+// the non-clean prebuild do not duplicate the <uses-permission> entries.
+const withAndroidLocationPermissions: ConfigPlugin = (config) => {
+  return withAndroidManifest(config, (config) => {
+    AndroidConfig.Permissions.ensurePermissions(config.modResults, ANDROID_LOCATION_PERMISSIONS);
+    return config;
+  });
+};
+
 const withExpoYandexMapKit: ConfigPlugin<ExpoYandexMapKitPluginProps | undefined> = (
   config,
   props = {}
@@ -324,6 +367,13 @@ const withExpoYandexMapKit: ConfigPlugin<ExpoYandexMapKitPluginProps | undefined
   config = withIosProps(config, ios);
   config = withIosApiKey(config, ios);
   config = withIosDeploymentTarget(config);
+  // An empty/whitespace-only description is treated as "not provided" (a mirror of the apiKey
+  // handling) so a `process.env.X ?? ''` footgun declares no permission rather than a blank string.
+  const locationPermission = props.locationWhenInUsePermission?.trim();
+  if (locationPermission) {
+    config = withIosLocationPermission(config, locationPermission);
+    config = withAndroidLocationPermissions(config);
+  }
   return config;
 };
 

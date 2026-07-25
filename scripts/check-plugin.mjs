@@ -419,4 +419,51 @@ const metaValues = (application, name) =>
   );
 }
 
+// 17. Opt-in location permission: a usage-description string writes the iOS
+//     NSLocationWhenInUseUsageDescription and adds the two Android location permissions; omitting
+//     it (or passing a blank string) declares nothing; a non-string throws; and the manifest mod
+//     is idempotent (a non-clean prebuild re-runs it) so the permissions are not duplicated.
+{
+  const permissionNames = (modResults) =>
+    (modResults.manifest['uses-permission'] ?? []).map((item) => item.$['android:name']);
+
+  const description = 'Show your location on the map.';
+  const config = withPlugin(baseConfig(), { locationWhenInUsePermission: description });
+  const manifest = await config.mods.android.manifest({ ...config, modResults: manifestInit() });
+  const names = permissionNames(manifest.modResults);
+  assert.ok(
+    names.includes('android.permission.ACCESS_FINE_LOCATION'),
+    'ACCESS_FINE_LOCATION must be added'
+  );
+  assert.ok(
+    names.includes('android.permission.ACCESS_COARSE_LOCATION'),
+    'ACCESS_COARSE_LOCATION must be added'
+  );
+  const plist = await config.mods.ios.infoPlist({ ...config, modResults: {} });
+  assert.equal(plist.modResults.NSLocationWhenInUseUsageDescription, description);
+
+  // Omitted → no permission-only mods registered (runtime/native surfaces untouched).
+  const none = withPlugin(baseConfig(), { flavor: 'lite' });
+  assert.equal(none.mods.android.manifest, undefined, 'no manifest mod without a permission');
+  assert.equal(none.mods.ios.infoPlist, undefined, 'no infoPlist mod without a permission');
+
+  // Blank/whitespace string → treated as "not provided".
+  const blank = withPlugin(baseConfig(), { locationWhenInUsePermission: '   ' });
+  assert.equal(blank.mods.android.manifest, undefined, 'blank permission adds no manifest mod');
+  assert.equal(blank.mods.ios.infoPlist, undefined, 'blank permission adds no infoPlist mod');
+
+  // Non-string → scoped throw.
+  assert.throws(
+    () => withPlugin(baseConfig(), { locationWhenInUsePermission: 123 }),
+    /locationWhenInUsePermission/
+  );
+
+  // Idempotent: applying the manifest mod to its own output must not duplicate the permission.
+  const twice = await config.mods.android.manifest({ ...config, modResults: manifest.modResults });
+  const fineCount = permissionNames(twice.modResults).filter(
+    (n) => n === 'android.permission.ACCESS_FINE_LOCATION'
+  ).length;
+  assert.equal(fineCount, 1, 'ACCESS_FINE_LOCATION must not be duplicated on re-run');
+}
+
 console.log('plugin behavior checks: all passed');

@@ -106,6 +106,7 @@ npx expo install expo-yandex-mapkit
 | `locale` | `string` | — | Язык карты в формате `language` или `language_REGION` (например, `"ru_RU"`, `"en_US"`, `"tr_TR"`). Опустите, чтобы следовать локали устройства. Применяется и на рантайм-пути. |
 | `version` | `string` | `"4.42.0"` | Версия нативного MapKit SDK (`x.y.z`). |
 | `flavor` | `"lite" \| "full"` | `"lite"` | Flavor MapKit — см. [lite и full](#lite-и-full). |
+| `locationWhenInUsePermission` | `string` | — | Описание для разрешения на геопозицию, которое нужно слою местоположения (`showUserPosition` / `followUser`). Если задано, записывается в iOS `NSLocationWhenInUseUsageDescription` и добавляет `ACCESS_FINE_LOCATION` / `ACCESS_COARSE_LOCATION` в манифест Android. Опустите, если приложение само запрашивает геопозицию (например, через expo-location) или не показывает местоположение пользователя. |
 | `android` | `{ version?, flavor?, apiKey?, locale? }` | — | Переопределения только для Android; имеют приоритет над значениями верхнего уровня. |
 | `ios` | `{ version?, flavor?, apiKey?, locale? }` | — | Переопределения только для iOS; имеют приоритет над значениями верхнего уровня. |
 
