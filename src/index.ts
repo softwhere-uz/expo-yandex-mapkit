@@ -158,5 +158,15 @@ export async function findPedestrianRoutes(points: Point[]): Promise<Route[]> {
   return ExpoYandexTransportModule.findRoutes(points, 'pedestrian');
 }
 
+/** Bicycle routes between `points` — {@link findRoutes} with mode `'bicycle'`. */
+export async function findBicycleRoutes(points: Point[]): Promise<Route[]> {
+  return ExpoYandexTransportModule.findRoutes(points, 'bicycle');
+}
+
+/** Scooter routes between `points` — {@link findRoutes} with mode `'scooter'`. */
+export async function findScooterRoutes(points: Point[]): Promise<Route[]> {
+  return ExpoYandexTransportModule.findRoutes(points, 'scooter');
+}
+
 // Escape hatch: the raw Transport (routing) native module.
 export { default as ExpoYandexTransportModule } from './ExpoYandexTransportModule';

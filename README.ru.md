@@ -33,7 +33,7 @@
 **Модули flavor `full`** — задайте `flavor: 'full'` ([lite и full](#lite-и-full))
 - 🔎 **Поиск и геокодинг** — `searchText`, `searchPoint` (обратный), `geocodeAddress` / `geocodePoint`, `resolveURI`; структурные `addressComponents`, рейтинг организаций `rating`, опции орфографии / сниппетов
 - ⌨️ **Саджест** — поиск по мере ввода; координаты читаются **нативно** (без потери `center`)
-- 🧭 **Маршрутизация** — `findRoutes` для авто / общественного транспорта / пешехода, с разбивкой на участки по секциям (пешком → автобус → пересадка → метро)
+- 🧭 **Маршрутизация** — `findRoutes` для авто / общественного транспорта / пешехода / **велосипеда / самоката** (сверх паритета), с разбивкой на участки по секциям (пешком → автобус → пересадка → метро)
 
 **Установка и DX**
 - 🔑 API-ключ на этапе **сборки** (конфиг-плагин) или в **рантайме** (`initialize`) — без правок `AndroidManifest.xml` / `AppDelegate`; ключ, заданный при сборке, инициализирует MapKit автоматически при старте (без проблемы порядка инициализации)
@@ -562,8 +562,8 @@ const routes = await findRoutes(
 // Draw it: <Polyline points={routes[0].points} />
 ```
 
-- `findRoutes(points, mode)` — 2+ путевых точки, `mode` = `'driving'` | `'masstransit'` | `'pedestrian'`; резолвит лучший маршрут первым.
-- `findDrivingRoutes` / `findMasstransitRoutes` / `findPedestrianRoutes` — удобные обёртки.
+- `findRoutes(points, mode)` — 2+ путевых точки, `mode` = `'driving'` | `'masstransit'` | `'pedestrian'` | `'bicycle'` | `'scooter'`; резолвит лучший маршрут первым.
+- `findDrivingRoutes` / `findMasstransitRoutes` / `findPedestrianRoutes` / `findBicycleRoutes` / `findScooterRoutes` — удобные обёртки. (**Велосипед / самокат — сверх паритета**: ни одна RN-обёртка для Яндекс-карт этого не даёт.)
 
 Каждый `Route` несёт сводку (`time`; `timeWithTraffic` + `distance` для авто; `walkingDistance` + `transfersCount` для общественного транспорта), геометрию `points` и `sections` — маршрут, разбитый на участки. Каждый `RouteSection` — это `{ type, time?, points, transports? }`: `type` — `'car'`, `'walk'`, `'waiting'` или тип транспортного средства (`'bus'`, `'underground'`, …), `transports` сопоставляет каждому типу транспорта названия его линий, а `points` — фрагмент полилинии этого участка. Так маршрут на общественном транспорте читается как «пешком → автобус 42 → пересадка → метро», каждый участок можно отрисовать отдельно. Требует инициализированного MapKit.
 

@@ -297,7 +297,7 @@ export type SearchResult = {
 
 // ── Routing — requires the MapKit `full` flavor ──────────────────────────────────────────────────
 
-export type RouteMode = 'driving' | 'masstransit' | 'pedestrian';
+export type RouteMode = 'driving' | 'masstransit' | 'pedestrian' | 'bicycle' | 'scooter';
 
 // One leg of a route. `type` is `'car'` (driving), `'walk'` / `'waiting'`, or a public-transport
 // vehicle type (`'bus'`, `'underground'`, `'tramway'`, `'minibus'`, `'railway'`, …).

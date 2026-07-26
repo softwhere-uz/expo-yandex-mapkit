@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Bicycle / scooter routing** (`full` flavor; beyond parity — [#2](https://github.com/softwhere-uz/expo-yandex-mapkit/issues/2)).
+  `findRoutes(points, mode)` gains `'bicycle'` and `'scooter'` modes, plus `findBicycleRoutes` /
+  `findScooterRoutes` wrappers, via MapKit's `BicycleRouter` (`VehicleType.BICYCLE` / `.SCOOTER`). Each
+  route carries its `time` / `distance` summary + `points` geometry (a single continuous leg, so
+  `sections` is empty). Exists in the official Yandex Flutter plugin; **neither Yandex-maps RN wrapper
+  exposed it**. This completes the Section A checklist of #2.
+
 ## [2.0.1] - 2026-07-26
 
 Docs/packaging patch — no code changes.
