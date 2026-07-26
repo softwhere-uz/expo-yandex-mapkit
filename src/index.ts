@@ -20,6 +20,7 @@ export { Clusterer } from './ExpoYandexMapKitClustererView';
 export { Polyline } from './ExpoYandexMapKitPolylineView';
 export { Polygon } from './ExpoYandexMapKitPolygonView';
 export { Circle } from './ExpoYandexMapKitCircleView';
+export { distanceBetween, pathLength, boundingBox } from './geometry';
 export * from './ExpoYandexMapKit.types';
 
 // Escape hatch: the raw native module.

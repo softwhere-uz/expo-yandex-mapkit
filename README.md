@@ -461,6 +461,18 @@ import { YandexMapView, Polygon, Circle } from 'expo-yandex-mapkit';
 - **`<Polygon>`**: `points` (outer ring, 3+), `innerRings?` (holes), `fillColor`, `strokeColor`, `strokeWidth`, `zIndex`, `onPress`, `handled`.
 - **`<Circle>`**: `center`, `radius` (metres), `fillColor`, `strokeColor`, `strokeWidth`, `zIndex`, `onPress`, `handled`.
 
+### Geometry helpers
+
+Pure-JS helpers (no map instance, work on web too):
+
+```tsx
+import { distanceBetween, pathLength, boundingBox } from 'expo-yandex-mapkit';
+
+distanceBetween({ latitude: 41.31, longitude: 69.24 }, { latitude: 55.75, longitude: 37.62 }); // metres (haversine)
+pathLength([p1, p2, p3]); // total polyline length in metres
+boundingBox([p1, p2, p3]); // { southWest, northEast } | null — feed to fitMarkers / a search window
+```
+
 ### `<Clusterer />`
 
 Group `<Marker>` children into clusters. Wrap the markers to cluster in a `<Clusterer>` — each marker keeps all its usual features (image or React-children icon, `onPress`, `identifier`):
