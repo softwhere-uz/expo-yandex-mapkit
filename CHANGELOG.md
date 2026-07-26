@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Jest mock preset** shipped in the package (beyond parity — [#2](https://github.com/softwhere-uz/expo-yandex-mapkit/issues/2)).
+  `jest.mock('expo-yandex-mapkit', () => require('expo-yandex-mapkit/mock'))` lets component tests run
+  without a native runtime — the components render their children in a `<View>` and the ref methods /
+  module functions are `jest.fn()`s returning sensible defaults. Standard in the react-native-maps
+  ecosystem ([yamap#257](https://github.com/volga-volga/react-native-yamap/issues/257)); no
+  Yandex-maps RN wrapper ships one.
+
 ## [2.0.1] - 2026-07-26
 
 Docs/packaging patch — no code changes.

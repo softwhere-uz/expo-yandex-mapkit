@@ -605,6 +605,16 @@ No — the native SDK accepts its key once. A second `initialize` with a differe
 **Does it work on web?**
 Not yet: the web build warns once and renders nothing (deliberately, instead of crashing). A `ymaps3`-based DOM component is planned (v3).
 
+## Testing (Jest mock)
+
+The package ships a Jest mock preset so component tests run without a native runtime — the map view and its objects render as plain views, and the module functions resolve. In your Jest setup:
+
+```js
+jest.mock('expo-yandex-mapkit', () => require('expo-yandex-mapkit/mock'));
+```
+
+Components (`YandexMapView`, `Marker`, `Polyline`, `Polygon`, `Circle`, `Clusterer`) render their children in a `<View>`; the ref methods and module functions (`initialize`, `suggest`, `searchText`, `findRoutes`, …) are `jest.fn()`s returning sensible defaults, so you can render and assert without mocking each call yourself. No Yandex-maps RN wrapper ships a mock preset.
+
 ## Migrating from react-native-yamap
 
 Many prospective users come from `react-native-yamap` (no npm release since 2024). Honestly: v0's surface is far smaller — map view, camera, press events, night mode — so there is no complete migration path yet. A proper migration guide with a prop-mapping table is planned once markers and shapes land; where sensible, prop names will mirror `react-native-yamap`'s to keep the move mechanical.
