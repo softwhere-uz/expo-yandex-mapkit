@@ -102,7 +102,7 @@ public class ExpoYandexTransportModule: Module {
     ) {
       let router = bicycleRouter ?? YMKTransportFactory.instance().createBicycleRouter()
       bicycleRouter = router
-      let session = router.requestRoutes(with: points, vehicleType: vehicleType) { routes, error in
+      let session = router.requestRoutes(with: points, type: vehicleType) { routes, error in
         if let error = error {
           promise.reject("E_ROUTE", self.routeError(error))
           return
