@@ -132,6 +132,7 @@ class ExpoYandexMapKitView: ExpoView {
   let onMapPress = EventDispatcher()
   let onMapLongPress = EventDispatcher()
   let onMapLoaded = EventDispatcher()
+  let onUserLocationChange = EventDispatcher()
 
   var animated = true
 
@@ -345,6 +346,19 @@ class ExpoYandexMapKitView: ExpoView {
   func onUserLocationObjectAvailable(_ view: YMKUserLocationView) {
     userLocationView = view
     applyUserLocationStyle()
+    dispatchUserLocationChange(view)
+  }
+
+  // Emit onUserLocationChange with the dot's current coordinate + accuracy. Called when the location
+  // dot first appears and on every position/heading update (from the object listener) — so it never
+  // fires from a prop-driven style pass, only on a real location change. The pin's geometry is the
+  // device coordinate; the accuracy circle's radius is the horizontal accuracy in metres.
+  private func dispatchUserLocationChange(_ view: YMKUserLocationView) {
+    let point = view.pin.geometry
+    onUserLocationChange([
+      "point": ["latitude": point.latitude, "longitude": point.longitude],
+      "accuracy": Double(view.accuracyCircle.geometry.radius),
+    ])
   }
 
   func onUserLocationObjectRemoved(_ view: YMKUserLocationView) {

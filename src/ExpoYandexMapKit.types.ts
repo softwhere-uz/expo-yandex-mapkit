@@ -24,6 +24,12 @@ export type MapPressEvent = {
   point: Point;
 };
 
+// Payload for onUserLocationChange — the device's location as MapKit's user-location layer reports it.
+export type UserLocationChangeEvent = {
+  point: Point; // the device's current coordinate
+  accuracy: number; // horizontal accuracy radius, in metres (the accuracy-circle radius)
+};
+
 export type MapLoadStatistics = {
   renderObjectCount: number; // number of map objects rendered
   tileMemoryUsage: number; // tile cache memory usage, in bytes
@@ -63,6 +69,10 @@ export type YandexMapViewProps = {
   userLocationAccuracyStrokeColor?: ColorValue; // stroke (border) color of the accuracy circle
   userLocationAccuracyStrokeWidth?: number; // accuracy-circle stroke width in points
   trafficVisible?: boolean; // show the live traffic-jams layer; default false
+  // Fires with the device's coordinate + accuracy whenever the user-location dot appears or moves.
+  // Requires `showUserPosition` (and location permission). Answers the recurring "how do I get the
+  // user's coordinates" ask — no Yandex-maps RN wrapper surfaces it.
+  onUserLocationChange?: (event: { nativeEvent: UserLocationChangeEvent }) => void;
   onMapReady?: (event: { nativeEvent: Record<string, never> }) => void;
   onCameraPositionChanged?: (event: { nativeEvent: CameraPositionChangeEvent }) => void;
   onMapPress?: (event: { nativeEvent: MapPressEvent }) => void;

@@ -182,6 +182,7 @@ class ExpoYandexMapKitView(context: Context, appContext: AppContext) : ExpoView(
   private val onMapPress by EventDispatcher<Map<String, Any>>()
   private val onMapLongPress by EventDispatcher<Map<String, Any>>()
   private val onMapLoaded by EventDispatcher<Map<String, Any>>()
+  private val onUserLocationChange by EventDispatcher<Map<String, Any>>()
 
   internal var animated = true
 
@@ -236,6 +237,7 @@ class ExpoYandexMapKitView(context: Context, appContext: AppContext) : ExpoView(
     override fun onObjectAdded(view: UserLocationView) {
       userLocationView = view
       applyUserLocationStyle()
+      dispatchUserLocationChange(view)
     }
 
     override fun onObjectRemoved(view: UserLocationView) {
@@ -247,7 +249,22 @@ class ExpoYandexMapKitView(context: Context, appContext: AppContext) : ExpoView(
     override fun onObjectUpdated(view: UserLocationView, event: ObjectEvent) {
       userLocationView = view
       applyUserLocationStyle()
+      dispatchUserLocationChange(view)
     }
+  }
+
+  // Emit onUserLocationChange with the dot's current coordinate + accuracy. Called when the location
+  // dot first appears and on every position/heading update — so it never fires from a prop-driven
+  // style pass, only on a real location change. The pin's geometry is the device coordinate; the
+  // accuracy circle's radius is the horizontal accuracy in metres.
+  private fun dispatchUserLocationChange(view: UserLocationView) {
+    val point = view.pin.geometry
+    onUserLocationChange(
+      mapOf(
+        "point" to mapOf("latitude" to point.latitude, "longitude" to point.longitude),
+        "accuracy" to view.accuracyCircle.geometry.radius.toDouble()
+      )
+    )
   }
 
   // Child <Marker> views, in the order React mounted them. Managed via the module's GroupView
