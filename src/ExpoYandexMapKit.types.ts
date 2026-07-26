@@ -306,7 +306,7 @@ export type DrivingRouteOptions = {
   avoidUnpaved?: boolean; // avoid unpaved roads
   avoidPoorConditions?: boolean; // avoid roads in poor condition
   avoidHighways?: boolean; // avoid highways
-  departureTime?: number; // Unix time (ms) to depart — affects the traffic-aware ETA
+  departureTime?: number; // Unix time (seconds) to depart — affects the traffic-aware ETA
   vehicleType?: 'default' | 'taxi' | 'truck' | 'moto'; // driving vehicle profile (allowed roads / restrictions)
 };
 

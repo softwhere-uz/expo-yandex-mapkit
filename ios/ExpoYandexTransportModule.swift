@@ -72,7 +72,7 @@ public class ExpoYandexTransportModule: Module {
           avoidBoatFerry: false, avoidFordCrossing: false, avoidTunnel: false,
           avoidHighway: opts.avoidHighways)
         if let departureTime = opts.departureTime {
-          drivingOptions.departureTime = NSNumber(value: departureTime)
+          drivingOptions.departureTime = Date(timeIntervalSince1970: departureTime)
         }
         switch opts.vehicleType {
         case "taxi": vehicleOptions.vehicleType = .taxi
