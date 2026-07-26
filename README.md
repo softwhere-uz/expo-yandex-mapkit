@@ -33,7 +33,7 @@ A complete Yandex Maps SDK for Expo — full feature parity with the most capabl
 **Full-flavor modules** — set `flavor: 'full'` ([lite vs full](#lite-vs-full))
 - 🔎 **Search & geocoding** — `searchText`, `searchPoint` (reverse), `geocodeAddress` / `geocodePoint`, `resolveURI`; structured `addressComponents`, business `rating`, spelling / snippets options
 - ⌨️ **Suggest** — search-as-you-type; coordinates read **natively** (no lost `center`)
-- 🧭 **Routing** — `findRoutes` for driving / masstransit / pedestrian, with a per-section leg breakdown (walk → bus → transfer → metro)
+- 🧭 **Routing** — `findRoutes` for driving / masstransit / pedestrian, with a per-section leg breakdown (walk → bus → transfer → metro); draw it with the `<Route>` component (colored per leg)
 
 **Setup & DX**
 - 🔑 API key at **build time** (config plugin) or **runtime** (`initialize`) — no `AndroidManifest.xml` / `AppDelegate` edits; a build-time key auto-initializes at startup (no init-order footgun)
@@ -460,6 +460,22 @@ import { YandexMapView, Polygon, Circle } from 'expo-yandex-mapkit';
 
 - **`<Polygon>`**: `points` (outer ring, 3+), `innerRings?` (holes), `fillColor`, `strokeColor`, `strokeWidth`, `zIndex`, `onPress`, `handled`.
 - **`<Circle>`**: `center`, `radius` (metres), `fillColor`, `strokeColor`, `strokeWidth`, `zIndex`, `onPress`, `handled`.
+
+### `<Route />`
+
+Draws a `Route` (from `findRoutes`) as colored polylines — one per section, by leg type (driving / walking / transit), walking legs dashed. Both Yandex-maps RN wrappers return route *data* and leave drawing to the app; this renders it out of the box:
+
+```tsx
+import { YandexMapView, Route, findDrivingRoutes } from 'expo-yandex-mapkit';
+
+const [route] = await findDrivingRoutes([a, b]);
+// ...
+<YandexMapView style={StyleSheet.absoluteFill} cameraPosition={{ latitude: 41.31, longitude: 69.24, zoom: 11 }}>
+  {route && <Route route={route} strokeWidth={6} />}
+</YandexMapView>;
+```
+
+Props: `route`, `strokeWidth`, `drivingColor` / `walkColor` / `transitColor`, `outlineColor`, `zIndex`, `onPress`. Falls back to the route's whole `points` geometry when it has no `sections`.
 
 ### `<Clusterer />`
 

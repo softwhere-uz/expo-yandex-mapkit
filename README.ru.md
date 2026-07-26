@@ -33,7 +33,7 @@
 **Модули flavor `full`** — задайте `flavor: 'full'` ([lite и full](#lite-и-full))
 - 🔎 **Поиск и геокодинг** — `searchText`, `searchPoint` (обратный), `geocodeAddress` / `geocodePoint`, `resolveURI`; структурные `addressComponents`, рейтинг организаций `rating`, опции орфографии / сниппетов
 - ⌨️ **Саджест** — поиск по мере ввода; координаты читаются **нативно** (без потери `center`)
-- 🧭 **Маршрутизация** — `findRoutes` для авто / общественного транспорта / пешехода, с разбивкой на участки по секциям (пешком → автобус → пересадка → метро)
+- 🧭 **Маршрутизация** — `findRoutes` для авто / общественного транспорта / пешехода, с разбивкой на участки по секциям (пешком → автобус → пересадка → метро); рисуйте компонентом `<Route>` (цвет по типу участка)
 
 **Установка и DX**
 - 🔑 API-ключ на этапе **сборки** (конфиг-плагин) или в **рантайме** (`initialize`) — без правок `AndroidManifest.xml` / `AppDelegate`; ключ, заданный при сборке, инициализирует MapKit автоматически при старте (без проблемы порядка инициализации)
@@ -460,6 +460,22 @@ import { YandexMapView, Polygon, Circle } from 'expo-yandex-mapkit';
 
 - **`<Polygon>`**: `points` (внешнее кольцо, 3+), `innerRings?` (дырки), `fillColor`, `strokeColor`, `strokeWidth`, `zIndex`, `onPress`, `handled`.
 - **`<Circle>`**: `center`, `radius` (в метрах), `fillColor`, `strokeColor`, `strokeWidth`, `zIndex`, `onPress`, `handled`.
+
+### `<Route />`
+
+Рисует `Route` (из `findRoutes`) цветными полилиниями — по одной на секцию, по типу участка (авто / пешком / транспорт), пешеходные участки — пунктиром. Обе обёртки для Яндекс-карт возвращают *данные* маршрута и оставляют отрисовку приложению; этот компонент рисует их из коробки:
+
+```tsx
+import { YandexMapView, Route, findDrivingRoutes } from 'expo-yandex-mapkit';
+
+const [route] = await findDrivingRoutes([a, b]);
+// ...
+<YandexMapView style={StyleSheet.absoluteFill} cameraPosition={{ latitude: 41.31, longitude: 69.24, zoom: 11 }}>
+  {route && <Route route={route} strokeWidth={6} />}
+</YandexMapView>;
+```
+
+Пропсы: `route`, `strokeWidth`, `drivingColor` / `walkColor` / `transitColor`, `outlineColor`, `zIndex`, `onPress`. Если у маршрута нет `sections`, рисует всю геометрию `points` целиком.
 
 ### `<Clusterer />`
 

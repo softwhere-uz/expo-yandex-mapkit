@@ -317,3 +317,17 @@ export type Route = {
   points: Point[]; // the route's polyline geometry (draw with <Polyline>)
   sections: RouteSection[]; // the route broken into legs (walk / transit / drive)
 };
+
+// Props for the <Route> display component — draws a Route (from findRoutes) as colored polylines,
+// one per section, so a route from findRoutes renders out of the box instead of leaving drawing to
+// the app (the recurring confusion in the lineage).
+export type RouteProps = {
+  route: Route; // a Route returned by findRoutes / findDrivingRoutes / …
+  strokeWidth?: number; // stroke width for every section, default 6
+  drivingColor?: ColorValue; // 'car' (driving) sections, default a blue
+  walkColor?: ColorValue; // 'walk' / 'waiting' sections — drawn dashed, default a gray
+  transitColor?: ColorValue; // public-transport sections, default a green
+  outlineColor?: ColorValue; // optional casing drawn under every section
+  zIndex?: number; // draw order among map objects
+  onPress?: () => void; // tap on any section of the route
+};

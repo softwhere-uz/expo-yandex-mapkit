@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`<Route>` display component** (beyond parity — [#2](https://github.com/softwhere-uz/expo-yandex-mapkit/issues/2)).
+  Draws a `Route` (from `findRoutes`) as native polylines — one per section, colored by leg type
+  (driving / walking / transit; walking legs dashed) — so a route renders out of the box instead of
+  leaving the drawing to the app (the recurring confusion in the lineage:
+  [yamap#262](https://github.com/volga-volga/react-native-yamap/issues/262), #241, #234). Pure JS
+  (wraps `<Polyline>`); falls back to the route's whole geometry when it has no `sections`.
+
 ## [2.0.1] - 2026-07-26
 
 Docs/packaging patch — no code changes.
