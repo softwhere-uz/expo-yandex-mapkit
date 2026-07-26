@@ -20,7 +20,7 @@
 
 **Карта и камера**
 - 🗺️ Нативная карта MapKit `<YandexMapView>` (Fabric / Новая архитектура)
-- 🎥 Декларативная анимируемая камера (`cameraPosition`) + императивные методы через ref — `setCenter`, `setZoom`, `fitMarkers` / `fitAllMarkers` (с отступами по краям), `getCameraPosition`, `getVisibleRegion`, проекция мир↔экран
+- 🎥 Декларативная анимируемая камера (`cameraPosition`) + императивные методы через ref — `setCenter`, `setZoom`, `fitMarkers` / `fitAllMarkers` (с отступами по краям), `getCameraPosition`, `getVisibleRegion`, проекция мир↔экран, `takeSnapshot`
 - 👆 События нажатий / долгих нажатий / движения камеры / загрузки карты с идентичными payload'ами на iOS и Android
 - 🎨 `mapType` (`map` / `satellite` / `hybrid` / `vector`), JSON-`mapStyle`, ночной режим, переключатели отдельных жестов, размещение логотипа
 
@@ -347,6 +347,7 @@ type MapLoadStatistics = {
 | `getVisibleRegion()` | `Promise<VisibleRegion \| null>` | Видимый географический четырёхугольник (`topLeft` / `topRight` / `bottomLeft` / `bottomRight`). |
 | `getScreenPoints(points)` | `Promise<(ScreenPoint \| null)[]>` | Спроецировать мировые координаты в экранные пиксели; `null` для точки, которую нельзя спроецировать (за пределами глобуса / за камерой). |
 | `getWorldPoints(points)` | `Promise<(Point \| null)[]>` | Спроецировать экранные пиксели обратно в мировые координаты. |
+| `takeSnapshot()` | `Promise<string \| null>` | Снять отрендеренную карту как base64-PNG **data URI** (`data:image/png;base64,…`), пригодный прямо для `<Image source={{ uri }}>`. Вызывайте после `onMapLoaded`. `null`, если карта не готова. Запрошено в [yamap#48](https://github.com/volga-volga/react-native-yamap/issues/48) — ни одна обёртка этого не даёт. |
 
 ```tsx
 const mapRef = useRef<YandexMapViewRef>(null);

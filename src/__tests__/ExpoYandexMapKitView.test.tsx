@@ -13,6 +13,8 @@ jest.mock('expo', () => ({
 }));
 
 // eslint-disable-next-line import/first
+import type { YandexMapViewRef } from '../ExpoYandexMapKit.types';
+// eslint-disable-next-line import/first
 import { YandexMapView } from '../ExpoYandexMapKitView';
 
 function renderMap(props: Record<string, unknown>): any {
@@ -73,5 +75,22 @@ describe('YandexMapView user-location styling', () => {
     expect(props.followUser).toBe(true);
     expect(props.userLocationIconScale).toBe(2);
     expect(props.userLocationAccuracyStrokeWidth).toBe(3);
+  });
+});
+
+// takeSnapshot (issue #2, Section A) — requested in yamap#48, shipped by no wrapper. Ref method that
+// resolves a base64 PNG data URI; resolves null before the native view is ready.
+describe('YandexMapView takeSnapshot', () => {
+  afterEach(() => {
+    mockNative.props = null;
+  });
+
+  it('exposes takeSnapshot on the ref, resolving null before the native view is ready', async () => {
+    const ref = React.createRef<YandexMapViewRef>();
+    act(() => {
+      TestRenderer.create(<YandexMapView ref={ref} />);
+    });
+    expect(typeof ref.current?.takeSnapshot).toBe('function');
+    await expect(ref.current!.takeSnapshot()).resolves.toBeNull();
   });
 });

@@ -3,7 +3,9 @@ package expo.modules.yandexmapkit
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.PointF
+import android.util.Base64
 import android.util.Log
+import java.io.ByteArrayOutputStream
 import android.view.View
 import com.yandex.mapkit.Animation
 import com.yandex.mapkit.MapKitFactory
@@ -621,6 +623,16 @@ class ExpoYandexMapKitView(context: Context, appContext: AppContext) : ExpoView(
       val world = window.screenToWorld(ScreenPoint(point.x.toFloat(), point.y.toFloat())) ?: return@map null
       coordinatePayload(world)
     }
+  }
+
+  // Capture the currently-rendered map as a base64 PNG data URI (usable directly in <Image>), via
+  // MapKit's own MapView.getScreenshot(). Returns null if the map isn't ready / can't be captured.
+  // Must run on the main thread.
+  internal fun takeSnapshot(): String? {
+    val bitmap = mapView?.screenshot ?: return null
+    val stream = ByteArrayOutputStream()
+    bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream)
+    return "data:image/png;base64," + Base64.encodeToString(stream.toByteArray(), Base64.NO_WRAP)
   }
 
   private fun coordinatePayload(point: Point): Map<String, Any> =

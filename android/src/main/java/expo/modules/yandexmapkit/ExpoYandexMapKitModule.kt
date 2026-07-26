@@ -217,6 +217,11 @@ class ExpoYandexMapKitModule : Module() {
       AsyncFunction("getWorldPoints") { view: ExpoYandexMapKitView, points: List<ScreenPointRecord> ->
         view.worldPoints(points)
       }
+
+      // Snapshots the on-screen map — must run on the main thread (reads the GL surface).
+      AsyncFunction("takeSnapshot") { view: ExpoYandexMapKitView ->
+        view.takeSnapshot()
+      }.runOnQueue(Queues.MAIN)
     }
 
     // The <Marker> child view. Named, so it is required as requireNativeView('ExpoYandexMapKit',

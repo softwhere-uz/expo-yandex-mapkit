@@ -194,6 +194,11 @@ public class ExpoYandexMapKitModule: Module {
       AsyncFunction("getWorldPoints") { (view: ExpoYandexMapKitView, points: [ScreenPointRecord]) -> [Any] in
         view.worldPoints(forScreenPoints: points)
       }
+
+      // Snapshots the on-screen map — must run on the main thread.
+      AsyncFunction("takeSnapshot") { (view: ExpoYandexMapKitView) -> String? in
+        view.takeSnapshot()
+      }.runOnQueue(.main)
     }
 
     // The <Marker> child view. Named via ViewName (the iOS view-builder element — the top-level

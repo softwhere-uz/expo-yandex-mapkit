@@ -66,6 +66,7 @@ export const YandexMapView = React.forwardRef<YandexMapViewRef, YandexMapViewPro
           nativeRef.current?.getScreenPoints(points) ?? Promise.resolve([]),
         getWorldPoints: (points: ScreenPoint[]) =>
           nativeRef.current?.getWorldPoints(points) ?? Promise.resolve([]),
+        takeSnapshot: () => nativeRef.current?.takeSnapshot() ?? Promise.resolve(null),
       }),
       []
     );

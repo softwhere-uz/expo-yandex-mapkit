@@ -20,7 +20,7 @@ A complete Yandex Maps SDK for Expo — full feature parity with the most capabl
 
 **Map & camera**
 - 🗺️ Native MapKit `<YandexMapView>` (Fabric / New Architecture)
-- 🎥 Declarative, animatable camera (`cameraPosition`) + imperative ref methods — `setCenter`, `setZoom`, `fitMarkers` / `fitAllMarkers` (with edge padding), `getCameraPosition`, `getVisibleRegion`, world↔screen projection
+- 🎥 Declarative, animatable camera (`cameraPosition`) + imperative ref methods — `setCenter`, `setZoom`, `fitMarkers` / `fitAllMarkers` (with edge padding), `getCameraPosition`, `getVisibleRegion`, world↔screen projection, `takeSnapshot`
 - 👆 Press / long-press / camera-move / map-loaded events with identical payloads on iOS and Android
 - 🎨 `mapType` (`map` / `satellite` / `hybrid` / `vector`), JSON `mapStyle`, night mode, per-gesture toggles, logo placement
 
@@ -347,6 +347,7 @@ Call these through a ref (`const mapRef = useRef<YandexMapViewRef>(null)`). All 
 | `getVisibleRegion()` | `Promise<VisibleRegion \| null>` | The visible geographic quad (`topLeft` / `topRight` / `bottomLeft` / `bottomRight`). |
 | `getScreenPoints(points)` | `Promise<(ScreenPoint \| null)[]>` | Project world coordinates to screen pixels; `null` per point that can't be projected (off-globe / behind the camera). |
 | `getWorldPoints(points)` | `Promise<(Point \| null)[]>` | Project screen pixels back to world coordinates. |
+| `takeSnapshot()` | `Promise<string \| null>` | Capture the rendered map as a base64 PNG **data URI** (`data:image/png;base64,…`), usable directly as `<Image source={{ uri }}>`. Call after `onMapLoaded`. `null` if not ready. Requested in [yamap#48](https://github.com/volga-volga/react-native-yamap/issues/48) — no wrapper ships it. |
 
 ```tsx
 const mapRef = useRef<YandexMapViewRef>(null);

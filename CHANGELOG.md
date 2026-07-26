@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`takeSnapshot()` map-ref method** (beyond parity — [#2](https://github.com/softwhere-uz/expo-yandex-mapkit/issues/2)).
+  Captures the currently-rendered map as a base64 PNG data URI (`data:image/png;base64,…`), usable
+  directly as an `<Image source={{ uri }}>`. Android uses MapKit's own `MapView.getScreenshot()`; iOS
+  snapshots the on-screen compositor (`drawHierarchy(afterScreenUpdates:)`, since MapKit exposes no iOS
+  snapshot API) — call it after `onMapLoaded`. Requested in
+  [yamap#48](https://github.com/volga-volga/react-native-yamap/issues/48); shipped by no wrapper.
+
 ## [2.0.1] - 2026-07-26
 
 Docs/packaging patch — no code changes.
