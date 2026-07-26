@@ -82,7 +82,10 @@ class ExpoYandexMapKitModule : Module() {
     }
 
     View(ExpoYandexMapKitView::class) {
-      Events("onMapReady", "onCameraPositionChanged", "onMapPress", "onMapLongPress", "onMapLoaded")
+      Events(
+        "onMapReady", "onCameraPositionChanged", "onMapPress", "onMapLongPress", "onMapLoaded",
+        "onTrafficChanged"
+      )
 
       // <Marker> children are managed here, not through the Android view hierarchy — each drives a
       // MapKit placemark rather than a laid-out view.

@@ -132,6 +132,7 @@ class ExpoYandexMapKitView: ExpoView {
   let onMapPress = EventDispatcher()
   let onMapLongPress = EventDispatcher()
   let onMapLoaded = EventDispatcher()
+  let onTrafficChanged = EventDispatcher()
 
   var animated = true
 
@@ -173,6 +174,8 @@ class ExpoYandexMapKitView: ExpoView {
   // User-location and traffic layers, created lazily on first use (they need the map window).
   private var userLocationLayer: YMKUserLocationLayer?
   private var trafficLayer: YMKTrafficLayer?
+  // Retained strongly (MapKit holds it weakly) — emits onTrafficChanged with the region's traffic score.
+  private var trafficListener: TrafficListener?
   private var showUserPosition = false
   private var followUser = false
   private var trafficVisible = false
@@ -416,6 +419,10 @@ class ExpoYandexMapKitView: ExpoView {
     } else {
       layer = YMKMapKit.sharedInstance().createTrafficLayer(with: mapWindow)
       trafficLayer = layer
+      // MapKit holds the listener weakly (matches the map listeners); the strong field keeps it.
+      let listener = TrafficListener(view: self)
+      trafficListener = listener
+      layer.addTrafficListener(with: listener)
     }
     layer.setTrafficVisibleWithOn(trafficVisible)
   }
@@ -869,6 +876,29 @@ class ExpoYandexMapKitView: ExpoView {
     onMapLongPress(pointPayload(point))
   }
 
+  // Emit onTrafficChanged with the current region's traffic score. A nil level (loading / expired /
+  // no data) surfaces as { available: false }.
+  fileprivate func dispatchTrafficChanged(_ level: YMKTrafficLevel?) {
+    guard let level = level else {
+      onTrafficChanged(["available": false])
+      return
+    }
+    onTrafficChanged([
+      "available": true,
+      "level": level.level,
+      "color": Self.trafficColorName(level.color),
+    ])
+  }
+
+  private static func trafficColorName(_ color: YMKTrafficColor) -> String {
+    switch color {
+    case .red: return "red"
+    case .yellow: return "yellow"
+    case .green: return "green"
+    @unknown default: return "green"
+    }
+  }
+
   fileprivate func dispatchMapLoaded(_ statistics: YMKMapLoadStatistics) {
     onMapLoaded([
       "renderObjectCount": statistics.renderObjectCount,
@@ -940,6 +970,27 @@ private final class MapLoadedListener: NSObject, YMKMapLoadedListener {
 
   func onMapLoaded(with statistics: YMKMapLoadStatistics) {
     view?.dispatchMapLoaded(statistics)
+  }
+}
+
+// The traffic-jams delegate: reports the visible region's overall traffic score as it recomputes.
+private final class TrafficListener: NSObject, YMKTrafficDelegate {
+  private weak var view: ExpoYandexMapKitView?
+
+  init(view: ExpoYandexMapKitView) {
+    self.view = view
+  }
+
+  func onTrafficChanged(with trafficLevel: YMKTrafficLevel?) {
+    view?.dispatchTrafficChanged(trafficLevel)
+  }
+
+  func onTrafficLoading() {
+    view?.dispatchTrafficChanged(nil)
+  }
+
+  func onTrafficExpired() {
+    view?.dispatchTrafficChanged(nil)
   }
 }
 

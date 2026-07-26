@@ -24,6 +24,13 @@ export type MapPressEvent = {
   point: Point;
 };
 
+// Payload for onTrafficChanged — the visible region's overall traffic score from the traffic layer.
+export type TrafficChangeEvent = {
+  available: boolean; // false while traffic data is loading / expired / unavailable
+  level?: number; // congestion score 0–10 (higher = worse), when available
+  color?: 'red' | 'yellow' | 'green'; // the traffic badge color, when available
+};
+
 export type MapLoadStatistics = {
   renderObjectCount: number; // number of map objects rendered
   tileMemoryUsage: number; // tile cache memory usage, in bytes
@@ -63,6 +70,9 @@ export type YandexMapViewProps = {
   userLocationAccuracyStrokeColor?: ColorValue; // stroke (border) color of the accuracy circle
   userLocationAccuracyStrokeWidth?: number; // accuracy-circle stroke width in points
   trafficVisible?: boolean; // show the live traffic-jams layer; default false
+  // Fires with the visible region's traffic score (level 0–10 + color) as it recomputes. Fires only
+  // while the traffic layer is active (`trafficVisible`). No Yandex-maps RN wrapper surfaces it.
+  onTrafficChanged?: (event: { nativeEvent: TrafficChangeEvent }) => void;
   onMapReady?: (event: { nativeEvent: Record<string, never> }) => void;
   onCameraPositionChanged?: (event: { nativeEvent: CameraPositionChangeEvent }) => void;
   onMapPress?: (event: { nativeEvent: MapPressEvent }) => void;

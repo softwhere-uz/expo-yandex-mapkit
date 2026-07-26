@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`onTrafficChanged` event** (beyond parity — [#2](https://github.com/softwhere-uz/expo-yandex-mapkit/issues/2)).
+  Fires with the visible region's traffic score — `{ available, level? (0–10), color? ('red'/'yellow'/'green') }`
+  — as the traffic layer recomputes (via MapKit's `TrafficListener`). Fires only while `trafficVisible`.
+  Build a traffic-score badge from it; no Yandex-maps RN wrapper surfaces it.
+
 ## [2.0.1] - 2026-07-26
 
 Docs/packaging patch — no code changes.

@@ -28,7 +28,10 @@ import com.yandex.mapkit.map.MapLoadedListener
 import com.yandex.mapkit.map.MapType as YandexMapType
 import com.yandex.mapkit.layers.ObjectEvent
 import com.yandex.mapkit.mapview.MapView
+import com.yandex.mapkit.traffic.TrafficColor
 import com.yandex.mapkit.traffic.TrafficLayer
+import com.yandex.mapkit.traffic.TrafficLevel
+import com.yandex.mapkit.traffic.TrafficListener
 import com.yandex.mapkit.user_location.UserLocationLayer
 import com.yandex.mapkit.user_location.UserLocationObjectListener
 import com.yandex.mapkit.user_location.UserLocationView
@@ -182,8 +185,24 @@ class ExpoYandexMapKitView(context: Context, appContext: AppContext) : ExpoView(
   private val onMapPress by EventDispatcher<Map<String, Any>>()
   private val onMapLongPress by EventDispatcher<Map<String, Any>>()
   private val onMapLoaded by EventDispatcher<Map<String, Any>>()
+  private val onTrafficChanged by EventDispatcher<Map<String, Any?>>()
 
   internal var animated = true
+
+  // Retained by this view (MapKit holds it weakly) — emits onTrafficChanged with the region's score.
+  private val trafficListener = object : TrafficListener {
+    override fun onTrafficChanged(trafficLevel: TrafficLevel?) {
+      dispatchTrafficChanged(trafficLevel)
+    }
+
+    override fun onTrafficLoading() {
+      dispatchTrafficChanged(null)
+    }
+
+    override fun onTrafficExpired() {
+      dispatchTrafficChanged(null)
+    }
+  }
 
   private var mapView: MapView? = null
   private var isStarted = false
@@ -796,7 +815,10 @@ class ExpoYandexMapKitView(context: Context, appContext: AppContext) : ExpoView(
   private fun applyTraffic() {
     val mapWindow = mapView?.mapWindow ?: return
     val layer = trafficLayer
-      ?: MapKitFactory.getInstance().createTrafficLayer(mapWindow).also { trafficLayer = it }
+      ?: MapKitFactory.getInstance().createTrafficLayer(mapWindow).also {
+        trafficLayer = it
+        it.addTrafficListener(WeakReference(trafficListener))
+      }
     layer.isTrafficVisible = trafficVisible
   }
 
@@ -849,6 +871,23 @@ class ExpoYandexMapKitView(context: Context, appContext: AppContext) : ExpoView(
       abs(current.zoom - next.zoom) < CAMERA_EQUALITY_TOLERANCE &&
       abs(current.azimuth - next.azimuth) < CAMERA_EQUALITY_TOLERANCE &&
       abs(current.tilt - next.tilt) < CAMERA_EQUALITY_TOLERANCE
+  }
+
+  // Emit onTrafficChanged with the current region's traffic score. A null level (loading / expired /
+  // no data) surfaces as { available: false }.
+  private fun dispatchTrafficChanged(level: TrafficLevel?) {
+    if (level == null) {
+      onTrafficChanged(mapOf("available" to false))
+      return
+    }
+    val color = when (level.color) {
+      TrafficColor.RED -> "red"
+      TrafficColor.YELLOW -> "yellow"
+      TrafficColor.GREEN -> "green"
+    }
+    onTrafficChanged(
+      mapOf("available" to true, "level" to level.level, "color" to color)
+    )
   }
 
   private fun pointPayload(point: Point): Map<String, Any> {

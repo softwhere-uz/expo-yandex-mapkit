@@ -296,6 +296,7 @@ export default function App() {
 | `onMapPress` | `MapPressEvent` | Одиночное нажатие на карту. |
 | `onMapLongPress` | `MapPressEvent` | Долгое нажатие на карту. |
 | `onMapLoaded` | `MapLoadStatistics` | Когда карта завершает загрузку — несёт статистику рендеринга (`renderObjectCount`, `tileMemoryUsage`, тайминги загрузки). |
+| `onTrafficChanged` | `TrafficChangeEvent` | Балл пробок для видимой области (`{ available, level? (0–10), color? ('red'/'yellow'/'green') }`) по мере пересчёта. Срабатывает только при `trafficVisible`. Ни одна обёртка для Яндекс-карт этого не отдаёт. |
 
 ### Типы
 

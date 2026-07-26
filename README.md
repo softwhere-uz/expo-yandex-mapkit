@@ -296,6 +296,7 @@ Events:
 | `onMapPress` | `MapPressEvent` | On a single tap on the map. |
 | `onMapLongPress` | `MapPressEvent` | On a long press on the map. |
 | `onMapLoaded` | `MapLoadStatistics` | Once the map finishes loading — carries render stats (`renderObjectCount`, `tileMemoryUsage`, load timings). |
+| `onTrafficChanged` | `TrafficChangeEvent` | The visible region's traffic score (`{ available, level? (0–10), color? ('red'/'yellow'/'green') }`) as it recomputes. Fires only while `trafficVisible`. No Yandex-maps RN wrapper surfaces it. |
 
 ### Types
 
@@ -317,6 +318,12 @@ type CameraPositionChangeEvent = {
 };
 
 type MapPressEvent = { point: Point };
+
+type TrafficChangeEvent = {
+  available: boolean;                      // false while loading / expired / unavailable
+  level?: number;                          // congestion score 0–10 (higher = worse)
+  color?: 'red' | 'yellow' | 'green';      // the traffic badge color
+};
 
 type MapLoadStatistics = {
   renderObjectCount: number;      // number of map objects rendered
