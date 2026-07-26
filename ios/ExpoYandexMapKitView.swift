@@ -422,7 +422,7 @@ class ExpoYandexMapKitView: ExpoView {
       // MapKit holds the listener weakly (matches the map listeners); the strong field keeps it.
       let listener = TrafficListener(view: self)
       trafficListener = listener
-      layer.addTrafficListener(with: listener)
+      layer.addTrafficListener(withTrafficListener: listener)
     }
     layer.setTrafficVisibleWithOn(trafficVisible)
   }
