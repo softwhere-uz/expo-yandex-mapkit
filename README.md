@@ -296,6 +296,7 @@ Events:
 | `onMapPress` | `MapPressEvent` | On a single tap on the map. |
 | `onMapLongPress` | `MapPressEvent` | On a long press on the map. |
 | `onMapLoaded` | `MapLoadStatistics` | Once the map finishes loading — carries render stats (`renderObjectCount`, `tileMemoryUsage`, load timings). |
+| `onRegionChangeComplete` | `Region` | react-native-maps migration alias — fires after a camera move settles with `{ latitude, longitude, latitudeDelta, longitudeDelta }` (computed from the visible region). |
 
 ### Types
 
@@ -347,6 +348,7 @@ Call these through a ref (`const mapRef = useRef<YandexMapViewRef>(null)`). All 
 | `getVisibleRegion()` | `Promise<VisibleRegion \| null>` | The visible geographic quad (`topLeft` / `topRight` / `bottomLeft` / `bottomRight`). |
 | `getScreenPoints(points)` | `Promise<(ScreenPoint \| null)[]>` | Project world coordinates to screen pixels; `null` per point that can't be projected (off-globe / behind the camera). |
 | `getWorldPoints(points)` | `Promise<(Point \| null)[]>` | Project screen pixels back to world coordinates. |
+| `fitToCoordinates(coordinates, options?)` | `Promise<void>` | react-native-maps migration alias for `fitMarkers`: frame `coordinates`, optionally inset by `options.edgePadding`; `options.animated: false` moves instantly. |
 
 ```tsx
 const mapRef = useRef<YandexMapViewRef>(null);

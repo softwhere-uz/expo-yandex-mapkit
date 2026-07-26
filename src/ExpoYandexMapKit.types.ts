@@ -20,6 +20,15 @@ export type CameraPositionChangeEvent = {
   finished: boolean;
 };
 
+// The react-native-maps `Region` shape — a center plus lat/long spans. Provided by the
+// `onRegionChangeComplete` alias to ease migration from react-native-maps / react-native-yamap.
+export type Region = {
+  latitude: number;
+  longitude: number;
+  latitudeDelta: number; // north–south span of the visible region, in degrees
+  longitudeDelta: number; // east–west span of the visible region, in degrees
+};
+
 export type MapPressEvent = {
   point: Point;
 };
@@ -68,6 +77,10 @@ export type YandexMapViewProps = {
   onMapPress?: (event: { nativeEvent: MapPressEvent }) => void;
   onMapLongPress?: (event: { nativeEvent: MapPressEvent }) => void;
   onMapLoaded?: (event: { nativeEvent: MapLoadStatistics }) => void; // fires once the map finishes loading, with render stats
+  // react-native-maps migration alias: fires with a `Region` ({ latitude, longitude, latitudeDelta,
+  // longitudeDelta }) after a camera move settles. Computed from the visible region, so it works
+  // even though this SDK is zoom-based. Drop-in for react-native-maps / react-native-yamap code.
+  onRegionChangeComplete?: (region: Region) => void;
   style?: StyleProp<ViewStyle>;
   children?: ReactNode; // <Marker> (and future map-object) children
 };
@@ -242,6 +255,12 @@ export type YandexMapViewRef = {
   getScreenPoints(points: Point[]): Promise<(ScreenPoint | null)[]>;
   // Project screen points to world coordinates. Each result is null when unprojectable.
   getWorldPoints(points: ScreenPoint[]): Promise<(Point | null)[]>;
+  // react-native-maps migration alias for `fitMarkers`: frame `coordinates`, optionally inset by
+  // `edgePadding`; `animated: false` moves instantly. Drop-in for react-native-maps `fitToCoordinates`.
+  fitToCoordinates(
+    coordinates: Point[],
+    options?: { edgePadding?: EdgePadding; animated?: boolean }
+  ): Promise<void>;
 };
 
 // ── Suggest (search-as-you-type) — requires the MapKit `full` flavor ────────────────────────────

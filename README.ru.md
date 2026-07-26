@@ -296,6 +296,7 @@ export default function App() {
 | `onMapPress` | `MapPressEvent` | Одиночное нажатие на карту. |
 | `onMapLongPress` | `MapPressEvent` | Долгое нажатие на карту. |
 | `onMapLoaded` | `MapLoadStatistics` | Когда карта завершает загрузку — несёт статистику рендеринга (`renderObjectCount`, `tileMemoryUsage`, тайминги загрузки). |
+| `onRegionChangeComplete` | `Region` | Алиас для миграции с react-native-maps — срабатывает после остановки движения камеры с `{ latitude, longitude, latitudeDelta, longitudeDelta }` (вычисляется из видимой области). |
 
 ### Типы
 
@@ -347,6 +348,7 @@ type MapLoadStatistics = {
 | `getVisibleRegion()` | `Promise<VisibleRegion \| null>` | Видимый географический четырёхугольник (`topLeft` / `topRight` / `bottomLeft` / `bottomRight`). |
 | `getScreenPoints(points)` | `Promise<(ScreenPoint \| null)[]>` | Спроецировать мировые координаты в экранные пиксели; `null` для точки, которую нельзя спроецировать (за пределами глобуса / за камерой). |
 | `getWorldPoints(points)` | `Promise<(Point \| null)[]>` | Спроецировать экранные пиксели обратно в мировые координаты. |
+| `fitToCoordinates(coordinates, options?)` | `Promise<void>` | Алиас `fitMarkers` для миграции с react-native-maps: вписать `coordinates`, с опциональным `options.edgePadding`; `options.animated: false` — мгновенно. |
 
 ```tsx
 const mapRef = useRef<YandexMapViewRef>(null);
