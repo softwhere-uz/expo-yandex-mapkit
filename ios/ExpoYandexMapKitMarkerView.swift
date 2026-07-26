@@ -362,6 +362,59 @@ class ExpoYandexMapKitMarkerView: ExpoView, MapObjectChild {
     }
   }
 
+  // Animate the marker along a polyline (`points`) over `durationMs`, at constant speed. Each frame
+  // the marker sits at the position `fraction` of the way along the total path length and faces the
+  // current segment's bearing (visible when the marker is `rotated`) — courier/route-tracking. No-op
+  // until on the map or with fewer than 2 points.
+  func animateAlong(_ points: [YMKPoint], durationMs: Double) {
+    guard let placemark = placemark, placemark.isValid, points.count >= 2 else {
+      return
+    }
+    let segments = Array(zip(points, points.dropFirst()))
+    let lengths = segments.map { Self.approxDistance($0.0, $0.1) }
+    let total = lengths.reduce(0, +)
+    guard total > 0 else {
+      return
+    }
+    let totalFrames = max(Int((durationMs / 1000.0) * Self.framesPerSecond), 1)
+    animateFrame(0, totalFrames: totalFrames) { [weak self] fraction in
+      guard let placemark = self?.placemark, placemark.isValid else {
+        return
+      }
+      var remaining = total * fraction
+      for (index, length) in lengths.enumerated() {
+        if remaining <= length || index == lengths.count - 1 {
+          let t = length > 0 ? remaining / length : 0
+          let (a, b) = segments[index]
+          placemark.geometry = YMKPoint(
+            latitude: a.latitude + t * (b.latitude - a.latitude),
+            longitude: a.longitude + t * (b.longitude - a.longitude))
+          placemark.direction = Float(Self.bearing(a, b))
+          return
+        }
+        remaining -= length
+      }
+    }
+  }
+
+  // Equirectangular length approximation (metres-ish; only relative weighting matters for the tween).
+  private static func approxDistance(_ a: YMKPoint, _ b: YMKPoint) -> Double {
+    let meanLat = (a.latitude + b.latitude) / 2 * .pi / 180
+    let dx = (b.longitude - a.longitude) * cos(meanLat)
+    let dy = b.latitude - a.latitude
+    return (dx * dx + dy * dy).squareRoot()
+  }
+
+  // Initial bearing a→b in degrees clockwise from north (MapKit's `direction` convention).
+  private static func bearing(_ a: YMKPoint, _ b: YMKPoint) -> Double {
+    let lat1 = a.latitude * .pi / 180, lat2 = b.latitude * .pi / 180
+    let dLon = (b.longitude - a.longitude) * .pi / 180
+    let y = sin(dLon) * cos(lat2)
+    let x = cos(lat1) * sin(lat2) - sin(lat1) * cos(lat2) * cos(dLon)
+    let deg = atan2(y, x) * 180 / .pi
+    return deg < 0 ? deg + 360 : deg
+  }
+
   // Linear per-frame tween on the main queue. `apply` receives the eased fraction in [0, 1] and is
   // computed from the animation start each frame, so it never drifts.
   private func animateFrame(_ frame: Int, totalFrames: Int, apply: @escaping (Double) -> Void) {

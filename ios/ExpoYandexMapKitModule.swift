@@ -258,6 +258,12 @@ public class ExpoYandexMapKitModule: Module {
       AsyncFunction("animatedRotateTo") { (view: ExpoYandexMapKitMarkerView, angle: Double, durationMs: Double) in
         view.animatedRotateTo(angle, durationMs: durationMs)
       }.runOnQueue(.main)
+
+      AsyncFunction("animateAlong") { (view: ExpoYandexMapKitMarkerView, points: [PointRecord], durationMs: Double) in
+        view.animateAlong(
+          points.map { YMKPoint(latitude: $0.latitude, longitude: $0.longitude) },
+          durationMs: durationMs)
+      }.runOnQueue(.main)
     }
 
     // The <Clusterer> child view: groups its <Marker> children into a YMKClusterizedPlacemarkCollection.

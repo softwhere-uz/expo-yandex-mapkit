@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`animateAlong(points, durationMs)` marker-ref method** (beyond parity — [#2](https://github.com/softwhere-uz/expo-yandex-mapkit/issues/2)).
+  Animates a marker along a polyline at constant speed, facing each segment's heading (set the marker
+  `rotated` to see it turn) — the courier / taxi / route-tracking animation asked for repeatedly in the
+  lineage ([yamap#197](https://github.com/volga-volga/react-native-yamap/issues/197), #194, #236, #226).
+  No Yandex-maps RN wrapper ships it.
+
 ## [2.0.1] - 2026-07-26
 
 Docs/packaging patch — no code changes.

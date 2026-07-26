@@ -13,6 +13,8 @@ jest.mock('expo', () => ({
 }));
 
 // eslint-disable-next-line import/first
+import type { MarkerRef } from '../ExpoYandexMapKit.types';
+// eslint-disable-next-line import/first
 import { Clusterer } from '../ExpoYandexMapKitClustererView';
 // eslint-disable-next-line import/first
 import { Marker } from '../ExpoYandexMapKitMarkerView';
@@ -72,5 +74,23 @@ describe('Marker excludeFromCluster prop', () => {
   it('omits excludeFromCluster when unset (native defaults it to false)', () => {
     const props = render(<Marker point={{ latitude: 41.3, longitude: 69.2 }} />);
     expect(props.excludeFromCluster).toBeUndefined();
+  });
+
+  // animateAlong (issue #2, Section A) — courier/route-tracking marker helper; no wrapper has it.
+  it('exposes animateAlong on the marker ref, resolving before the native view is ready', async () => {
+    const ref = React.createRef<MarkerRef>();
+    act(() => {
+      TestRenderer.create(<Marker ref={ref} point={{ latitude: 41.3, longitude: 69.2 }} />);
+    });
+    expect(typeof ref.current?.animateAlong).toBe('function');
+    await expect(
+      ref.current!.animateAlong(
+        [
+          { latitude: 41.3, longitude: 69.2 },
+          { latitude: 41.4, longitude: 69.3 },
+        ],
+        1000
+      )
+    ).resolves.toBeUndefined();
   });
 });
