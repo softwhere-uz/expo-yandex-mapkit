@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Richer Suggest results** (`full` flavor; beyond parity — [#2](https://github.com/softwhere-uz/expo-yandex-mapkit/issues/2)).
+  `SuggestItem` now carries `type` (`'toponym'` / `'business'` / `'transit'` / `'link'` / `'unknown'` —
+  the suggestion's kind, distinct from the request `types` filter) and `tags` (MapKit's extra
+  classification tags). Builds on the existing native `center` coordinate. (`'link'` is Android-only;
+  iOS reports it as `'unknown'`.)
+
 ## [2.0.1] - 2026-07-26
 
 Docs/packaging patch — no code changes.

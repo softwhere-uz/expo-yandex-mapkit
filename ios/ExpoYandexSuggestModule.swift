@@ -124,7 +124,22 @@ public class ExpoYandexSuggestModule: Module {
       if let center = item.center {
         result["center"] = ["latitude": center.latitude, "longitude": center.longitude]
       }
+      result["type"] = Self.suggestItemTypeName(item.type)
+      if !item.tags.isEmpty {
+        result["tags"] = item.tags
+      }
       return result
+    }
+
+    // The result item's kind (distinct from the request `types` filter): what the suggestion is.
+    private static func suggestItemTypeName(_ type: YMKSuggestItemType) -> String {
+      switch type {
+      case .toponym: return "toponym"
+      case .business: return "business"
+      case .transit: return "transit"
+      case .unknown: return "unknown"
+      @unknown default: return "unknown"
+      }
     }
   #endif
 }
