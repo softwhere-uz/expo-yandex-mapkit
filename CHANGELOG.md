@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Driving route options** (`full` flavor; beyond parity — [#2](https://github.com/softwhere-uz/expo-yandex-mapkit/issues/2)).
+  `findRoutes(points, mode, options?)` and `findDrivingRoutes(points, options?)` now accept a
+  `DrivingRouteOptions` — `avoidTolls` / `avoidUnpaved` / `avoidPoorConditions` / `avoidHighways`,
+  `departureTime` (Unix ms, for a traffic-aware ETA), and `vehicleType` (`'default'` / `'taxi'` /
+  `'truck'` / `'moto'`) — via MapKit's `DrivingOptions.avoidanceFlags` / `VehicleOptions`. Ignored for
+  non-driving modes. The SDK supports all of these; no Yandex-maps RN wrapper forwards them.
+
 ## [2.0.1] - 2026-07-26
 
 Docs/packaging patch — no code changes.

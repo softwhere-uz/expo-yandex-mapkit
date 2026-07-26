@@ -3,6 +3,17 @@ import ExpoModulesCore
   import YandexMapsMobile
 #endif
 
+// Driving route options — a plain Record (no MapKit types), so it compiles regardless of flavor.
+// Mirrors the JS `DrivingRouteOptions`.
+internal struct DrivingRouteOptionsRecord: Record {
+  @Field var avoidTolls: Bool = false
+  @Field var avoidUnpaved: Bool = false
+  @Field var avoidPoorConditions: Bool = false
+  @Field var avoidHighways: Bool = false
+  @Field var departureTime: Double?
+  @Field var vehicleType: String?
+}
+
 // The Transport (routing) module: driving, masstransit and pedestrian routes. Real work is behind
 // `#if YANDEX_MAPS_FULL` (references classes the lite pod omits); in lite the call rejects clearly.
 // This first slice returns each route's summary (time / distance / transfers) + geometry; the
@@ -19,7 +30,7 @@ public class ExpoYandexTransportModule: Module {
   public func definition() -> ModuleDefinition {
     Name("ExpoYandexTransport")
 
-    AsyncFunction("findRoutes") { (points: [PointRecord], mode: String, promise: Promise) in
+    AsyncFunction("findRoutes") { (points: [PointRecord], mode: String, options: DrivingRouteOptionsRecord?, promise: Promise) in
       #if YANDEX_MAPS_FULL
         let requestPoints = points.map {
           YMKRequestPoint(
@@ -27,7 +38,7 @@ public class ExpoYandexTransportModule: Module {
             type: .waypoint, pointContext: nil, drivingArrivalPointId: nil, indoorLevelId: nil)
         }
         switch mode {
-        case "driving": self.requestDriving(requestPoints, promise)
+        case "driving": self.requestDriving(requestPoints, options, promise)
         case "masstransit": self.requestMasstransit(requestPoints, promise)
         case "pedestrian": self.requestPedestrian(requestPoints, promise)
         default:
@@ -44,14 +55,36 @@ public class ExpoYandexTransportModule: Module {
     + "Set flavor: 'full' in the config plugin (and rebuild)."
 
   #if YANDEX_MAPS_FULL
-    private func requestDriving(_ points: [YMKRequestPoint], _ promise: Promise) {
+    private func requestDriving(
+      _ points: [YMKRequestPoint], _ options: DrivingRouteOptionsRecord?, _ promise: Promise
+    ) {
       let router =
         drivingRouter ?? YMKDirectionsFactory.instance().createDrivingRouter(withType: .combined)
       drivingRouter = router
+      let drivingOptions = YMKDrivingOptions()
+      let vehicleOptions = YMKDrivingVehicleOptions()
+      if let opts = options {
+        // AvoidanceFlags order: tolls, unpaved, poorCondition, railwayCrossing, boatFerry,
+        // fordCrossing, tunnel, highway — we expose the four common ones.
+        drivingOptions.avoidanceFlags = YMKDrivingAvoidanceFlags(
+          avoidTolls: opts.avoidTolls, avoidUnpaved: opts.avoidUnpaved,
+          avoidPoorCondition: opts.avoidPoorConditions, avoidRailwayCrossing: false,
+          avoidBoatFerry: false, avoidFordCrossing: false, avoidTunnel: false,
+          avoidHighway: opts.avoidHighways)
+        if let departureTime = opts.departureTime {
+          drivingOptions.departureTime = NSNumber(value: departureTime)
+        }
+        switch opts.vehicleType {
+        case "taxi": vehicleOptions.vehicleType = .taxi
+        case "truck": vehicleOptions.vehicleType = .truck
+        case "moto": vehicleOptions.vehicleType = .moto
+        default: break  // "default" / nil → keep the SDK default (a regular car)
+        }
+      }
       let session = router.requestRoutes(
         with: points,
-        drivingOptions: YMKDrivingOptions(),
-        vehicleOptions: YMKDrivingVehicleOptions()
+        drivingOptions: drivingOptions,
+        vehicleOptions: vehicleOptions
       ) { routes, error in
         if let error = error {
           promise.reject("E_ROUTE", self.routeError(error))

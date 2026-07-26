@@ -299,6 +299,17 @@ export type SearchResult = {
 
 export type RouteMode = 'driving' | 'masstransit' | 'pedestrian';
 
+// Options for a driving route request (ignored for non-driving modes). The SDK supports all of these;
+// no Yandex-maps RN wrapper forwards them.
+export type DrivingRouteOptions = {
+  avoidTolls?: boolean; // avoid toll roads
+  avoidUnpaved?: boolean; // avoid unpaved roads
+  avoidPoorConditions?: boolean; // avoid roads in poor condition
+  avoidHighways?: boolean; // avoid highways
+  departureTime?: number; // Unix time (ms) to depart — affects the traffic-aware ETA
+  vehicleType?: 'default' | 'taxi' | 'truck' | 'moto'; // driving vehicle profile (allowed roads / restrictions)
+};
+
 // One leg of a route. `type` is `'car'` (driving), `'walk'` / `'waiting'`, or a public-transport
 // vehicle type (`'bus'`, `'underground'`, `'tramway'`, `'minibus'`, `'railway'`, …).
 export type RouteSection = {
