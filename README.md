@@ -26,7 +26,7 @@ A complete Yandex Maps SDK for Expo — full feature parity with the most capabl
 
 **Map objects** (declarative children of the map)
 - 📍 `<Marker>` — image **or React-children** icons (reliable, with a `tracksViewChanges` re-snapshot pipeline), `onPress` with an identifying payload, `animatedMoveTo` / `animatedRotateTo`
-- 〰️ `<Polyline>` (dash + outline), `<Polygon>` (holes via `innerRings`), `<Circle>`
+- 〰️ `<Polyline>` (dash + outline), `<Polygon>` (holes via `innerRings`), `<Circle>`, `<Geojson>` (expands a GeoJSON object into map objects)
 - 🔵 `<Clusterer>` — declarative clustering where your own `<Marker>`s are the render-prop; custom badge (color / size / **icon**), `excludeFromCluster`, tap-to-fit, configurable radius / minZoom
 - 📡 User-location layer (custom dot icon + accuracy-circle styling) and a live 🚦 traffic layer
 
@@ -460,6 +460,27 @@ import { YandexMapView, Polygon, Circle } from 'expo-yandex-mapkit';
 
 - **`<Polygon>`**: `points` (outer ring, 3+), `innerRings?` (holes), `fillColor`, `strokeColor`, `strokeWidth`, `zIndex`, `onPress`, `handled`.
 - **`<Circle>`**: `center`, `radius` (metres), `fillColor`, `strokeColor`, `strokeWidth`, `zIndex`, `onPress`, `handled`.
+
+### `<Geojson />`
+
+Render a [GeoJSON](https://datatracker.ietf.org/doc/html/rfc7946) object directly — pure-JS sugar that expands into `<Marker>` / `<Polyline>` / `<Polygon>` (the react-native-maps convention; no other Yandex-maps RN wrapper has it):
+
+```tsx
+import { YandexMapView, Geojson } from 'expo-yandex-mapkit';
+
+<YandexMapView style={StyleSheet.absoluteFill} cameraPosition={{ latitude: 41.31, longitude: 69.24, zoom: 11 }}>
+  <Geojson
+    geojson={featureCollection}
+    strokeColor="#1e88e5"
+    strokeWidth={3}
+    fillColor="rgba(30,136,229,0.2)"
+    markerSource={require('./pin.png')}
+    onPress={(feature) => console.log('tapped', feature.properties)}
+  />
+</YandexMapView>;
+```
+
+Accepts a `FeatureCollection`, `Feature`, or bare `Geometry`. `Point`/`MultiPoint` → markers, `LineString`/`MultiLineString` → polylines, `Polygon`/`MultiPolygon` → polygons (first ring outer, the rest holes); `GeometryCollection` expands recursively. Props: `geojson`, `markerSource` / `markerScale`, `strokeColor` / `strokeWidth`, `fillColor`, `zIndex`, `onPress(feature)`. GeoJSON `[lng, lat]` is converted to `{ latitude, longitude }` for you.
 
 ### `<Clusterer />`
 

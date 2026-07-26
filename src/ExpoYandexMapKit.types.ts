@@ -195,6 +195,39 @@ export type ClustererProps = {
   children?: ReactNode;
 };
 
+// ── GeoJSON (<Geojson> component) — pure-JS sugar, RFC 7946 ──────────────────────────────────────
+// GeoJSON positions are [longitude, latitude] (altitude, if present, is ignored).
+export type GeojsonPosition = number[];
+export type GeojsonGeometry =
+  | { type: 'Point'; coordinates: GeojsonPosition }
+  | { type: 'MultiPoint'; coordinates: GeojsonPosition[] }
+  | { type: 'LineString'; coordinates: GeojsonPosition[] }
+  | { type: 'MultiLineString'; coordinates: GeojsonPosition[][] }
+  | { type: 'Polygon'; coordinates: GeojsonPosition[][] }
+  | { type: 'MultiPolygon'; coordinates: GeojsonPosition[][][] }
+  | { type: 'GeometryCollection'; geometries: GeojsonGeometry[] };
+export type GeojsonFeature = {
+  type: 'Feature';
+  geometry: GeojsonGeometry | null;
+  properties?: Record<string, unknown> | null;
+  id?: string | number;
+};
+export type GeojsonFeatureCollection = { type: 'FeatureCollection'; features: GeojsonFeature[] };
+export type GeojsonInput = GeojsonFeatureCollection | GeojsonFeature | GeojsonGeometry;
+
+export type GeojsonProps = {
+  geojson: GeojsonInput; // a GeoJSON FeatureCollection / Feature / Geometry
+  markerSource?: ImageSourcePropType; // icon for Point / MultiPoint features
+  markerScale?: number; // scale for the Point markers
+  strokeColor?: ColorValue; // LineString / Polygon stroke color
+  strokeWidth?: number; // LineString / Polygon stroke width
+  fillColor?: ColorValue; // Polygon fill color
+  zIndex?: number; // draw order for every generated object
+  // Tap on any generated object — receives the source Feature (properties included) so you can react
+  // per feature. Features synthesized from a bare Geometry carry an empty `properties`.
+  onPress?: (feature: GeojsonFeature) => void;
+};
+
 export type ScreenPoint = {
   x: number; // pixels from the left of the map view
   y: number; // pixels from the top of the map view
