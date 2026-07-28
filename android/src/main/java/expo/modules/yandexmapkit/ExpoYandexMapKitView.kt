@@ -6,12 +6,15 @@ import android.graphics.PointF
 import android.util.Log
 import android.view.View
 import com.yandex.mapkit.Animation
+import com.yandex.mapkit.GeoObject
 import com.yandex.mapkit.MapKitFactory
 import com.yandex.mapkit.ScreenPoint
 import com.yandex.mapkit.ScreenRect
 import com.yandex.mapkit.geometry.BoundingBox
 import com.yandex.mapkit.geometry.Geometry
 import com.yandex.mapkit.geometry.Point
+import com.yandex.mapkit.layers.GeoObjectTapEvent
+import com.yandex.mapkit.layers.GeoObjectTapListener
 import com.yandex.mapkit.logo.Alignment as LogoAlignment
 import com.yandex.mapkit.logo.HorizontalAlignment
 import com.yandex.mapkit.logo.Padding as LogoPaddingNative
@@ -20,6 +23,7 @@ import com.yandex.mapkit.map.CameraListener
 import com.yandex.mapkit.map.CameraPosition
 import com.yandex.mapkit.map.CameraUpdateReason
 import com.yandex.mapkit.map.CircleMapObject
+import com.yandex.mapkit.map.GeoObjectSelectionMetadata
 import com.yandex.mapkit.map.IconStyle
 import com.yandex.mapkit.map.InputListener
 import com.yandex.mapkit.map.Map as YandexMap
@@ -138,6 +142,22 @@ class ScreenPointRecord : Record {
   var y: Double = 0.0
 }
 
+// The selection token for selectGeoObject(). Mirrors the JS `GeoObjectSelection` (the `selection`
+// carried by an onPoiTap event); reconstructs a GeoObjectSelectionMetadata to select the object.
+class GeoObjectSelectionRecord : Record {
+  @Field
+  var objectId: String = ""
+
+  @Field
+  var dataSourceName: String = ""
+
+  @Field
+  var layerId: String = ""
+
+  @Field
+  var groupId: Double? = null
+}
+
 enum class CameraAnimationOption(val value: String) : Enumerable {
   smooth("smooth"),
   linear("linear");
@@ -182,6 +202,7 @@ class ExpoYandexMapKitView(context: Context, appContext: AppContext) : ExpoView(
   private val onMapPress by EventDispatcher<Map<String, Any>>()
   private val onMapLongPress by EventDispatcher<Map<String, Any>>()
   private val onMapLoaded by EventDispatcher<Map<String, Any>>()
+  private val onPoiTap by EventDispatcher<Map<String, Any?>>()
 
   internal var animated = true
 
@@ -209,6 +230,13 @@ class ExpoYandexMapKitView(context: Context, appContext: AppContext) : ExpoView(
   // the value persists — passing undefined later does not revert it (matches mapType/mapStyle).
   private var logoPosition: LogoPositionRecord? = null
   private var logoPadding: LogoPaddingRecord? = null
+  // Camera zoom-bound hints, null until set. Applied through the map's cameraBounds; a null value
+  // clears that bound back to MapKit's default.
+  private var minZoom: Float? = null
+  private var maxZoom: Float? = null
+  // Persistent map-padding inset, applied as the map window's focus rectangle. null = full viewport.
+  // Kept so it can be re-applied when the view is resized, since the focus rect is in pixels.
+  private var mapPadding: EdgePaddingRecord? = null
   private var pendingCameraPosition: CameraPositionRecord? = null
   private var cameraPositionDirty = false
 
@@ -291,6 +319,20 @@ class ExpoYandexMapKitView(context: Context, appContext: AppContext) : ExpoView(
     }
   }
 
+  // Fires for taps on the map's own labelled objects (POIs, toponyms). Only objects carrying
+  // selection metadata are surfaced as onPoiTap; returning true then consumes the tap so it does not
+  // also reach the input listener as an onMapPress. Non-selectable geo-objects return false and fall
+  // through to onMapPress unchanged.
+  private val geoObjectTapListener = GeoObjectTapListener { event: GeoObjectTapEvent ->
+    val selection = event.geoObject.metadataContainer.getItem(GeoObjectSelectionMetadata::class.java)
+    if (selection == null) {
+      false
+    } else {
+      onPoiTap(poiTapPayload(event.geoObject, selection))
+      true
+    }
+  }
+
   private val mapLoadedListener = object : MapLoadedListener {
     override fun onMapLoaded(statistics: MapLoadStatistics) {
       this@ExpoYandexMapKitView.onMapLoaded(
@@ -325,6 +367,13 @@ class ExpoYandexMapKitView(context: Context, appContext: AppContext) : ExpoView(
     ExpoYandexMapKitModule.unregisterView(this)
     stopMap()
     super.onDetachedFromWindow()
+  }
+
+  override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
+    super.onSizeChanged(w, h, oldw, oldh)
+    // The focus rect is in pixels and depends on the map size, so re-apply the map padding whenever
+    // the view is resized — the first real size, a rotation, or a resized container.
+    applyMapPadding()
   }
 
   /**
@@ -446,6 +495,26 @@ class ExpoYandexMapKitView(context: Context, appContext: AppContext) : ExpoView(
     mapView?.mapWindow?.map?.isFastTapEnabled = value
   }
 
+  internal fun setMinZoom(zoom: Double?) {
+    minZoom = zoom?.toFloat()
+    applyZoomBounds()
+  }
+
+  internal fun setMaxZoom(zoom: Double?) {
+    maxZoom = zoom?.toFloat()
+    applyZoomBounds()
+  }
+
+  // MapKit's cameraBounds exposes only a combined reset, so re-establish the full state each time:
+  // reset both preferences, then re-apply whichever bound is set. This makes clearing one bound (its
+  // prop set to undefined) restore MapKit's default for that bound while keeping the other.
+  private fun applyZoomBounds() {
+    val bounds = mapView?.mapWindow?.map?.cameraBounds ?: return
+    bounds.resetMinMaxZoomPreference()
+    minZoom?.let { bounds.setMinZoomPreference(it) }
+    maxZoom?.let { bounds.setMaxZoomPreference(it) }
+  }
+
   internal fun setMapType(type: YandexMapType) {
     mapType = type
     mapView?.mapWindow?.map?.mapType = type
@@ -477,6 +546,22 @@ class ExpoYandexMapKitView(context: Context, appContext: AppContext) : ExpoView(
   internal fun setLogoPadding(padding: LogoPaddingRecord?) {
     logoPadding = padding
     applyLogo(mapView?.mapWindow?.map)
+  }
+
+  internal fun setMapPadding(padding: EdgePaddingRecord?) {
+    mapPadding = padding
+    applyMapPadding()
+  }
+
+  // Apply the persistent map-padding inset as the map window's focus rectangle. Only touches the
+  // focus rect when a padding is set — when null, the focus rect is left alone (a fitMarkers call may
+  // own it). The rect is in pixels, so this is re-run from onSizeChanged when the view is resized.
+  private fun applyMapPadding() {
+    val mapWindow = mapView?.mapWindow ?: return
+    if (mapPadding == null) {
+      return
+    }
+    mapWindow.focusRect = focusRect(mapPadding)
   }
 
   private fun applyLogo(map: YandexMap?) {
@@ -549,7 +634,9 @@ class ExpoYandexMapKitView(context: Context, appContext: AppContext) : ExpoView(
         Point(points.maxOf { it.latitude }, points.maxOf { it.longitude })
       )
       val geometry = Geometry.fromBoundingBox(boundingBox)
-      val focus = focusRect(options.edgePadding)
+      // A fit with no edgePadding of its own falls back to the persistent mapPadding, so a fit never
+      // silently discards the map's configured inset. An explicit edgePadding overrides it for this fit.
+      val focus = focusRect(options.edgePadding ?: mapPadding)
       if (focus != null) {
         map.cameraPosition(geometry, focus, current.azimuth, current.tilt)
       } else {
@@ -573,10 +660,13 @@ class ExpoYandexMapKitView(context: Context, appContext: AppContext) : ExpoView(
       return null
     }
     val density = resources.displayMetrics.density
-    val left = (padding.left.toFloat() * density).coerceIn(0f, width - 1f)
-    val top = (padding.top.toFloat() * density).coerceIn(0f, height - 1f)
-    val right = (width - padding.right.toFloat() * density).coerceIn(left + 1f, width)
-    val bottom = (height - padding.bottom.toFloat() * density).coerceIn(top + 1f, height)
+    // The focusRect's bottomRight corner must stay strictly inside the window (MapKit rejects a corner
+    // on the edge as "out of screen"), so clamp right/bottom to width-1 / height-1 — as left/top already
+    // are — and cap left/top at width-2 / height-2 so the rect never collapses (right > left).
+    val left = (padding.left.toFloat() * density).coerceIn(0f, width - 2f)
+    val top = (padding.top.toFloat() * density).coerceIn(0f, height - 2f)
+    val right = (width - padding.right.toFloat() * density).coerceIn(left + 1f, width - 1f)
+    val bottom = (height - padding.bottom.toFloat() * density).coerceIn(top + 1f, height - 1f)
     return ScreenRect(ScreenPoint(left, top), ScreenPoint(right, bottom))
   }
 
@@ -587,6 +677,24 @@ class ExpoYandexMapKitView(context: Context, appContext: AppContext) : ExpoView(
     } else {
       map.move(target)
     }
+  }
+
+  // Draw MapKit's selection highlight around the POI/geo-object identified by `selection` (from an
+  // onPoiTap event). Reconstructs the selection metadata from the opaque ids. No-op until the map is
+  // ready.
+  internal fun selectGeoObject(selection: GeoObjectSelectionRecord) {
+    val map = mapView?.mapWindow?.map ?: return
+    val metadata = GeoObjectSelectionMetadata(
+      selection.objectId,
+      selection.dataSourceName,
+      selection.layerId,
+      selection.groupId?.toLong()
+    )
+    map.selectGeoObject(metadata)
+  }
+
+  internal fun deselectGeoObject() {
+    mapView?.mapWindow?.map?.deselectGeoObject()
   }
 
   internal fun currentCameraPosition(): Map<String, Any>? {
@@ -819,13 +927,18 @@ class ExpoYandexMapKitView(context: Context, appContext: AppContext) : ExpoView(
     // cameraListener/inputListener fields on this view keep the listeners alive.
     map.addCameraListener(WeakReference(cameraListener))
     map.addInputListener(WeakReference(inputListener))
+    map.addTapListener(WeakReference(geoObjectTapListener))
     map.setMapLoadedListener(WeakReference(mapLoadedListener))
     map.isNightModeEnabled = nightMode
     applyGestureState()
     map.isFastTapEnabled = fastTapEnabled
+    if (minZoom != null || maxZoom != null) {
+      applyZoomBounds()
+    }
     mapType?.let { map.mapType = it }
     applyMapStyle(map)
     applyLogo(map)
+    applyMapPadding()
     // The initial camera position is applied instantly — the map has not been shown yet.
     applyPendingCameraPosition(allowAnimation = false)
     // Wire up any <Marker> children that mounted before the map existed.
@@ -858,5 +971,26 @@ class ExpoYandexMapKitView(context: Context, appContext: AppContext) : ExpoView(
         "longitude" to point.longitude
       )
     )
+  }
+
+  // Build the onPoiTap payload: the selection token (opaque ids for selectGeoObject) plus the
+  // object's name and first point geometry, when present.
+  private fun poiTapPayload(
+    geoObject: GeoObject,
+    selection: GeoObjectSelectionMetadata
+  ): Map<String, Any?> {
+    val selectionPayload = mutableMapOf<String, Any?>(
+      "objectId" to selection.objectId,
+      "dataSourceName" to selection.dataSourceName,
+      "layerId" to selection.layerId
+    )
+    selection.groupId?.let { selectionPayload["groupId"] = it.toDouble() }
+
+    val payload = mutableMapOf<String, Any?>("selection" to selectionPayload)
+    geoObject.name?.let { payload["name"] = it }
+    geoObject.geometry.firstOrNull { it.point != null }?.point?.let { point ->
+      payload["point"] = mapOf("latitude" to point.latitude, "longitude" to point.longitude)
+    }
+    return payload
   }
 }
