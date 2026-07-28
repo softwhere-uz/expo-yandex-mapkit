@@ -26,6 +26,8 @@ export { Circle } from './ExpoYandexMapKitCircleView';
 // same-name co-export, so it is silenced on both lines.
 // eslint-disable-next-line import/export
 export { Route } from './ExpoYandexMapKitRoute';
+export { distanceBetween, pathLength, boundingBox } from './geometry';
+export { Geojson } from './ExpoYandexMapKitGeojson';
 // eslint-disable-next-line import/export
 export * from './ExpoYandexMapKit.types';
 
