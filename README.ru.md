@@ -649,6 +649,7 @@ const routes = await findRoutes(
 
 - `findRoutes(points, mode)` — 2+ путевых точки, `mode` = `'driving'` | `'masstransit'` | `'pedestrian'` | `'bicycle'` | `'scooter'`; резолвит лучший маршрут первым.
 - `findDrivingRoutes` / `findMasstransitRoutes` / `findPedestrianRoutes` / `findBicycleRoutes` / `findScooterRoutes` — удобные обёртки. (**Велосипед / самокат — сверх паритета**: ни одна RN-обёртка для Яндекс-карт этого не даёт.)
+- **Опции автомобильного маршрута** (сверх паритета): `findRoutes(points, 'driving', options)` / `findDrivingRoutes(points, options)` принимают `{ avoidTolls?, avoidUnpaved?, avoidPoorConditions?, avoidHighways?, departureTime?, vehicleType? }` (`vehicleType`: `'default'` / `'taxi'` / `'truck'` / `'moto'`). SDK поддерживает всё это; ни одна RN-обёртка для Яндекс-карт их не пробрасывает.
 
 Каждый `Route` несёт сводку (`time`; `timeWithTraffic` + `distance` для авто; `walkingDistance` + `transfersCount` для общественного транспорта), геометрию `points` и `sections` — маршрут, разбитый на участки. Каждый `RouteSection` — это `{ type, time?, points, transports? }`: `type` — `'car'`, `'walk'`, `'waiting'` или тип транспортного средства (`'bus'`, `'underground'`, …), `transports` сопоставляет каждому типу транспорта названия его линий, а `points` — фрагмент полилинии этого участка. Так маршрут на общественном транспорте читается как «пешком → автобус 42 → пересадка → метро», каждый участок можно отрисовать отдельно. Требует инициализированного MapKit.
 

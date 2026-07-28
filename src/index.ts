@@ -1,6 +1,7 @@
 // Reexport the native module. On web, it will be resolved to ExpoYandexMapKitModule.web.ts
 // and on native platforms to ExpoYandexMapKitModule.ts
 import type {
+  DrivingRouteOptions,
   Point,
   Route,
   RouteMode,
@@ -148,23 +149,33 @@ export { default as ExpoYandexSearchModule } from './ExpoYandexSearchModule';
  * Requires MapKit to be initialized (via {@link initialize} or a build-time key). Draw a route with
  * `<Polyline points={route.points} />`.
  */
-export async function findRoutes(points: Point[], mode: RouteMode): Promise<Route[]> {
-  return ExpoYandexTransportModule.findRoutes(points, mode);
+export async function findRoutes(
+  points: Point[],
+  mode: RouteMode,
+  options?: DrivingRouteOptions
+): Promise<Route[]> {
+  return ExpoYandexTransportModule.findRoutes(points, mode, options ?? null);
 }
 
-/** Driving routes between `points` — {@link findRoutes} with mode `'driving'`. */
-export async function findDrivingRoutes(points: Point[]): Promise<Route[]> {
-  return ExpoYandexTransportModule.findRoutes(points, 'driving');
+/**
+ * Driving routes between `points` — {@link findRoutes} with mode `'driving'`. Pass `options` to
+ * avoid tolls / unpaved / highways, set a `departureTime`, or pick a `vehicleType` (taxi / truck / moto).
+ */
+export async function findDrivingRoutes(
+  points: Point[],
+  options?: DrivingRouteOptions
+): Promise<Route[]> {
+  return ExpoYandexTransportModule.findRoutes(points, 'driving', options ?? null);
 }
 
 /** Public-transport routes between `points` — {@link findRoutes} with mode `'masstransit'`. */
 export async function findMasstransitRoutes(points: Point[]): Promise<Route[]> {
-  return ExpoYandexTransportModule.findRoutes(points, 'masstransit');
+  return ExpoYandexTransportModule.findRoutes(points, 'masstransit', null);
 }
 
 /** Walking routes between `points` — {@link findRoutes} with mode `'pedestrian'`. */
 export async function findPedestrianRoutes(points: Point[]): Promise<Route[]> {
-  return ExpoYandexTransportModule.findRoutes(points, 'pedestrian');
+  return ExpoYandexTransportModule.findRoutes(points, 'pedestrian', null);
 }
 
 /** Bicycle routes between `points` — {@link findRoutes} with mode `'bicycle'`. */

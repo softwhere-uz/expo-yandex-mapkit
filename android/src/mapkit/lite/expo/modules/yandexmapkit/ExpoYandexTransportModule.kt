@@ -11,7 +11,7 @@ class ExpoYandexTransportModule : Module() {
   override fun definition() = ModuleDefinition {
     Name("ExpoYandexTransport")
 
-    AsyncFunction("findRoutes") { _: List<PointRecord>, _: String, promise: Promise ->
+    AsyncFunction("findRoutes") { _: List<PointRecord>, _: String, _: DrivingRouteOptionsRecord?, promise: Promise ->
       promise.reject("E_FULL_REQUIRED", FULL_REQUIRED_MESSAGE, null)
     }
   }

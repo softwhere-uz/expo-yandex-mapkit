@@ -3,12 +3,14 @@ package expo.modules.yandexmapkit
 import com.yandex.mapkit.RequestPoint
 import com.yandex.mapkit.RequestPointType
 import com.yandex.mapkit.directions.DirectionsFactory
+import com.yandex.mapkit.directions.driving.AvoidanceFlags
 import com.yandex.mapkit.directions.driving.DrivingOptions
 import com.yandex.mapkit.directions.driving.DrivingRoute
 import com.yandex.mapkit.directions.driving.DrivingRouter
 import com.yandex.mapkit.directions.driving.DrivingRouterType
 import com.yandex.mapkit.directions.driving.DrivingSession
 import com.yandex.mapkit.directions.driving.VehicleOptions
+import com.yandex.mapkit.directions.driving.VehicleType
 import com.yandex.mapkit.geometry.Point
 import com.yandex.mapkit.geometry.SubpolylineHelper
 import com.yandex.mapkit.transport.TransportFactory
@@ -44,12 +46,12 @@ class ExpoYandexTransportModule : Module() {
   override fun definition() = ModuleDefinition {
     Name("ExpoYandexTransport")
 
-    AsyncFunction("findRoutes") { points: List<PointRecord>, mode: String, promise: Promise ->
+    AsyncFunction("findRoutes") { points: List<PointRecord>, mode: String, options: DrivingRouteOptionsRecord?, promise: Promise ->
       val requestPoints = points.map {
         RequestPoint(Point(it.latitude, it.longitude), RequestPointType.WAYPOINT, null, null, null)
       }
       when (mode) {
-        "driving" -> requestDriving(requestPoints, promise)
+        "driving" -> requestDriving(requestPoints, options, promise)
         "masstransit" -> requestMasstransit(requestPoints, promise)
         "pedestrian" -> requestPedestrian(requestPoints, promise)
         "bicycle" -> requestBicycle(requestPoints, BicycleVehicleType.BICYCLE, promise)
@@ -59,15 +61,42 @@ class ExpoYandexTransportModule : Module() {
     }.runOnQueue(Queues.MAIN)
   }
 
-  private fun requestDriving(points: List<RequestPoint>, promise: Promise) {
+  private fun requestDriving(
+    points: List<RequestPoint>,
+    options: DrivingRouteOptionsRecord?,
+    promise: Promise
+  ) {
     val router = drivingRouter
       ?: DirectionsFactory.getInstance().createDrivingRouter(DrivingRouterType.COMBINED)
         .also { drivingRouter = it }
+    val drivingOptions = DrivingOptions()
+    val vehicleOptions = VehicleOptions()
+    options?.let { opts ->
+      // AvoidanceFlags constructor order: tolls, unpaved, poorCondition, railwayCrossing, boatFerry,
+      // fordCrossing, tunnel, highway — we only expose the four common ones.
+      drivingOptions.setAvoidanceFlags(
+        AvoidanceFlags(
+          opts.avoidTolls, opts.avoidUnpaved, opts.avoidPoorConditions,
+          false, false, false, false, opts.avoidHighways
+        )
+      )
+      opts.departureTime?.let { drivingOptions.setDepartureTime(it.toLong()) }
+      opts.vehicleType?.let { vt ->
+        vehicleOptions.setVehicleType(
+          when (vt) {
+            "taxi" -> VehicleType.TAXI
+            "truck" -> VehicleType.TRUCK
+            "moto" -> VehicleType.MOTO
+            else -> VehicleType.DEFAULT
+          }
+        )
+      }
+    }
     sessions.add(
       router.requestRoutes(
         points,
-        DrivingOptions(),
-        VehicleOptions(),
+        drivingOptions,
+        vehicleOptions,
         object : DrivingSession.DrivingRouteListener {
           override fun onDrivingRoutes(routes: MutableList<DrivingRoute>) {
             promise.resolve(routes.map { serializeDriving(it) })

@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **Driving route options** (`full` flavor; beyond parity — [#2](https://github.com/softwhere-uz/expo-yandex-mapkit/issues/2)).
+  `findRoutes(points, mode, options?)` and `findDrivingRoutes(points, options?)` now accept a
+  `DrivingRouteOptions` — `avoidTolls` / `avoidUnpaved` / `avoidPoorConditions` / `avoidHighways`,
+  `departureTime` (Unix seconds, for a traffic-aware ETA), and `vehicleType` (`'default'` / `'taxi'` /
+  `'truck'` / `'moto'`) — via MapKit's `DrivingOptions.avoidanceFlags` / `VehicleOptions`. Ignored for
+  non-driving modes. The SDK supports all of these; no Yandex-maps RN wrapper forwards them.
+
 ## [2.15.0] - 2026-07-29
 
 ### Added
