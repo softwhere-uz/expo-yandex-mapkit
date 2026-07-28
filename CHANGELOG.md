@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **Jest mock preset** shipped in the package (beyond parity — [#2](https://github.com/softwhere-uz/expo-yandex-mapkit/issues/2)).
+  `jest.mock('expo-yandex-mapkit', () => require('expo-yandex-mapkit/mock'))` lets component tests run
+  without a native runtime — the components render their children in a `<View>` and the ref methods /
+  module functions are `jest.fn()`s returning sensible defaults. Standard in the react-native-maps
+  ecosystem ([yamap#257](https://github.com/volga-volga/react-native-yamap/issues/257)); no
+  Yandex-maps RN wrapper ships one.
+
 ## [2.11.0] - 2026-07-29
 
 ### Added
@@ -132,15 +143,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   highlight. A POI tap fires `onPoiTap` and does **not** also fire `onMapPress` (the react-native-maps
   `onPoiClick` convention). No other Yandex-maps RN wrapper exposes built-in POI taps — theirs return
   bare coordinates only.
-
-### Added
-
-- **Jest mock preset** shipped in the package (beyond parity — [#2](https://github.com/softwhere-uz/expo-yandex-mapkit/issues/2)).
-  `jest.mock('expo-yandex-mapkit', () => require('expo-yandex-mapkit/mock'))` lets component tests run
-  without a native runtime — the components render their children in a `<View>` and the ref methods /
-  module functions are `jest.fn()`s returning sensible defaults. Standard in the react-native-maps
-  ecosystem ([yamap#257](https://github.com/volga-volga/react-native-yamap/issues/257)); no
-  Yandex-maps RN wrapper ships one.
 
 ## [2.0.1] - 2026-07-26
 
