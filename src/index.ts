@@ -21,6 +21,15 @@ export { Clusterer } from './ExpoYandexMapKitClustererView';
 export { Polyline } from './ExpoYandexMapKitPolylineView';
 export { Polygon } from './ExpoYandexMapKitPolygonView';
 export { Circle } from './ExpoYandexMapKitCircleView';
+// The `<Route>` component (a value) and the `Route` data type (re-exported below via `export *`)
+// deliberately share a name — valid in TS (like a class merges a value + type), and convenient: you
+// write `<Route route={route} />` where `route: Route`. eslint's import/export rule flags the
+// same-name co-export, so it is silenced on both lines.
+// eslint-disable-next-line import/export
+export { Route } from './ExpoYandexMapKitRoute';
+export { distanceBetween, pathLength, boundingBox } from './geometry';
+export { Geojson } from './ExpoYandexMapKitGeojson';
+// eslint-disable-next-line import/export
 export * from './ExpoYandexMapKit.types';
 
 // Escape hatch: the raw native module.
@@ -167,6 +176,16 @@ export async function findMasstransitRoutes(points: Point[]): Promise<Route[]> {
 /** Walking routes between `points` — {@link findRoutes} with mode `'pedestrian'`. */
 export async function findPedestrianRoutes(points: Point[]): Promise<Route[]> {
   return ExpoYandexTransportModule.findRoutes(points, 'pedestrian', null);
+}
+
+/** Bicycle routes between `points` — {@link findRoutes} with mode `'bicycle'`. */
+export async function findBicycleRoutes(points: Point[]): Promise<Route[]> {
+  return ExpoYandexTransportModule.findRoutes(points, 'bicycle');
+}
+
+/** Scooter routes between `points` — {@link findRoutes} with mode `'scooter'`. */
+export async function findScooterRoutes(points: Point[]): Promise<Route[]> {
+  return ExpoYandexTransportModule.findRoutes(points, 'scooter');
 }
 
 // Escape hatch: the raw Transport (routing) native module.

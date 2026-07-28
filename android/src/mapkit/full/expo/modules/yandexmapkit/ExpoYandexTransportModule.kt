@@ -14,6 +14,8 @@ import com.yandex.mapkit.directions.driving.VehicleType
 import com.yandex.mapkit.geometry.Point
 import com.yandex.mapkit.geometry.SubpolylineHelper
 import com.yandex.mapkit.transport.TransportFactory
+import com.yandex.mapkit.transport.bicycle.BicycleRouter
+import com.yandex.mapkit.transport.bicycle.VehicleType as BicycleVehicleType
 import com.yandex.mapkit.transport.masstransit.FitnessOptions
 import com.yandex.mapkit.transport.masstransit.MasstransitRouter
 import com.yandex.mapkit.transport.masstransit.PedestrianRouter
@@ -37,6 +39,7 @@ class ExpoYandexTransportModule : Module() {
   private var drivingRouter: DrivingRouter? = null
   private var masstransitRouter: MasstransitRouter? = null
   private var pedestrianRouter: PedestrianRouter? = null
+  private var bicycleRouter: BicycleRouter? = null
   // Sessions must be retained until their routes arrive (dropping one cancels the request).
   private val sessions = mutableListOf<Any>()
 
@@ -51,6 +54,8 @@ class ExpoYandexTransportModule : Module() {
         "driving" -> requestDriving(requestPoints, options, promise)
         "masstransit" -> requestMasstransit(requestPoints, promise)
         "pedestrian" -> requestPedestrian(requestPoints, promise)
+        "bicycle" -> requestBicycle(requestPoints, BicycleVehicleType.BICYCLE, promise)
+        "scooter" -> requestBicycle(requestPoints, BicycleVehicleType.SCOOTER, promise)
         else -> promise.reject("E_ROUTE_MODE", "expo-yandex-mapkit: unknown route mode '$mode'", null)
       }
     }.runOnQueue(Queues.MAIN)
@@ -131,6 +136,43 @@ class ExpoYandexTransportModule : Module() {
       )
     )
   }
+
+  // Bicycle / scooter routing (BicycleRouter with a VehicleType). Its Route carries a single
+  // continuous leg — no transit sections — so `sections` is empty and the summary + geometry carry it.
+  private fun requestBicycle(
+    points: List<RequestPoint>,
+    vehicleType: BicycleVehicleType,
+    promise: Promise
+  ) {
+    val router = bicycleRouter
+      ?: TransportFactory.getInstance().createBicycleRouter().also { bicycleRouter = it }
+    sessions.add(
+      router.requestRoutes(
+        points,
+        vehicleType,
+        object : com.yandex.mapkit.transport.bicycle.Session.RouteListener {
+          override fun onBicycleRoutes(
+            routes: MutableList<com.yandex.mapkit.transport.bicycle.Route>
+          ) {
+            promise.resolve(routes.map { serializeBicycle(it) })
+          }
+
+          override fun onBicycleRoutesError(error: Error) {
+            promise.reject("E_ROUTE", routeError(error), null)
+          }
+        }
+      )
+    )
+  }
+
+  private fun serializeBicycle(
+    route: com.yandex.mapkit.transport.bicycle.Route
+  ): Map<String, Any?> = mapOf(
+    "time" to route.weight.time.text,
+    "distance" to route.weight.distance.value,
+    "points" to geometryPoints(route.geometry.points),
+    "sections" to emptyList<Map<String, Any?>>()
+  )
 
   private fun transitListener(promise: Promise) = object : Session.RouteListener {
     override fun onMasstransitRoutes(routes: MutableList<Route>) {
