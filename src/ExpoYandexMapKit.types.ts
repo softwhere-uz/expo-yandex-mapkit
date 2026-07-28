@@ -24,6 +24,26 @@ export type MapPressEvent = {
   point: Point;
 };
 
+// Identifies a tapped built-in map object (a POI icon, a labelled toponym) precisely enough to
+// (re)select it. The IDs are opaque MapKit values — read them off an `onPoiTap` event and pass the
+// whole object back to the map ref's `selectGeoObject()` to draw MapKit's selection highlight.
+export type GeoObjectSelection = {
+  objectId: string;
+  dataSourceName: string;
+  layerId: string;
+  groupId?: number;
+};
+
+// Payload for `onPoiTap` — a tap on one of the map's own labelled objects (a POI icon, a toponym).
+// Distinct from `onMapPress` (a tap on blank map): a POI tap fires `onPoiTap` and does NOT also fire
+// `onMapPress` — the react-native-maps `onPoiClick` convention. No Yandex-maps RN wrapper exposes
+// this; their map taps return bare coordinates only.
+export type PoiTapEvent = {
+  name?: string; // the object's label, when MapKit provides one
+  point?: Point; // the object's coordinate (its point geometry), when available
+  selection: GeoObjectSelection; // pass to the map ref's `selectGeoObject()` to highlight this object
+};
+
 export type MapLoadStatistics = {
   renderObjectCount: number; // number of map objects rendered
   tileMemoryUsage: number; // tile cache memory usage, in bytes
@@ -67,6 +87,10 @@ export type YandexMapViewProps = {
   onCameraPositionChanged?: (event: { nativeEvent: CameraPositionChangeEvent }) => void;
   onMapPress?: (event: { nativeEvent: MapPressEvent }) => void;
   onMapLongPress?: (event: { nativeEvent: MapPressEvent }) => void;
+  // Fires when a built-in map POI / geo-object (a labelled place icon or toponym) is tapped, with
+  // its name, coordinate, and a `selection` token for `selectGeoObject()`. A POI tap does not also
+  // fire `onMapPress`.
+  onPoiTap?: (event: { nativeEvent: PoiTapEvent }) => void;
   onMapLoaded?: (event: { nativeEvent: MapLoadStatistics }) => void; // fires once the map finishes loading, with render stats
   style?: StyleProp<ViewStyle>;
   children?: ReactNode; // <Marker> (and future map-object) children
@@ -242,6 +266,11 @@ export type YandexMapViewRef = {
   getScreenPoints(points: Point[]): Promise<(ScreenPoint | null)[]>;
   // Project screen points to world coordinates. Each result is null when unprojectable.
   getWorldPoints(points: ScreenPoint[]): Promise<(Point | null)[]>;
+  // Draw MapKit's selection highlight around a built-in POI / geo-object. Pass the `selection`
+  // carried by an `onPoiTap` event. No-op until the map is ready.
+  selectGeoObject(selection: GeoObjectSelection): Promise<void>;
+  // Clear any geo-object selection highlight drawn by `selectGeoObject()`.
+  deselectGeoObject(): Promise<void>;
 };
 
 // ── Suggest (search-as-you-type) — requires the MapKit `full` flavor ────────────────────────────

@@ -22,6 +22,7 @@ A complete Yandex Maps SDK for Expo — full feature parity with the most capabl
 - 🗺️ Native MapKit `<YandexMapView>` (Fabric / New Architecture)
 - 🎥 Declarative, animatable camera (`cameraPosition`) + imperative ref methods — `setCenter`, `setZoom`, `fitMarkers` / `fitAllMarkers` (with edge padding), `getCameraPosition`, `getVisibleRegion`, world↔screen projection
 - 👆 Press / long-press / camera-move / map-loaded events with identical payloads on iOS and Android
+- 📌 **POI taps** (`onPoiTap`) — tap a built-in place icon to get its name + coordinate, then highlight it with `selectGeoObject()` (**beyond parity — no other Yandex-maps RN wrapper exposes this**)
 - 🎨 `mapType` (`map` / `satellite` / `hybrid` / `vector`), JSON `mapStyle`, night mode, per-gesture toggles, logo placement
 
 **Map objects** (declarative children of the map)
@@ -293,8 +294,9 @@ Events:
 | --- | --- | --- |
 | `onMapReady` | `{}` | Once per view, when the native map has been created (after `initialize`). |
 | `onCameraPositionChanged` | `CameraPositionChangeEvent` | While the camera moves; `reason` distinguishes user gestures from programmatic moves, `finished` marks the end of a movement. |
-| `onMapPress` | `MapPressEvent` | On a single tap on the map. |
+| `onMapPress` | `MapPressEvent` | On a single tap on blank map. |
 | `onMapLongPress` | `MapPressEvent` | On a long press on the map. |
+| `onPoiTap` | `PoiTapEvent` | On a tap on one of the map's own labelled objects (a POI icon, a toponym) — carries its `name`, `point`, and a `selection` token for `selectGeoObject()`. A POI tap fires `onPoiTap` and does **not** also fire `onMapPress` (the react-native-maps `onPoiClick` convention). **No other Yandex-maps RN wrapper exposes built-in POI taps** — theirs return bare coordinates only. |
 | `onMapLoaded` | `MapLoadStatistics` | Once the map finishes loading — carries render stats (`renderObjectCount`, `tileMemoryUsage`, load timings). |
 
 ### Types
@@ -317,6 +319,20 @@ type CameraPositionChangeEvent = {
 };
 
 type MapPressEvent = { point: Point };
+
+// Opaque MapKit ids identifying a tapped built-in object, enough to (re)select it.
+type GeoObjectSelection = {
+  objectId: string;
+  dataSourceName: string;
+  layerId: string;
+  groupId?: number;
+};
+
+type PoiTapEvent = {
+  name?: string;               // the object's label, when present
+  point?: Point;               // the object's coordinate, when available
+  selection: GeoObjectSelection; // pass to mapRef.selectGeoObject() to highlight it
+};
 
 type MapLoadStatistics = {
   renderObjectCount: number;      // number of map objects rendered
@@ -347,6 +363,8 @@ Call these through a ref (`const mapRef = useRef<YandexMapViewRef>(null)`). All 
 | `getVisibleRegion()` | `Promise<VisibleRegion \| null>` | The visible geographic quad (`topLeft` / `topRight` / `bottomLeft` / `bottomRight`). |
 | `getScreenPoints(points)` | `Promise<(ScreenPoint \| null)[]>` | Project world coordinates to screen pixels; `null` per point that can't be projected (off-globe / behind the camera). |
 | `getWorldPoints(points)` | `Promise<(Point \| null)[]>` | Project screen pixels back to world coordinates. |
+| `selectGeoObject(selection)` | `Promise<void>` | Draw MapKit's selection highlight around a built-in POI / geo-object. Pass the `selection` carried by an `onPoiTap` event. No-op until the map is ready. |
+| `deselectGeoObject()` | `Promise<void>` | Clear any selection highlight drawn by `selectGeoObject()`. |
 
 ```tsx
 const mapRef = useRef<YandexMapViewRef>(null);
@@ -356,6 +374,12 @@ const mapRef = useRef<YandexMapViewRef>(null);
 await mapRef.current?.setCenter({ latitude: 41.31, longitude: 69.24, zoom: 14 }, { durationSeconds: 0.4 });
 const region = await mapRef.current?.getVisibleRegion();
 const [screen] = await mapRef.current?.getScreenPoints([{ latitude: 41.31, longitude: 69.24 }]) ?? [];
+
+// Tap a built-in POI → highlight it with MapKit's native selection:
+<YandexMapView
+  ref={mapRef}
+  onPoiTap={({ nativeEvent }) => mapRef.current?.selectGeoObject(nativeEvent.selection)}
+/>;
 ```
 
 ### `<Marker />`
