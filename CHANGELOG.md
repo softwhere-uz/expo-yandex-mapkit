@@ -16,6 +16,156 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `sections` is empty). Exists in the official Yandex Flutter plugin; **neither Yandex-maps RN wrapper
   exposed it**. This completes the Section A checklist of #2.
 
+## [2.13.0] - 2026-07-29
+
+### Added
+
+- **react-native-maps migration aliases** (beyond parity — [#2](https://github.com/softwhere-uz/expo-yandex-mapkit/issues/2)).
+  A `fitToCoordinates(coordinates, { edgePadding?, animated? })` map-ref method (alias for `fitMarkers`)
+  and an `onRegionChangeComplete` prop that fires a react-native-maps `Region`
+  (`{ latitude, longitude, latitudeDelta, longitudeDelta }`, computed from the visible region) after a
+  camera move settles. Pure JS; eases porting react-native-maps / react-native-yamap code — the
+  lineage's stranded downloads are the fastest adoption channel.
+
+## [2.12.0] - 2026-07-29
+
+### Added
+
+- **Jest mock preset** shipped in the package (beyond parity — [#2](https://github.com/softwhere-uz/expo-yandex-mapkit/issues/2)).
+  `jest.mock('expo-yandex-mapkit', () => require('expo-yandex-mapkit/mock'))` lets component tests run
+  without a native runtime — the components render their children in a `<View>` and the ref methods /
+  module functions are `jest.fn()`s returning sensible defaults. Standard in the react-native-maps
+  ecosystem ([yamap#257](https://github.com/volga-volga/react-native-yamap/issues/257)); no
+  Yandex-maps RN wrapper ships one.
+
+## [2.11.0] - 2026-07-29
+
+### Added
+
+- **`onTrafficChanged` event** (beyond parity — [#2](https://github.com/softwhere-uz/expo-yandex-mapkit/issues/2)).
+  Fires with the visible region's traffic score — `{ available, level? (0–10), color? ('red'/'yellow'/'green') }`
+  — as the traffic layer recomputes (via MapKit's `TrafficListener`). Fires only while `trafficVisible`.
+  Build a traffic-score badge from it; no Yandex-maps RN wrapper surfaces it.
+
+## [2.10.0] - 2026-07-29
+
+### Added
+
+- **`<Route>` display component** (beyond parity — [#2](https://github.com/softwhere-uz/expo-yandex-mapkit/issues/2)).
+  Draws a `Route` (from `findRoutes`) as native polylines — one per section, colored by leg type
+  (driving / walking / transit; walking legs dashed) — so a route renders out of the box instead of
+  leaving the drawing to the app (the recurring confusion in the lineage:
+  [yamap#262](https://github.com/volga-volga/react-native-yamap/issues/262), #241, #234). Pure JS
+  (wraps `<Polyline>`); falls back to the route's whole geometry when it has no `sections`.
+
+## [2.9.0] - 2026-07-29
+
+### Added
+
+- **Geometry utilities** — `distanceBetween(a, b)`, `pathLength(points)`, `boundingBox(points)`
+  (beyond parity — [#2](https://github.com/softwhere-uz/expo-yandex-mapkit/issues/2)). Pure-JS helpers
+  (haversine distance in metres, polyline length, and the SW/NE bounding box) that need no map instance
+  and work on every platform including web. Requested in
+  [yamap#227](https://github.com/volga-volga/react-native-yamap/issues/227); no wrapper ships them.
+
+## [2.8.0] - 2026-07-29
+
+### Added
+
+- **`animateAlong(points, durationMs)` marker-ref method** (beyond parity — [#2](https://github.com/softwhere-uz/expo-yandex-mapkit/issues/2)).
+  Animates a marker along a polyline at constant speed, facing each segment's heading (set the marker
+  `rotated` to see it turn) — the courier / taxi / route-tracking animation asked for repeatedly in the
+  lineage ([yamap#197](https://github.com/volga-volga/react-native-yamap/issues/197), #194, #236, #226).
+  No Yandex-maps RN wrapper ships it.
+
+## [2.7.0] - 2026-07-29
+
+### Added
+
+- **`<Geojson>` component** (beyond parity — [#2](https://github.com/softwhere-uz/expo-yandex-mapkit/issues/2)).
+  Pure-JS sugar that renders a GeoJSON object (RFC 7946) as native map objects — `Point`/`MultiPoint`
+  → `<Marker>`, `LineString`/`MultiLineString` → `<Polyline>`, `Polygon`/`MultiPolygon` → `<Polygon>`
+  (first ring outer, the rest holes), `GeometryCollection` recursively. Accepts a `FeatureCollection`,
+  `Feature`, or bare `Geometry`; style props (`markerSource`, `strokeColor`/`strokeWidth`, `fillColor`,
+  `zIndex`) and `onPress(feature)`. The react-native-maps convention; no Yandex-maps RN wrapper has it.
+  Works on web too (it composes the existing components).
+
+## [2.6.0] - 2026-07-29
+
+### Added
+
+- **`onUserLocationChange` event** (beyond parity — [#2](https://github.com/softwhere-uz/expo-yandex-mapkit/issues/2)).
+  Fires with the device's `{ point, accuracy }` whenever the user-location dot appears or moves (read
+  from the user-location layer — the pin's coordinate + the accuracy-circle radius in metres). Requires
+  `showUserPosition` + location permission. Answers the recurring "how do I get the user's coordinates"
+  ask ([yamap#295](https://github.com/volga-volga/react-native-yamap/issues/295)); no Yandex-maps RN
+  wrapper surfaces it.
+
+## [2.5.0] - 2026-07-29
+
+### Added
+
+- **`takeSnapshot()` map-ref method** (beyond parity — [#2](https://github.com/softwhere-uz/expo-yandex-mapkit/issues/2)).
+  Captures the currently-rendered map as a base64 PNG data URI (`data:image/png;base64,…`), usable
+  directly as an `<Image source={{ uri }}>`. Android uses MapKit's own `MapView.getScreenshot()`; iOS
+  snapshots the on-screen compositor (`drawHierarchy(afterScreenUpdates:)`, since MapKit exposes no iOS
+  snapshot API) — call it after `onMapLoaded`. Requested in
+  [yamap#48](https://github.com/volga-volga/react-native-yamap/issues/48); shipped by no wrapper.
+
+## [2.4.0] - 2026-07-29
+
+### Added
+
+- **Draggable markers** — a `<Marker>` `draggable` prop + `onDragStart` / `onDrag` / `onDragEnd`
+  events (beyond parity — [#2](https://github.com/softwhere-uz/expo-yandex-mapkit/issues/2)).
+  Long-press a draggable marker to pick it up and drag it; each event carries `{ identifier?, point }`
+  (the live drag point during `onDrag`, the resting position on start/end). The drag is uncontrolled
+  natively — read `onDragEnd`'s `point` to persist the new location. Baseline in react-native-maps
+  ([yamap#217](https://github.com/volga-volga/react-native-yamap/issues/217)); shipped by no
+  Yandex-maps RN wrapper.
+
+## [2.3.0] - 2026-07-29
+
+### Added
+
+- **Camera zoom bounds** — `minZoom` / `maxZoom` props (beyond parity — [#2](https://github.com/softwhere-uz/expo-yandex-mapkit/issues/2)).
+  Clamp the camera's zoom range (for gestures and programmatic moves) via MapKit's `cameraBounds`
+  zoom preferences. Requested in [yamap#187](https://github.com/volga-volga/react-native-yamap/issues/187)
+  and never shipped by any Yandex-maps RN wrapper. Either bound is independent; unsetting one restores
+  MapKit's default for it while keeping the other.
+
+## [2.2.0] - 2026-07-29
+
+### Added
+
+- **`mapPadding` prop** (beyond parity — [#2](https://github.com/softwhere-uz/expo-yandex-mapkit/issues/2)).
+  A persistent inset (`{ top?, right?, bottom?, left? }`, in points) around the map's logical viewport —
+  the react-native-maps `mapPadding` convention. It shifts the map's optical center and the target of
+  camera moves / gestures so content stays clear of a bottom sheet, header, or floating controls,
+  applied as MapKit's map-window focus rectangle. `fitMarkers` / `fitAllMarkers` fall back to it when
+  their own `edgePadding` is omitted. No Yandex-maps RN wrapper offers a map-padding equivalent.
+
+### Fixed
+
+- **Focus-rect crash on iOS with edge-padded fits.** The map-window focus rectangle (used by
+  `mapPadding` and by `fitMarkers` / `fitAllMarkers` when given `edgePadding`) was computed from
+  `UIScreen.scale × bounds`, which can drift from the window's true pixel size, and let the rect's
+  bottom-right corner land on the window edge — MapKit rejected it (`focusRect … is out of screen`) and
+  terminated the app. It now uses the map window's own reported pixel size and clamps the rect strictly
+  inside the window (Android's equivalent off-by-one clamp is fixed too).
+
+## [2.1.0] - 2026-07-29
+
+### Added
+
+- **POI taps + geo-object selection** (beyond parity — [#2](https://github.com/softwhere-uz/expo-yandex-mapkit/issues/2)).
+  A new `onPoiTap` event fires when a built-in map object (a POI icon, a labelled toponym) is tapped,
+  carrying its `name`, `point`, and a `selection` token. Pass that token to the two new map-ref methods
+  `selectGeoObject(selection)` / `deselectGeoObject()` to draw and clear MapKit's native selection
+  highlight. A POI tap fires `onPoiTap` and does **not** also fire `onMapPress` (the react-native-maps
+  `onPoiClick` convention). No other Yandex-maps RN wrapper exposes built-in POI taps — theirs return
+  bare coordinates only.
+
 ## [2.0.1] - 2026-07-26
 
 Docs/packaging patch — no code changes.

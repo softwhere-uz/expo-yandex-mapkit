@@ -20,20 +20,21 @@ A complete Yandex Maps SDK for Expo — full feature parity with the most capabl
 
 **Map & camera**
 - 🗺️ Native MapKit `<YandexMapView>` (Fabric / New Architecture)
-- 🎥 Declarative, animatable camera (`cameraPosition`) + imperative ref methods — `setCenter`, `setZoom`, `fitMarkers` / `fitAllMarkers` (with edge padding), `getCameraPosition`, `getVisibleRegion`, world↔screen projection
+- 🎥 Declarative, animatable camera (`cameraPosition`) + imperative ref methods — `setCenter`, `setZoom`, `fitMarkers` / `fitAllMarkers` (with edge padding), `getCameraPosition`, `getVisibleRegion`, world↔screen projection, `takeSnapshot`; persistent `mapPadding` for bottom-sheet / header layouts
 - 👆 Press / long-press / camera-move / map-loaded events with identical payloads on iOS and Android
-- 🎨 `mapType` (`map` / `satellite` / `hybrid` / `vector`), JSON `mapStyle`, night mode, per-gesture toggles, logo placement
+- 📌 **POI taps** (`onPoiTap`) — tap a built-in place icon to get its name + coordinate, then highlight it with `selectGeoObject()` (**beyond parity — no other Yandex-maps RN wrapper exposes this**)
+- 🎨 `mapType` (`map` / `satellite` / `hybrid` / `vector`), JSON `mapStyle`, night mode, per-gesture toggles, `minZoom` / `maxZoom` bounds, logo placement
 
 **Map objects** (declarative children of the map)
-- 📍 `<Marker>` — image **or React-children** icons (reliable, with a `tracksViewChanges` re-snapshot pipeline), `onPress` with an identifying payload, `animatedMoveTo` / `animatedRotateTo`
-- 〰️ `<Polyline>` (dash + outline), `<Polygon>` (holes via `innerRings`), `<Circle>`
+- 📍 `<Marker>` — image **or React-children** icons (reliable, with a `tracksViewChanges` re-snapshot pipeline), `onPress` with an identifying payload, `draggable` + drag events, `animatedMoveTo` / `animatedRotateTo` / `animateAlong`
+- 〰️ `<Polyline>` (dash + outline), `<Polygon>` (holes via `innerRings`), `<Circle>`, `<Geojson>` (expands a GeoJSON object into map objects)
 - 🔵 `<Clusterer>` — declarative clustering where your own `<Marker>`s are the render-prop; custom badge (color / size / **icon**), `excludeFromCluster`, tap-to-fit, configurable radius / minZoom
-- 📡 User-location layer (custom dot icon + accuracy-circle styling) and a live 🚦 traffic layer
+- 📡 User-location layer (custom dot icon + accuracy-circle styling, `onUserLocationChange` coordinates) and a live 🚦 traffic layer
 
 **Full-flavor modules** — set `flavor: 'full'` ([lite vs full](#lite-vs-full))
 - 🔎 **Search & geocoding** — `searchText`, `searchPoint` (reverse), `geocodeAddress` / `geocodePoint`, `resolveURI`; structured `addressComponents`, business `rating`, spelling / snippets options
 - ⌨️ **Suggest** — search-as-you-type; coordinates read **natively** (no lost `center`)
-- 🧭 **Routing** — `findRoutes` for driving / masstransit / pedestrian / **bicycle / scooter** (beyond parity), with a per-section leg breakdown (walk → bus → transfer → metro)
+- 🧭 **Routing** — `findRoutes` for driving / masstransit / pedestrian / **bicycle / scooter** (beyond parity), with a per-section leg breakdown (walk → bus → transfer → metro); draw it with the `<Route>` component (colored per leg)
 
 **Setup & DX**
 - 🔑 API key at **build time** (config plugin) or **runtime** (`initialize`) — no `AndroidManifest.xml` / `AppDelegate` edits; a build-time key auto-initializes at startup (no init-order footgun)
@@ -271,6 +272,8 @@ Get/set the map display language at runtime, as `language` or `language_REGION` 
 | `rotateGesturesEnabled` | `boolean` | `true` | Allow the two-finger twist that rotates the map. |
 | `fastTapEnabled` | `boolean` | `true` | Report a tap immediately instead of waiting to see if it becomes a double-tap. |
 | `interactiveDisabled` | `boolean` | `false` | When `true`, disables all four movement gestures at once — a shorthand that overrides the individual `*GesturesEnabled` props. Tap events (`onMapPress`/`onMapLongPress`) still fire. |
+| `minZoom` | `number` | — (MapKit default) | Clamp the camera's minimum (most zoomed-out) zoom level. Applies to gestures and programmatic moves. Requested in [yamap#187](https://github.com/volga-volga/react-native-yamap/issues/187) — no other wrapper ships it. |
+| `maxZoom` | `number` | — (MapKit default) | Clamp the camera's maximum (most zoomed-in) zoom level. |
 | `mapType` | `'none' \| 'map' \| 'satellite' \| 'hybrid' \| 'vector'` | — (SDK default) | Base map layer. `'map'`, `'satellite'` and `'hybrid'` are raster; `'vector'` is the styleable vector scheme. Left unset, the map keeps MapKit's own default (vector). **`'satellite'` / `'hybrid'` need a key with satellite-imagery access enabled** — the prop still takes effect (the map leaves the road scheme and shows the empty tile grid), but no aerial tiles load on a free-tier MapKit Mobile SDK key; request imagery access for your key in the Yandex dashboard. |
 | `mapStyle` | `string` | — | A [Yandex JSON map style](https://yandex.com/dev/mapkit/doc/en/android/generated/style) applied to the map. **Only affects the `'vector'` and `'hybrid'` layers** — leave `mapType` unset (the default is vector) or set `mapType='vector'`; it is a silent no-op on the raster `'map'` / `'satellite'` layers. Pass `''` to clear a previously applied style. Invalid JSON is ignored with a warning. |
 | `logoPosition` | `{ horizontal: 'left' \| 'center' \| 'right'; vertical: 'top' \| 'bottom' }` | — | Corner the mandatory Yandex logo is aligned to. |
@@ -283,6 +286,7 @@ Get/set the map display language at runtime, as `language` or `language_REGION` 
 | `userLocationAccuracyStrokeColor` | `ColorValue` | — | Stroke (border) colour of the accuracy circle. Unset keeps MapKit's default. |
 | `userLocationAccuracyStrokeWidth` | `number` | — | Accuracy-circle stroke width, in points. |
 | `trafficVisible` | `boolean` | `false` | Show the live traffic-jams layer. |
+| `mapPadding` | `{ top?, right?, bottom?, left? }` (points) | — | Persistent inset around the map's logical viewport (the react-native-maps `mapPadding` convention). Shifts the optical center and the target of camera moves / gestures so content stays clear of a bottom sheet, header, or floating controls. Applied as MapKit's map-window focus rectangle. `fitMarkers` / `fitAllMarkers` fall back to it when their own `edgePadding` is omitted. |
 | `style` | `StyleProp<ViewStyle>` | — | Standard React Native view styling. |
 
 > For a non-interactive map (e.g. a static preview) set `interactiveDisabled` (shorthand for disabling all four movement gestures); toggle `rotateGesturesEnabled` / `tiltGesturesEnabled` off to keep the map flat and north-up.
@@ -293,9 +297,13 @@ Events:
 | --- | --- | --- |
 | `onMapReady` | `{}` | Once per view, when the native map has been created (after `initialize`). |
 | `onCameraPositionChanged` | `CameraPositionChangeEvent` | While the camera moves; `reason` distinguishes user gestures from programmatic moves, `finished` marks the end of a movement. |
-| `onMapPress` | `MapPressEvent` | On a single tap on the map. |
+| `onMapPress` | `MapPressEvent` | On a single tap on blank map. |
 | `onMapLongPress` | `MapPressEvent` | On a long press on the map. |
+| `onPoiTap` | `PoiTapEvent` | On a tap on one of the map's own labelled objects (a POI icon, a toponym) — carries its `name`, `point`, and a `selection` token for `selectGeoObject()`. A POI tap fires `onPoiTap` and does **not** also fire `onMapPress` (the react-native-maps `onPoiClick` convention). **No other Yandex-maps RN wrapper exposes built-in POI taps** — theirs return bare coordinates only. |
 | `onMapLoaded` | `MapLoadStatistics` | Once the map finishes loading — carries render stats (`renderObjectCount`, `tileMemoryUsage`, load timings). |
+| `onTrafficChanged` | `TrafficChangeEvent` | The visible region's traffic score (`{ available, level? (0–10), color? ('red'/'yellow'/'green') }`) as it recomputes. Fires only while `trafficVisible`. No Yandex-maps RN wrapper surfaces it. |
+| `onUserLocationChange` | `UserLocationChangeEvent` | The device's `{ point, accuracy }` whenever the user-location dot appears or moves. Requires `showUserPosition` + location permission. **No Yandex-maps RN wrapper surfaces the user's coordinates** — this answers the recurring ask ([yamap#295](https://github.com/volga-volga/react-native-yamap/issues/295)). |
+| `onRegionChangeComplete` | `Region` | react-native-maps migration alias — fires after a camera move settles with `{ latitude, longitude, latitudeDelta, longitudeDelta }` (computed from the visible region). |
 
 ### Types
 
@@ -317,6 +325,31 @@ type CameraPositionChangeEvent = {
 };
 
 type MapPressEvent = { point: Point };
+
+type TrafficChangeEvent = {
+  available: boolean;                      // false while loading / expired / unavailable
+  level?: number;                          // congestion score 0–10 (higher = worse)
+  color?: 'red' | 'yellow' | 'green';      // the traffic badge color
+};
+
+type UserLocationChangeEvent = {
+  point: Point;      // the device's current coordinate
+  accuracy: number;  // horizontal accuracy radius, in metres
+};
+
+// Opaque MapKit ids identifying a tapped built-in object, enough to (re)select it.
+type GeoObjectSelection = {
+  objectId: string;
+  dataSourceName: string;
+  layerId: string;
+  groupId?: number;
+};
+
+type PoiTapEvent = {
+  name?: string;               // the object's label, when present
+  point?: Point;               // the object's coordinate, when available
+  selection: GeoObjectSelection; // pass to mapRef.selectGeoObject() to highlight it
+};
 
 type MapLoadStatistics = {
   renderObjectCount: number;      // number of map objects rendered
@@ -347,6 +380,10 @@ Call these through a ref (`const mapRef = useRef<YandexMapViewRef>(null)`). All 
 | `getVisibleRegion()` | `Promise<VisibleRegion \| null>` | The visible geographic quad (`topLeft` / `topRight` / `bottomLeft` / `bottomRight`). |
 | `getScreenPoints(points)` | `Promise<(ScreenPoint \| null)[]>` | Project world coordinates to screen pixels; `null` per point that can't be projected (off-globe / behind the camera). |
 | `getWorldPoints(points)` | `Promise<(Point \| null)[]>` | Project screen pixels back to world coordinates. |
+| `takeSnapshot()` | `Promise<string \| null>` | Capture the rendered map as a base64 PNG **data URI** (`data:image/png;base64,…`), usable directly as `<Image source={{ uri }}>`. Call after `onMapLoaded`. `null` if not ready. Requested in [yamap#48](https://github.com/volga-volga/react-native-yamap/issues/48) — no wrapper ships it. |
+| `selectGeoObject(selection)` | `Promise<void>` | Draw MapKit's selection highlight around a built-in POI / geo-object. Pass the `selection` carried by an `onPoiTap` event. No-op until the map is ready. |
+| `deselectGeoObject()` | `Promise<void>` | Clear any selection highlight drawn by `selectGeoObject()`. |
+| `fitToCoordinates(coordinates, options?)` | `Promise<void>` | react-native-maps migration alias for `fitMarkers`: frame `coordinates`, optionally inset by `options.edgePadding`; `options.animated: false` moves instantly. |
 
 ```tsx
 const mapRef = useRef<YandexMapViewRef>(null);
@@ -356,6 +393,12 @@ const mapRef = useRef<YandexMapViewRef>(null);
 await mapRef.current?.setCenter({ latitude: 41.31, longitude: 69.24, zoom: 14 }, { durationSeconds: 0.4 });
 const region = await mapRef.current?.getVisibleRegion();
 const [screen] = await mapRef.current?.getScreenPoints([{ latitude: 41.31, longitude: 69.24 }]) ?? [];
+
+// Tap a built-in POI → highlight it with MapKit's native selection:
+<YandexMapView
+  ref={mapRef}
+  onPoiTap={({ nativeEvent }) => mapRef.current?.selectGeoObject(nativeEvent.selection)}
+/>;
 ```
 
 ### `<Marker />`
@@ -387,7 +430,9 @@ import { YandexMapView, Marker } from 'expo-yandex-mapkit';
 | `rotated` | `boolean` | `false` | When `true`, the icon rotates with the map's azimuth. |
 | `handled` | `boolean` | `false` | When `true`, a tap is consumed and does **not** also fire the map's `onMapPress`. |
 | `identifier` | `string` | — | Opaque id echoed back in `onPress` so one handler can tell markers apart. |
+| `draggable` | `boolean` | `false` | Allow dragging the marker — long-press to pick it up, then drag. The drag is uncontrolled natively; read `onDragEnd`'s `point` and update your state (and the `point` prop) to persist it. Baseline in react-native-maps ([yamap#217](https://github.com/volga-volga/react-native-yamap/issues/217)) — no Yandex-maps RN wrapper offers it. |
 | `onPress` | `(event) => void` | — | `event.nativeEvent` is `{ identifier?, point }`. |
+| `onDragStart` / `onDrag` / `onDragEnd` | `(event) => void` | — | Fire while dragging a `draggable` marker. `event.nativeEvent` is `{ identifier?, point }` — the live drag point during `onDrag`, the resting position on start/end. |
 | `children` | `ReactNode` | — | React content rendered as the marker's icon (a custom pin). Takes precedence over `source`. Rendered natively via MapKit's view provider (no fragile bitmap snapshotting). |
 | `tracksViewChanges` | `boolean` | `true` | Whether to keep re-rendering the icon as the `children` change. Set `false` once the content has settled (e.g. a static bubble) so it's rendered once — a large perf win vs. re-rendering every frame. |
 | `excludeFromCluster` | `boolean` | `false` | Only meaningful inside a `<Clusterer>`: when `true`, this marker is never merged into a cluster — it stays a standalone placemark at every zoom. |
@@ -408,6 +453,7 @@ Imperative methods via a marker ref (`const ref = useRef<MarkerRef>(null)`):
 | --- | --- |
 | `animatedMoveTo(point, durationMs)` | Linearly animate the marker to `point`. |
 | `animatedRotateTo(angle, durationMs)` | Linearly animate the icon heading to `angle` degrees. |
+| `animateAlong(points, durationMs)` | Animate the marker along a polyline (2+ points) at constant speed, facing each segment's heading (set `rotated` to see it turn) — courier / route tracking. [yamap#197](https://github.com/volga-volga/react-native-yamap/issues/197) et al.; no wrapper ships it. |
 
 > Markers mounted before `initialize()` resolves attach automatically once the map is created — no ready-gating needed for the children.
 
@@ -460,6 +506,55 @@ import { YandexMapView, Polygon, Circle } from 'expo-yandex-mapkit';
 
 - **`<Polygon>`**: `points` (outer ring, 3+), `innerRings?` (holes), `fillColor`, `strokeColor`, `strokeWidth`, `zIndex`, `onPress`, `handled`.
 - **`<Circle>`**: `center`, `radius` (metres), `fillColor`, `strokeColor`, `strokeWidth`, `zIndex`, `onPress`, `handled`.
+
+### `<Route />`
+
+Draws a `Route` (from `findRoutes`) as colored polylines — one per section, by leg type (driving / walking / transit), walking legs dashed. Both Yandex-maps RN wrappers return route *data* and leave drawing to the app; this renders it out of the box:
+
+```tsx
+import { YandexMapView, Route, findDrivingRoutes } from 'expo-yandex-mapkit';
+
+const [route] = await findDrivingRoutes([a, b]);
+// ...
+<YandexMapView style={StyleSheet.absoluteFill} cameraPosition={{ latitude: 41.31, longitude: 69.24, zoom: 11 }}>
+  {route && <Route route={route} strokeWidth={6} />}
+</YandexMapView>;
+```
+
+Props: `route`, `strokeWidth`, `drivingColor` / `walkColor` / `transitColor`, `outlineColor`, `zIndex`, `onPress`. Falls back to the route's whole `points` geometry when it has no `sections`.
+
+### Geometry helpers
+
+Pure-JS helpers (no map instance, work on web too):
+
+```tsx
+import { distanceBetween, pathLength, boundingBox } from 'expo-yandex-mapkit';
+
+distanceBetween({ latitude: 41.31, longitude: 69.24 }, { latitude: 55.75, longitude: 37.62 }); // metres (haversine)
+pathLength([p1, p2, p3]); // total polyline length in metres
+boundingBox([p1, p2, p3]); // { southWest, northEast } | null — feed to fitMarkers / a search window
+```
+
+### `<Geojson />`
+
+Render a [GeoJSON](https://datatracker.ietf.org/doc/html/rfc7946) object directly — pure-JS sugar that expands into `<Marker>` / `<Polyline>` / `<Polygon>` (the react-native-maps convention; no other Yandex-maps RN wrapper has it):
+
+```tsx
+import { YandexMapView, Geojson } from 'expo-yandex-mapkit';
+
+<YandexMapView style={StyleSheet.absoluteFill} cameraPosition={{ latitude: 41.31, longitude: 69.24, zoom: 11 }}>
+  <Geojson
+    geojson={featureCollection}
+    strokeColor="#1e88e5"
+    strokeWidth={3}
+    fillColor="rgba(30,136,229,0.2)"
+    markerSource={require('./pin.png')}
+    onPress={(feature) => console.log('tapped', feature.properties)}
+  />
+</YandexMapView>;
+```
+
+Accepts a `FeatureCollection`, `Feature`, or bare `Geometry`. `Point`/`MultiPoint` → markers, `LineString`/`MultiLineString` → polylines, `Polygon`/`MultiPolygon` → polygons (first ring outer, the rest holes); `GeometryCollection` expands recursively. Props: `geojson`, `markerSource` / `markerScale`, `strokeColor` / `strokeWidth`, `fillColor`, `zIndex`, `onPress(feature)`. GeoJSON `[lng, lat]` is converted to `{ latitude, longitude }` for you.
 
 ### `<Clusterer />`
 
@@ -604,6 +699,16 @@ No — the native SDK accepts its key once. A second `initialize` with a differe
 
 **Does it work on web?**
 Not yet: the web build warns once and renders nothing (deliberately, instead of crashing). A `ymaps3`-based DOM component is planned (v3).
+
+## Testing (Jest mock)
+
+The package ships a Jest mock preset so component tests run without a native runtime — the map view and its objects render as plain views, and the module functions resolve. In your Jest setup:
+
+```js
+jest.mock('expo-yandex-mapkit', () => require('expo-yandex-mapkit/mock'));
+```
+
+Components (`YandexMapView`, `Marker`, `Polyline`, `Polygon`, `Circle`, `Clusterer`) render their children in a `<View>`; the ref methods and module functions (`initialize`, `suggest`, `searchText`, `findRoutes`, …) are `jest.fn()`s returning sensible defaults, so you can render and assert without mocking each call yourself. No Yandex-maps RN wrapper ships a mock preset.
 
 ## Migrating from react-native-yamap
 

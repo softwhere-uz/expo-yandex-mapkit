@@ -13,6 +13,8 @@ jest.mock('expo', () => ({
 }));
 
 // eslint-disable-next-line import/first
+import type { MarkerRef } from '../ExpoYandexMapKit.types';
+// eslint-disable-next-line import/first
 import { Clusterer } from '../ExpoYandexMapKitClustererView';
 // eslint-disable-next-line import/first
 import { Marker } from '../ExpoYandexMapKitMarkerView';
@@ -72,5 +74,59 @@ describe('Marker excludeFromCluster prop', () => {
   it('omits excludeFromCluster when unset (native defaults it to false)', () => {
     const props = render(<Marker point={{ latitude: 41.3, longitude: 69.2 }} />);
     expect(props.excludeFromCluster).toBeUndefined();
+  });
+
+  // animateAlong (issue #2, Section A) — courier/route-tracking marker helper; no wrapper has it.
+  it('exposes animateAlong on the marker ref, resolving before the native view is ready', async () => {
+    const ref = React.createRef<MarkerRef>();
+    act(() => {
+      TestRenderer.create(<Marker ref={ref} point={{ latitude: 41.3, longitude: 69.2 }} />);
+    });
+    expect(typeof ref.current?.animateAlong).toBe('function');
+    await expect(
+      ref.current!.animateAlong(
+        [
+          { latitude: 41.3, longitude: 69.2 },
+          { latitude: 41.4, longitude: 69.3 },
+        ],
+        1000
+      )
+    ).resolves.toBeUndefined();
+  });
+});
+
+// Draggable markers (issue #2, Section A) — baseline in react-native-maps, requested in yamap#217,
+// shipped by no Yandex-maps RN wrapper. The drag events are renamed to the onMarker* native names
+// (like onPress→onMarkerPress) to dodge React Native's reserved bubbling event names.
+describe('Marker draggable + drag events', () => {
+  afterEach(() => {
+    mockNative.props = null;
+  });
+
+  it('forwards draggable through to the native marker', () => {
+    const props = render(<Marker point={{ latitude: 41.3, longitude: 69.2 }} draggable />);
+    expect(props.draggable).toBe(true);
+  });
+
+  it('maps onDragStart / onDrag / onDragEnd to the native onMarkerDrag* events', () => {
+    const onDragStart = jest.fn();
+    const onDrag = jest.fn();
+    const onDragEnd = jest.fn();
+    const props = render(
+      <Marker
+        point={{ latitude: 41.3, longitude: 69.2 }}
+        draggable
+        onDragStart={onDragStart}
+        onDrag={onDrag}
+        onDragEnd={onDragEnd}
+      />
+    );
+    expect(props.onMarkerDragStart).toBe(onDragStart);
+    expect(props.onMarkerDrag).toBe(onDrag);
+    expect(props.onMarkerDragEnd).toBe(onDragEnd);
+    // The public prop names must not leak through to the native view (they aren't native events).
+    expect(props.onDragStart).toBeUndefined();
+    expect(props.onDrag).toBeUndefined();
+    expect(props.onDragEnd).toBeUndefined();
   });
 });
