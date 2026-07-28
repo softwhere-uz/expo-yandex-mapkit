@@ -34,7 +34,7 @@ A complete Yandex Maps SDK for Expo — full feature parity with the most capabl
 **Full-flavor modules** — set `flavor: 'full'` ([lite vs full](#lite-vs-full))
 - 🔎 **Search & geocoding** — `searchText`, `searchPoint` (reverse), `geocodeAddress` / `geocodePoint`, `resolveURI`; structured `addressComponents`, business `rating`, spelling / snippets options
 - ⌨️ **Suggest** — search-as-you-type; coordinates read **natively** (no lost `center`)
-- 🧭 **Routing** — `findRoutes` for driving / masstransit / pedestrian, with a per-section leg breakdown (walk → bus → transfer → metro); draw it with the `<Route>` component (colored per leg)
+- 🧭 **Routing** — `findRoutes` for driving / masstransit / pedestrian / **bicycle / scooter** (beyond parity), with a per-section leg breakdown (walk → bus → transfer → metro); draw it with the `<Route>` component (colored per leg)
 
 **Setup & DX**
 - 🔑 API key at **build time** (config plugin) or **runtime** (`initialize`) — no `AndroidManifest.xml` / `AppDelegate` edits; a build-time key auto-initializes at startup (no init-order footgun)
@@ -657,8 +657,8 @@ const routes = await findRoutes(
 // Draw it: <Polyline points={routes[0].points} />
 ```
 
-- `findRoutes(points, mode)` — 2+ waypoints, `mode` = `'driving'` | `'masstransit'` | `'pedestrian'`; resolves best-route-first.
-- `findDrivingRoutes` / `findMasstransitRoutes` / `findPedestrianRoutes` — convenience wrappers.
+- `findRoutes(points, mode)` — 2+ waypoints, `mode` = `'driving'` | `'masstransit'` | `'pedestrian'` | `'bicycle'` | `'scooter'`; resolves best-route-first.
+- `findDrivingRoutes` / `findMasstransitRoutes` / `findPedestrianRoutes` / `findBicycleRoutes` / `findScooterRoutes` — convenience wrappers. (**Bicycle / scooter routing is beyond parity** — no Yandex-maps RN wrapper exposes it.)
 
 Each `Route` carries a summary (`time`; `timeWithTraffic` + `distance` for driving; `walkingDistance` + `transfersCount` for masstransit), its `points` geometry, and `sections` — the route split into legs. Each `RouteSection` is `{ type, time?, points, transports? }`: `type` is `'car'`, `'walk'`, `'waiting'`, or a transit vehicle type (`'bus'`, `'underground'`, …), `transports` maps each vehicle type to its line names, and `points` is that leg's own polyline fragment. So a masstransit route reads as "walk → bus 42 → transfer → metro", each leg drawable on its own. Requires MapKit to be initialized.
 
