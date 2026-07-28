@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **Richer Suggest results** (`full` flavor; beyond parity — [#2](https://github.com/softwhere-uz/expo-yandex-mapkit/issues/2)).
+  `SuggestItem` now carries `type` (`'toponym'` / `'business'` / `'transit'` / `'link'` / `'unknown'` —
+  the suggestion's kind, distinct from the request `types` filter) and `tags` (MapKit's extra
+  classification tags). Builds on the existing native `center` coordinate. (`'link'` is Android-only;
+  iOS reports it as `'unknown'`.)
+
 ## [2.14.0] - 2026-07-29
 
 ### Added
@@ -165,14 +175,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   highlight. A POI tap fires `onPoiTap` and does **not** also fire `onMapPress` (the react-native-maps
   `onPoiClick` convention). No other Yandex-maps RN wrapper exposes built-in POI taps — theirs return
   bare coordinates only.
-
-### Added
-
-- **Richer Suggest results** (`full` flavor; beyond parity — [#2](https://github.com/softwhere-uz/expo-yandex-mapkit/issues/2)).
-  `SuggestItem` now carries `type` (`'toponym'` / `'business'` / `'transit'` / `'link'` / `'unknown'` —
-  the suggestion's kind, distinct from the request `types` filter) and `tags` (MapKit's extra
-  classification tags). Builds on the existing native `center` coordinate. (`'link'` is Android-only;
-  iOS reports it as `'unknown'`.)
 
 ## [2.0.1] - 2026-07-26
 
