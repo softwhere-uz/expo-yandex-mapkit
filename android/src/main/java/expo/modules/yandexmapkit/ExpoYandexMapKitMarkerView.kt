@@ -23,6 +23,10 @@ import expo.modules.kotlin.records.Record
 import expo.modules.kotlin.viewevent.EventDispatcher
 import expo.modules.kotlin.views.ExpoView
 import java.lang.ref.WeakReference
+import kotlin.math.atan2
+import kotlin.math.cos
+import kotlin.math.sin
+import kotlin.math.sqrt
 
 // The `anchor` prop shape: icon anchor as [0,1] fractions of the icon size.
 class MarkerAnchorRecord : Record {
@@ -397,5 +401,66 @@ class ExpoYandexMapKitMarkerView(context: Context, appContext: AppContext) :
       }
       start()
     }
+  }
+
+  // Animate the marker along a polyline over durationMs at constant speed, facing each segment's
+  // bearing (visible when the marker is `rotated`) — courier/route-tracking. No-op until on the map
+  // or with fewer than 2 points.
+  internal fun animateAlong(points: List<Point>, durationMs: Double) {
+    val placemark = placemark ?: return
+    if (!placemark.isValid || points.size < 2) {
+      return
+    }
+    val lengths = (0 until points.size - 1).map { approxDistance(points[it], points[it + 1]) }
+    val total = lengths.sum()
+    if (total <= 0.0) {
+      return
+    }
+    ValueAnimator.ofFloat(0f, 1f).apply {
+      duration = durationMs.toLong().coerceAtLeast(0L)
+      interpolator = LinearInterpolator()
+      addUpdateListener { animation ->
+        val current = this@ExpoYandexMapKitMarkerView.placemark ?: return@addUpdateListener
+        if (!current.isValid) {
+          return@addUpdateListener
+        }
+        var remaining = total * animation.animatedFraction
+        for (i in lengths.indices) {
+          val length = lengths[i]
+          if (remaining <= length || i == lengths.size - 1) {
+            val t = if (length > 0.0) remaining / length else 0.0
+            val a = points[i]
+            val b = points[i + 1]
+            current.geometry = Point(
+              a.latitude + t * (b.latitude - a.latitude),
+              a.longitude + t * (b.longitude - a.longitude)
+            )
+            current.direction = bearing(a, b).toFloat()
+            return@addUpdateListener
+          }
+          remaining -= length
+        }
+      }
+      start()
+    }
+  }
+
+  // Equirectangular length approximation (only relative weighting matters for the tween).
+  private fun approxDistance(a: Point, b: Point): Double {
+    val meanLat = (a.latitude + b.latitude) / 2 * Math.PI / 180
+    val dx = (b.longitude - a.longitude) * cos(meanLat)
+    val dy = b.latitude - a.latitude
+    return sqrt(dx * dx + dy * dy)
+  }
+
+  // Initial bearing a→b in degrees clockwise from north (MapKit's `direction` convention).
+  private fun bearing(a: Point, b: Point): Double {
+    val lat1 = a.latitude * Math.PI / 180
+    val lat2 = b.latitude * Math.PI / 180
+    val dLon = (b.longitude - a.longitude) * Math.PI / 180
+    val y = sin(dLon) * cos(lat2)
+    val x = cos(lat1) * sin(lat2) - sin(lat1) * cos(lat2) * cos(dLon)
+    val deg = atan2(y, x) * 180 / Math.PI
+    return if (deg < 0) deg + 360 else deg
   }
 }

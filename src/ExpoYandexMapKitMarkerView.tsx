@@ -60,6 +60,8 @@ export const Marker = React.forwardRef<MarkerRef, MarkerProps>(
           nativeRef.current?.animatedMoveTo(point, durationMs) ?? Promise.resolve(),
         animatedRotateTo: (angle: number, durationMs: number) =>
           nativeRef.current?.animatedRotateTo(angle, durationMs) ?? Promise.resolve(),
+        animateAlong: (points: Point[], durationMs: number) =>
+          nativeRef.current?.animateAlong(points, durationMs) ?? Promise.resolve(),
       }),
       []
     );

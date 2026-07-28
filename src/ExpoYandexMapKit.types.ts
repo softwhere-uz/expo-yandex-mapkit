@@ -171,6 +171,10 @@ export type MarkerRef = {
   animatedMoveTo(point: Point, durationMs: number): Promise<void>;
   // Animate the marker's icon heading to `angle` degrees over `durationMs` milliseconds (linear).
   animatedRotateTo(angle: number, durationMs: number): Promise<void>;
+  // Animate the marker along a polyline (`points`, 2+) over `durationMs` ms at constant speed,
+  // facing each segment's heading (set the marker `rotated` to see it turn) — courier / route
+  // tracking. No-op with fewer than 2 points.
+  animateAlong(points: Point[], durationMs: number): Promise<void>;
 };
 
 // Payload for a shape's onPress — the tapped geographic point.

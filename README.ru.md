@@ -26,7 +26,7 @@
 - 🎨 `mapType` (`map` / `satellite` / `hybrid` / `vector`), JSON-`mapStyle`, ночной режим, переключатели отдельных жестов, границы зума `minZoom` / `maxZoom`, размещение логотипа
 
 **Объекты карты** (декларативные дети карты)
-- 📍 `<Marker>` — иконки-картинки **или из React-детей** (надёжно, с конвейером повторного снапшота через `tracksViewChanges`), `onPress` с идентифицирующим payload'ом, `draggable` + события перетаскивания, `animatedMoveTo` / `animatedRotateTo`
+- 📍 `<Marker>` — иконки-картинки **или из React-детей** (надёжно, с конвейером повторного снапшота через `tracksViewChanges`), `onPress` с идентифицирующим payload'ом, `draggable` + события перетаскивания, `animatedMoveTo` / `animatedRotateTo` / `animateAlong`
 - 〰️ `<Polyline>` (штрихи + обводка), `<Polygon>` (дырки через `innerRings`), `<Circle>`, `<Geojson>` (разворачивает объект GeoJSON в объекты карты)
 - 🔵 `<Clusterer>` — декларативная кластеризация, где ваши собственные `<Marker>` служат render-пропом; настраиваемый бейдж (цвет / размер / **иконка**), `excludeFromCluster`, тап-для-подгонки, настраиваемые радиус / minZoom
 - 📡 Слой геопозиции пользователя (кастомная иконка точки + стилизация круга точности, координаты через `onUserLocationChange`) и живой 🚦 слой пробок
@@ -439,6 +439,7 @@ import { YandexMapView, Marker } from 'expo-yandex-mapkit';
 | --- | --- |
 | `animatedMoveTo(point, durationMs)` | Линейно анимирует маркер к `point`. |
 | `animatedRotateTo(angle, durationMs)` | Линейно анимирует курс иконки к `angle` градусам. |
+| `animateAlong(points, durationMs)` | Анимирует маркер вдоль полилинии (2+ точки) с постоянной скоростью, поворачивая по курсу каждого сегмента (задайте `rotated`, чтобы видеть поворот) — трекинг курьера / маршрута. [yamap#197](https://github.com/volga-volga/react-native-yamap/issues/197) и др.; ни одна обёртка этого не даёт. |
 
 > Маркеры, смонтированные до завершения `initialize()`, привязываются автоматически после создания карты — гейтинг готовности для детей не нужен.
 

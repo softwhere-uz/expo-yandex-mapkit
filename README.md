@@ -26,7 +26,7 @@ A complete Yandex Maps SDK for Expo — full feature parity with the most capabl
 - 🎨 `mapType` (`map` / `satellite` / `hybrid` / `vector`), JSON `mapStyle`, night mode, per-gesture toggles, `minZoom` / `maxZoom` bounds, logo placement
 
 **Map objects** (declarative children of the map)
-- 📍 `<Marker>` — image **or React-children** icons (reliable, with a `tracksViewChanges` re-snapshot pipeline), `onPress` with an identifying payload, `draggable` + drag events, `animatedMoveTo` / `animatedRotateTo`
+- 📍 `<Marker>` — image **or React-children** icons (reliable, with a `tracksViewChanges` re-snapshot pipeline), `onPress` with an identifying payload, `draggable` + drag events, `animatedMoveTo` / `animatedRotateTo` / `animateAlong`
 - 〰️ `<Polyline>` (dash + outline), `<Polygon>` (holes via `innerRings`), `<Circle>`, `<Geojson>` (expands a GeoJSON object into map objects)
 - 🔵 `<Clusterer>` — declarative clustering where your own `<Marker>`s are the render-prop; custom badge (color / size / **icon**), `excludeFromCluster`, tap-to-fit, configurable radius / minZoom
 - 📡 User-location layer (custom dot icon + accuracy-circle styling, `onUserLocationChange` coordinates) and a live 🚦 traffic layer
@@ -444,6 +444,7 @@ Imperative methods via a marker ref (`const ref = useRef<MarkerRef>(null)`):
 | --- | --- |
 | `animatedMoveTo(point, durationMs)` | Linearly animate the marker to `point`. |
 | `animatedRotateTo(angle, durationMs)` | Linearly animate the icon heading to `angle` degrees. |
+| `animateAlong(points, durationMs)` | Animate the marker along a polyline (2+ points) at constant speed, facing each segment's heading (set `rotated` to see it turn) — courier / route tracking. [yamap#197](https://github.com/volga-volga/react-native-yamap/issues/197) et al.; no wrapper ships it. |
 
 > Markers mounted before `initialize()` resolves attach automatically once the map is created — no ready-gating needed for the children.
 
