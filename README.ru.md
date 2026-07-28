@@ -303,6 +303,7 @@ export default function App() {
 | `onMapLoaded` | `MapLoadStatistics` | Когда карта завершает загрузку — несёт статистику рендеринга (`renderObjectCount`, `tileMemoryUsage`, тайминги загрузки). |
 | `onTrafficChanged` | `TrafficChangeEvent` | Балл пробок для видимой области (`{ available, level? (0–10), color? ('red'/'yellow'/'green') }`) по мере пересчёта. Срабатывает только при `trafficVisible`. Ни одна обёртка для Яндекс-карт этого не отдаёт. |
 | `onUserLocationChange` | `UserLocationChangeEvent` | `{ point, accuracy }` устройства при появлении / перемещении точки геопозиции. Требует `showUserPosition` + разрешение на геолокацию. **Ни одна обёртка для Яндекс-карт не отдаёт координаты пользователя** — это закрывает частый запрос ([yamap#295](https://github.com/volga-volga/react-native-yamap/issues/295)). |
+| `onRegionChangeComplete` | `Region` | Алиас для миграции с react-native-maps — срабатывает после остановки движения камеры с `{ latitude, longitude, latitudeDelta, longitudeDelta }` (вычисляется из видимой области). |
 
 ### Типы
 
@@ -371,6 +372,7 @@ type MapLoadStatistics = {
 | `takeSnapshot()` | `Promise<string \| null>` | Снять отрендеренную карту как base64-PNG **data URI** (`data:image/png;base64,…`), пригодный прямо для `<Image source={{ uri }}>`. Вызывайте после `onMapLoaded`. `null`, если карта не готова. Запрошено в [yamap#48](https://github.com/volga-volga/react-native-yamap/issues/48) — ни одна обёртка этого не даёт. |
 | `selectGeoObject(selection)` | `Promise<void>` | Нарисовать нативную подсветку выделения MapKit вокруг встроенного POI / гео-объекта. Передайте `selection` из события `onPoiTap`. No-op, пока карта не готова. |
 | `deselectGeoObject()` | `Promise<void>` | Снять подсветку выделения, нарисованную `selectGeoObject()`. |
+| `fitToCoordinates(coordinates, options?)` | `Promise<void>` | Алиас `fitMarkers` для миграции с react-native-maps: вписать `coordinates`, с опциональным `options.edgePadding`; `options.animated: false` — мгновенно. |
 
 ```tsx
 const mapRef = useRef<YandexMapViewRef>(null);

@@ -176,3 +176,49 @@ describe('YandexMapView POI tap + geo-object selection', () => {
     await expect(ref.current!.deselectGeoObject()).resolves.toBeUndefined();
   });
 });
+
+// react-native-maps migration aliases (issue #2, Section D) — ease the move from
+// react-native-maps / react-native-yamap.
+describe('YandexMapView react-native-maps aliases', () => {
+  afterEach(() => {
+    mockNative.props = null;
+  });
+
+  it('exposes fitToCoordinates on the ref, resolving before the native view is ready', async () => {
+    const ref = React.createRef<YandexMapViewRef>();
+    act(() => {
+      TestRenderer.create(<YandexMapView ref={ref} />);
+    });
+    expect(typeof ref.current?.fitToCoordinates).toBe('function');
+    await expect(
+      ref.current!.fitToCoordinates([{ latitude: 41.3, longitude: 69.2 }], { animated: false })
+    ).resolves.toBeUndefined();
+  });
+
+  it('does not register a native camera handler when neither camera event is set', () => {
+    const props = renderMap({});
+    expect(props.onCameraPositionChanged).toBeUndefined();
+  });
+
+  it('wraps onCameraPositionChanged and forwards the event unchanged', () => {
+    const onCameraPositionChanged = jest.fn();
+    const props = renderMap({ onCameraPositionChanged });
+    expect(typeof props.onCameraPositionChanged).toBe('function');
+    const event = {
+      nativeEvent: {
+        cameraPosition: { latitude: 41.3, longitude: 69.2, zoom: 12, azimuth: 0, tilt: 0 },
+        reason: 'gestures',
+        finished: true,
+      },
+    };
+    props.onCameraPositionChanged(event);
+    expect(onCameraPositionChanged).toHaveBeenCalledWith(event);
+  });
+
+  it('registers a native camera handler when only onRegionChangeComplete is set', () => {
+    const props = renderMap({ onRegionChangeComplete: jest.fn() });
+    expect(typeof props.onCameraPositionChanged).toBe('function');
+    // The public alias must not leak to the native view (it is not a native event).
+    expect(props.onRegionChangeComplete).toBeUndefined();
+  });
+});

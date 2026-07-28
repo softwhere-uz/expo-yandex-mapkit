@@ -303,6 +303,7 @@ Events:
 | `onMapLoaded` | `MapLoadStatistics` | Once the map finishes loading — carries render stats (`renderObjectCount`, `tileMemoryUsage`, load timings). |
 | `onTrafficChanged` | `TrafficChangeEvent` | The visible region's traffic score (`{ available, level? (0–10), color? ('red'/'yellow'/'green') }`) as it recomputes. Fires only while `trafficVisible`. No Yandex-maps RN wrapper surfaces it. |
 | `onUserLocationChange` | `UserLocationChangeEvent` | The device's `{ point, accuracy }` whenever the user-location dot appears or moves. Requires `showUserPosition` + location permission. **No Yandex-maps RN wrapper surfaces the user's coordinates** — this answers the recurring ask ([yamap#295](https://github.com/volga-volga/react-native-yamap/issues/295)). |
+| `onRegionChangeComplete` | `Region` | react-native-maps migration alias — fires after a camera move settles with `{ latitude, longitude, latitudeDelta, longitudeDelta }` (computed from the visible region). |
 
 ### Types
 
@@ -382,6 +383,7 @@ Call these through a ref (`const mapRef = useRef<YandexMapViewRef>(null)`). All 
 | `takeSnapshot()` | `Promise<string \| null>` | Capture the rendered map as a base64 PNG **data URI** (`data:image/png;base64,…`), usable directly as `<Image source={{ uri }}>`. Call after `onMapLoaded`. `null` if not ready. Requested in [yamap#48](https://github.com/volga-volga/react-native-yamap/issues/48) — no wrapper ships it. |
 | `selectGeoObject(selection)` | `Promise<void>` | Draw MapKit's selection highlight around a built-in POI / geo-object. Pass the `selection` carried by an `onPoiTap` event. No-op until the map is ready. |
 | `deselectGeoObject()` | `Promise<void>` | Clear any selection highlight drawn by `selectGeoObject()`. |
+| `fitToCoordinates(coordinates, options?)` | `Promise<void>` | react-native-maps migration alias for `fitMarkers`: frame `coordinates`, optionally inset by `options.edgePadding`; `options.animated: false` moves instantly. |
 
 ```tsx
 const mapRef = useRef<YandexMapViewRef>(null);

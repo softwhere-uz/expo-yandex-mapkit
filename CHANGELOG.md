@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **react-native-maps migration aliases** (beyond parity — [#2](https://github.com/softwhere-uz/expo-yandex-mapkit/issues/2)).
+  A `fitToCoordinates(coordinates, { edgePadding?, animated? })` map-ref method (alias for `fitMarkers`)
+  and an `onRegionChangeComplete` prop that fires a react-native-maps `Region`
+  (`{ latitude, longitude, latitudeDelta, longitudeDelta }`, computed from the visible region) after a
+  camera move settles. Pure JS; eases porting react-native-maps / react-native-yamap code — the
+  lineage's stranded downloads are the fastest adoption channel.
+
 ## [2.12.0] - 2026-07-29
 
 ### Added
