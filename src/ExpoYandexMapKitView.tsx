@@ -8,6 +8,7 @@ import {
   CameraPositionChangeEvent,
   EdgePadding,
   FitOptions,
+  GeoObjectSelection,
   Point,
   Region,
   ScreenPoint,
@@ -101,6 +102,10 @@ export const YandexMapView = React.forwardRef<YandexMapViewRef, YandexMapViewPro
           nativeRef.current?.getScreenPoints(points) ?? Promise.resolve([]),
         getWorldPoints: (points: ScreenPoint[]) =>
           nativeRef.current?.getWorldPoints(points) ?? Promise.resolve([]),
+        takeSnapshot: () => nativeRef.current?.takeSnapshot() ?? Promise.resolve(null),
+        selectGeoObject: (selection: GeoObjectSelection) =>
+          nativeRef.current?.selectGeoObject(selection) ?? Promise.resolve(),
+        deselectGeoObject: () => nativeRef.current?.deselectGeoObject() ?? Promise.resolve(),
         fitToCoordinates: (
           coordinates: Point[],
           options?: { edgePadding?: EdgePadding; animated?: boolean }
