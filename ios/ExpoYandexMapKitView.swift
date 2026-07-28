@@ -683,19 +683,26 @@ class ExpoYandexMapKitView: ExpoView {
   // scale). Returns nil when there is no padding or the map has no size yet — nil resets the map
   // window to its full-viewport focus.
   private func focusRect(_ padding: EdgePaddingRecord?) -> YMKScreenRect? {
-    guard let padding = padding, let mapView = mapView else {
+    guard let padding = padding, let mapView = mapView, let mapWindow = mapView.mapWindow else {
       return nil
     }
-    let scale = Float(UIScreen.main.scale)
-    let width = Float(mapView.bounds.width) * scale
-    let height = Float(mapView.bounds.height) * scale
+    // The focus rect lives in the map window's own physical-pixel space — use the window's reported
+    // size, NOT UIScreen.scale × bounds, which can drift from it by several pixels (MapKit then rejects
+    // the rect as "out of screen"). Convert the point-based padding with the window's true pixels/point.
+    let width = Float(mapWindow.width())
+    let height = Float(mapWindow.height())
     guard width > 0, height > 0 else {
       return nil
     }
-    let left = min(max(Float(padding.left) * scale, 0), width - 1)
-    let top = min(max(Float(padding.top) * scale, 0), height - 1)
-    let right = min(max(width - Float(padding.right) * scale, left + 1), width)
-    let bottom = min(max(height - Float(padding.bottom) * scale, top + 1), height)
+    let viewWidth = Float(mapView.bounds.width)
+    let scale = viewWidth > 0 ? width / viewWidth : Float(UIScreen.main.scale)
+    // MapKit rejects a focusRect whose bottomRight corner sits on the window edge ("out of screen"),
+    // so the right/bottom edge must stay strictly inside — clamp to width-1 / height-1 (as left/top
+    // already are), and cap left/top at width-2 / height-2 so the rect never collapses (right > left).
+    let left = min(max(Float(padding.left) * scale, 0), width - 2)
+    let top = min(max(Float(padding.top) * scale, 0), height - 2)
+    let right = min(max(width - Float(padding.right) * scale, left + 1), width - 1)
+    let bottom = min(max(height - Float(padding.bottom) * scale, top + 1), height - 1)
     return YMKScreenRect(
       topLeft: YMKScreenPoint(x: left, y: top),
       bottomRight: YMKScreenPoint(x: right, y: bottom))

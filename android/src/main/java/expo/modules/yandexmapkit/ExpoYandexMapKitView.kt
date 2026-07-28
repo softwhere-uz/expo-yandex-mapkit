@@ -636,10 +636,13 @@ class ExpoYandexMapKitView(context: Context, appContext: AppContext) : ExpoView(
       return null
     }
     val density = resources.displayMetrics.density
-    val left = (padding.left.toFloat() * density).coerceIn(0f, width - 1f)
-    val top = (padding.top.toFloat() * density).coerceIn(0f, height - 1f)
-    val right = (width - padding.right.toFloat() * density).coerceIn(left + 1f, width)
-    val bottom = (height - padding.bottom.toFloat() * density).coerceIn(top + 1f, height)
+    // The focusRect's bottomRight corner must stay strictly inside the window (MapKit rejects a corner
+    // on the edge as "out of screen"), so clamp right/bottom to width-1 / height-1 — as left/top already
+    // are — and cap left/top at width-2 / height-2 so the rect never collapses (right > left).
+    val left = (padding.left.toFloat() * density).coerceIn(0f, width - 2f)
+    val top = (padding.top.toFloat() * density).coerceIn(0f, height - 2f)
+    val right = (width - padding.right.toFloat() * density).coerceIn(left + 1f, width - 1f)
+    val bottom = (height - padding.bottom.toFloat() * density).coerceIn(top + 1f, height - 1f)
     return ScreenRect(ScreenPoint(left, top), ScreenPoint(right, bottom))
   }
 
