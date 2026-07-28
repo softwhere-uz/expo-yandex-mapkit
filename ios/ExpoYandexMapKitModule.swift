@@ -73,7 +73,7 @@ public class ExpoYandexMapKitModule: Module {
     View(ExpoYandexMapKitView.self) {
       Events(
         "onMapReady", "onCameraPositionChanged", "onMapPress", "onMapLongPress", "onMapLoaded",
-        "onTrafficChanged")
+        "onTrafficChanged", "onUserLocationChange", "onPoiTap")
 
       Prop("cameraPosition") { (view: ExpoYandexMapKitView, cameraPosition: CameraPositionRecord) in
         view.setCameraPosition(cameraPosition)
@@ -107,6 +107,14 @@ public class ExpoYandexMapKitModule: Module {
         view.setFastTapEnabled(enabled)
       }
 
+      Prop("minZoom") { (view: ExpoYandexMapKitView, zoom: Double?) in
+        view.setMinZoom(zoom)
+      }
+
+      Prop("maxZoom") { (view: ExpoYandexMapKitView, zoom: Double?) in
+        view.setMaxZoom(zoom)
+      }
+
       Prop("interactiveDisabled") { (view: ExpoYandexMapKitView, disabled: Bool) in
         view.setInteractiveDisabled(disabled)
       }
@@ -125,6 +133,10 @@ public class ExpoYandexMapKitModule: Module {
 
       Prop("logoPadding") { (view: ExpoYandexMapKitView, logoPadding: LogoPaddingRecord?) in
         view.setLogoPadding(logoPadding)
+      }
+
+      Prop("mapPadding") { (view: ExpoYandexMapKitView, mapPadding: EdgePaddingRecord?) in
+        view.setMapPadding(mapPadding)
       }
 
       Prop("showUserPosition") { (view: ExpoYandexMapKitView, show: Bool) in
@@ -196,6 +208,21 @@ public class ExpoYandexMapKitModule: Module {
       AsyncFunction("getWorldPoints") { (view: ExpoYandexMapKitView, points: [ScreenPointRecord]) -> [Any] in
         view.worldPoints(forScreenPoints: points)
       }
+
+      // Snapshots the on-screen map — must run on the main thread.
+      AsyncFunction("takeSnapshot") { (view: ExpoYandexMapKitView) -> String? in
+        view.takeSnapshot()
+      }.runOnQueue(.main)
+
+      // Selection mutates the map layer state, so run on the main queue (Expo runs AsyncFunctions
+      // off-main by default).
+      AsyncFunction("selectGeoObject") { (view: ExpoYandexMapKitView, selection: GeoObjectSelectionRecord) in
+        view.selectGeoObject(selection)
+      }.runOnQueue(.main)
+
+      AsyncFunction("deselectGeoObject") { (view: ExpoYandexMapKitView) in
+        view.deselectGeoObject()
+      }.runOnQueue(.main)
     }
 
     // The <Marker> child view. Named via ViewName (the iOS view-builder element — the top-level
@@ -204,7 +231,7 @@ public class ExpoYandexMapKitModule: Module {
     // above stays the module's default view.
     View(ExpoYandexMapKitMarkerView.self) {
       ViewName("ExpoYandexMapKitMarkerView")
-      Events("onMarkerPress")
+      Events("onMarkerPress", "onMarkerDragStart", "onMarkerDrag", "onMarkerDragEnd")
 
       Prop("point") { (view: ExpoYandexMapKitMarkerView, point: PointRecord) in
         view.setPoint(point)
@@ -242,6 +269,10 @@ public class ExpoYandexMapKitModule: Module {
         view.setIdentifier(identifier)
       }
 
+      Prop("draggable") { (view: ExpoYandexMapKitMarkerView, draggable: Bool) in
+        view.setDraggable(draggable)
+      }
+
       Prop("tracksViewChanges") { (view: ExpoYandexMapKitMarkerView, tracks: Bool) in
         view.setTracksViewChanges(tracks)
       }
@@ -259,6 +290,12 @@ public class ExpoYandexMapKitModule: Module {
 
       AsyncFunction("animatedRotateTo") { (view: ExpoYandexMapKitMarkerView, angle: Double, durationMs: Double) in
         view.animatedRotateTo(angle, durationMs: durationMs)
+      }.runOnQueue(.main)
+
+      AsyncFunction("animateAlong") { (view: ExpoYandexMapKitMarkerView, points: [PointRecord], durationMs: Double) in
+        view.animateAlong(
+          points.map { YMKPoint(latitude: $0.latitude, longitude: $0.longitude) },
+          durationMs: durationMs)
       }.runOnQueue(.main)
     }
 
