@@ -493,6 +493,18 @@ import { YandexMapView, Polygon, Circle } from 'expo-yandex-mapkit';
 - **`<Polygon>`**: `points` (внешнее кольцо, 3+), `innerRings?` (дырки), `fillColor`, `strokeColor`, `strokeWidth`, `zIndex`, `onPress`, `handled`.
 - **`<Circle>`**: `center`, `radius` (в метрах), `fillColor`, `strokeColor`, `strokeWidth`, `zIndex`, `onPress`, `handled`.
 
+### Геометрические утилиты
+
+Чисто-JS помощники (без экземпляра карты, работают и на вебе):
+
+```tsx
+import { distanceBetween, pathLength, boundingBox } from 'expo-yandex-mapkit';
+
+distanceBetween({ latitude: 41.31, longitude: 69.24 }, { latitude: 55.75, longitude: 37.62 }); // метры (haversine)
+pathLength([p1, p2, p3]); // суммарная длина полилинии в метрах
+boundingBox([p1, p2, p3]); // { southWest, northEast } | null — для fitMarkers / окна поиска
+```
+
 ### `<Geojson />`
 
 Рендер объекта [GeoJSON](https://datatracker.ietf.org/doc/html/rfc7946) напрямую — чисто-JS «сахар», разворачивающийся в `<Marker>` / `<Polyline>` / `<Polygon>` (соглашение react-native-maps; ни одна другая обёртка для Яндекс-карт этого не имеет):

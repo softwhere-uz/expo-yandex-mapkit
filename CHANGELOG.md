@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Geometry utilities** — `distanceBetween(a, b)`, `pathLength(points)`, `boundingBox(points)`
+  (beyond parity — [#2](https://github.com/softwhere-uz/expo-yandex-mapkit/issues/2)). Pure-JS helpers
+  (haversine distance in metres, polyline length, and the SW/NE bounding box) that need no map instance
+  and work on every platform including web. Requested in
+  [yamap#227](https://github.com/volga-volga/react-native-yamap/issues/227); no wrapper ships them.
+
 ## [2.8.0] - 2026-07-29
 
 ### Added

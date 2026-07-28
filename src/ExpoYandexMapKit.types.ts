@@ -6,6 +6,12 @@ export type Point = {
   longitude: number;
 };
 
+// An axis-aligned geographic bounding box — the corners of a lat/lng rectangle.
+export type Bounds = {
+  southWest: Point;
+  northEast: Point;
+};
+
 export type CameraPosition = {
   latitude: number;
   longitude: number;
