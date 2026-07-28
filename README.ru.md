@@ -20,7 +20,7 @@
 
 **Карта и камера**
 - 🗺️ Нативная карта MapKit `<YandexMapView>` (Fabric / Новая архитектура)
-- 🎥 Декларативная анимируемая камера (`cameraPosition`) + императивные методы через ref — `setCenter`, `setZoom`, `fitMarkers` / `fitAllMarkers` (с отступами по краям), `getCameraPosition`, `getVisibleRegion`, проекция мир↔экран; постоянный `mapPadding` для макетов с нижним листом / шапкой
+- 🎥 Декларативная анимируемая камера (`cameraPosition`) + императивные методы через ref — `setCenter`, `setZoom`, `fitMarkers` / `fitAllMarkers` (с отступами по краям), `getCameraPosition`, `getVisibleRegion`, проекция мир↔экран, `takeSnapshot`; постоянный `mapPadding` для макетов с нижним листом / шапкой
 - 👆 События нажатий / долгих нажатий / движения камеры / загрузки карты с идентичными payload'ами на iOS и Android
 - 📌 **Нажатия на POI** (`onPoiTap`) — нажмите на встроенный значок места, чтобы получить его название и координату, затем выделите его через `selectGeoObject()` (**сверх паритета — ни одна другая RN-обёртка для Яндекс-карт этого не отдаёт**)
 - 🎨 `mapType` (`map` / `satellite` / `hybrid` / `vector`), JSON-`mapStyle`, ночной режим, переключатели отдельных жестов, границы зума `minZoom` / `maxZoom`, размещение логотипа
@@ -366,6 +366,7 @@ type MapLoadStatistics = {
 | `getVisibleRegion()` | `Promise<VisibleRegion \| null>` | Видимый географический четырёхугольник (`topLeft` / `topRight` / `bottomLeft` / `bottomRight`). |
 | `getScreenPoints(points)` | `Promise<(ScreenPoint \| null)[]>` | Спроецировать мировые координаты в экранные пиксели; `null` для точки, которую нельзя спроецировать (за пределами глобуса / за камерой). |
 | `getWorldPoints(points)` | `Promise<(Point \| null)[]>` | Спроецировать экранные пиксели обратно в мировые координаты. |
+| `takeSnapshot()` | `Promise<string \| null>` | Снять отрендеренную карту как base64-PNG **data URI** (`data:image/png;base64,…`), пригодный прямо для `<Image source={{ uri }}>`. Вызывайте после `onMapLoaded`. `null`, если карта не готова. Запрошено в [yamap#48](https://github.com/volga-volga/react-native-yamap/issues/48) — ни одна обёртка этого не даёт. |
 | `selectGeoObject(selection)` | `Promise<void>` | Нарисовать нативную подсветку выделения MapKit вокруг встроенного POI / гео-объекта. Передайте `selection` из события `onPoiTap`. No-op, пока карта не готова. |
 | `deselectGeoObject()` | `Promise<void>` | Снять подсветку выделения, нарисованную `selectGeoObject()`. |
 

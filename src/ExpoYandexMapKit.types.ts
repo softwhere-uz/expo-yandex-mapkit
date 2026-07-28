@@ -289,6 +289,10 @@ export type YandexMapViewRef = {
   getScreenPoints(points: Point[]): Promise<(ScreenPoint | null)[]>;
   // Project screen points to world coordinates. Each result is null when unprojectable.
   getWorldPoints(points: ScreenPoint[]): Promise<(Point | null)[]>;
+  // Capture the currently-rendered map as a base64 PNG **data URI** (`data:image/png;base64,…`),
+  // usable directly as an `<Image source={{ uri }}>`. Call it after `onMapLoaded` so the map has
+  // rendered. Resolves `null` if the map isn't ready / can't be captured. Requested in yamap#48.
+  takeSnapshot(): Promise<string | null>;
   // Draw MapKit's selection highlight around a built-in POI / geo-object. Pass the `selection`
   // carried by an `onPoiTap` event. No-op until the map is ready.
   selectGeoObject(selection: GeoObjectSelection): Promise<void>;

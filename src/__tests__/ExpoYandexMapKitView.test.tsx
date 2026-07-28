@@ -78,6 +78,23 @@ describe('YandexMapView user-location styling', () => {
   });
 });
 
+// takeSnapshot (issue #2, Section A) — requested in yamap#48, shipped by no wrapper. Ref method that
+// resolves a base64 PNG data URI; resolves null before the native view is ready.
+describe('YandexMapView takeSnapshot', () => {
+  afterEach(() => {
+    mockNative.props = null;
+  });
+
+  it('exposes takeSnapshot on the ref, resolving null before the native view is ready', async () => {
+    const ref = React.createRef<YandexMapViewRef>();
+    act(() => {
+      TestRenderer.create(<YandexMapView ref={ref} />);
+    });
+    expect(typeof ref.current?.takeSnapshot).toBe('function');
+    await expect(ref.current!.takeSnapshot()).resolves.toBeNull();
+  });
+});
+
 // Camera zoom bounds (issue #2, Section A) — min/max zoom clamps, requested in yamap#187 and never
 // shipped by any wrapper. Plain passthrough props; the native side applies them via the map's
 // cameraBounds.

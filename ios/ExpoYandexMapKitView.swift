@@ -797,6 +797,24 @@ class ExpoYandexMapKitView: ExpoView {
     }
   }
 
+  // Capture the currently-rendered map as a base64 PNG data URI (usable directly in <Image>). MapKit
+  // has no snapshot API on iOS, so this snapshots the on-screen compositor output via drawHierarchy
+  // (afterScreenUpdates: true) — best-effort: it captures what is presented, so call it after
+  // onMapLoaded. Returns nil if the map has no size yet. Must run on the main thread.
+  func takeSnapshot() -> String? {
+    guard let mapView = mapView, mapView.bounds.width > 0, mapView.bounds.height > 0 else {
+      return nil
+    }
+    let renderer = UIGraphicsImageRenderer(bounds: mapView.bounds)
+    let image = renderer.image { _ in
+      mapView.drawHierarchy(in: mapView.bounds, afterScreenUpdates: true)
+    }
+    guard let data = image.pngData() else {
+      return nil
+    }
+    return "data:image/png;base64," + data.base64EncodedString()
+  }
+
   // Draw MapKit's selection highlight around the POI/geo-object identified by `selection` (from an
   // onPoiTap event). Reconstructs the selection metadata from the opaque ids. No-op until the map is
   // ready.

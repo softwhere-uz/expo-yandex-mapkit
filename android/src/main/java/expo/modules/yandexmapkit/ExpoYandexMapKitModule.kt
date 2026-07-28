@@ -233,6 +233,11 @@ class ExpoYandexMapKitModule : Module() {
         view.worldPoints(points)
       }
 
+      // Snapshots the on-screen map — must run on the main thread (reads the GL surface).
+      AsyncFunction("takeSnapshot") { view: ExpoYandexMapKitView ->
+        view.takeSnapshot()
+      }.runOnQueue(Queues.MAIN)
+
       // Selection mutates the map layer state, so run on the main thread (Expo runs AsyncFunctions
       // off the main queue by default).
       AsyncFunction("selectGeoObject") { view: ExpoYandexMapKitView, selection: GeoObjectSelectionRecord ->
