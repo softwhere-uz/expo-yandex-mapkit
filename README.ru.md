@@ -29,7 +29,7 @@
 - 📍 `<Marker>` — иконки-картинки **или из React-детей** (надёжно, с конвейером повторного снапшота через `tracksViewChanges`), `onPress` с идентифицирующим payload'ом, `draggable` + события перетаскивания, `animatedMoveTo` / `animatedRotateTo`
 - 〰️ `<Polyline>` (штрихи + обводка), `<Polygon>` (дырки через `innerRings`), `<Circle>`
 - 🔵 `<Clusterer>` — декларативная кластеризация, где ваши собственные `<Marker>` служат render-пропом; настраиваемый бейдж (цвет / размер / **иконка**), `excludeFromCluster`, тап-для-подгонки, настраиваемые радиус / minZoom
-- 📡 Слой геопозиции пользователя (кастомная иконка точки + стилизация круга точности) и живой 🚦 слой пробок
+- 📡 Слой геопозиции пользователя (кастомная иконка точки + стилизация круга точности, координаты через `onUserLocationChange`) и живой 🚦 слой пробок
 
 **Модули flavor `full`** — задайте `flavor: 'full'` ([lite и full](#lite-и-full))
 - 🔎 **Поиск и геокодинг** — `searchText`, `searchPoint` (обратный), `geocodeAddress` / `geocodePoint`, `resolveURI`; структурные `addressComponents`, рейтинг организаций `rating`, опции орфографии / сниппетов
@@ -301,6 +301,7 @@ export default function App() {
 | `onMapLongPress` | `MapPressEvent` | Долгое нажатие на карту. |
 | `onPoiTap` | `PoiTapEvent` | Нажатие на встроенный объект карты (значок POI, топоним) — несёт его `name`, `point` и токен `selection` для `selectGeoObject()`. Нажатие на POI вызывает `onPoiTap` и **не** вызывает заодно `onMapPress` (соглашение `onPoiClick` из react-native-maps). **Ни один другой RN-обёртка для Яндекс-карт не отдаёт нажатия на встроенные POI** — они возвращают только голые координаты. |
 | `onMapLoaded` | `MapLoadStatistics` | Когда карта завершает загрузку — несёт статистику рендеринга (`renderObjectCount`, `tileMemoryUsage`, тайминги загрузки). |
+| `onUserLocationChange` | `UserLocationChangeEvent` | `{ point, accuracy }` устройства при появлении / перемещении точки геопозиции. Требует `showUserPosition` + разрешение на геолокацию. **Ни одна обёртка для Яндекс-карт не отдаёт координаты пользователя** — это закрывает частый запрос ([yamap#295](https://github.com/volga-volga/react-native-yamap/issues/295)). |
 
 ### Типы
 

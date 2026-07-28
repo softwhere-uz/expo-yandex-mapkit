@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`onUserLocationChange` event** (beyond parity — [#2](https://github.com/softwhere-uz/expo-yandex-mapkit/issues/2)).
+  Fires with the device's `{ point, accuracy }` whenever the user-location dot appears or moves (read
+  from the user-location layer — the pin's coordinate + the accuracy-circle radius in metres). Requires
+  `showUserPosition` + location permission. Answers the recurring "how do I get the user's coordinates"
+  ask ([yamap#295](https://github.com/volga-volga/react-native-yamap/issues/295)); no Yandex-maps RN
+  wrapper surfaces it.
+
 ## [2.5.0] - 2026-07-29
 
 ### Added

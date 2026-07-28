@@ -24,6 +24,12 @@ export type MapPressEvent = {
   point: Point;
 };
 
+// Payload for onUserLocationChange — the device's location as MapKit's user-location layer reports it.
+export type UserLocationChangeEvent = {
+  point: Point; // the device's current coordinate
+  accuracy: number; // horizontal accuracy radius, in metres (the accuracy-circle radius)
+};
+
 // Identifies a tapped built-in map object (a POI icon, a labelled toponym) precisely enough to
 // (re)select it. The IDs are opaque MapKit values — read them off an `onPoiTap` event and pass the
 // whole object back to the map ref's `selectGeoObject()` to draw MapKit's selection highlight.
@@ -85,6 +91,10 @@ export type YandexMapViewProps = {
   userLocationAccuracyStrokeColor?: ColorValue; // stroke (border) color of the accuracy circle
   userLocationAccuracyStrokeWidth?: number; // accuracy-circle stroke width in points
   trafficVisible?: boolean; // show the live traffic-jams layer; default false
+  // Fires with the device's coordinate + accuracy whenever the user-location dot appears or moves.
+  // Requires `showUserPosition` (and location permission). Answers the recurring "how do I get the
+  // user's coordinates" ask — no Yandex-maps RN wrapper surfaces it.
+  onUserLocationChange?: (event: { nativeEvent: UserLocationChangeEvent }) => void;
   // Persistent inset (in points) around the map's logical viewport — the react-native-maps
   // `mapPadding` convention. Shifts the map's optical center and the target of camera moves / gestures
   // so content stays clear of a bottom sheet, header, or floating controls. Applied as MapKit's

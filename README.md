@@ -29,7 +29,7 @@ A complete Yandex Maps SDK for Expo — full feature parity with the most capabl
 - 📍 `<Marker>` — image **or React-children** icons (reliable, with a `tracksViewChanges` re-snapshot pipeline), `onPress` with an identifying payload, `draggable` + drag events, `animatedMoveTo` / `animatedRotateTo`
 - 〰️ `<Polyline>` (dash + outline), `<Polygon>` (holes via `innerRings`), `<Circle>`
 - 🔵 `<Clusterer>` — declarative clustering where your own `<Marker>`s are the render-prop; custom badge (color / size / **icon**), `excludeFromCluster`, tap-to-fit, configurable radius / minZoom
-- 📡 User-location layer (custom dot icon + accuracy-circle styling) and a live 🚦 traffic layer
+- 📡 User-location layer (custom dot icon + accuracy-circle styling, `onUserLocationChange` coordinates) and a live 🚦 traffic layer
 
 **Full-flavor modules** — set `flavor: 'full'` ([lite vs full](#lite-vs-full))
 - 🔎 **Search & geocoding** — `searchText`, `searchPoint` (reverse), `geocodeAddress` / `geocodePoint`, `resolveURI`; structured `addressComponents`, business `rating`, spelling / snippets options
@@ -301,6 +301,7 @@ Events:
 | `onMapLongPress` | `MapPressEvent` | On a long press on the map. |
 | `onPoiTap` | `PoiTapEvent` | On a tap on one of the map's own labelled objects (a POI icon, a toponym) — carries its `name`, `point`, and a `selection` token for `selectGeoObject()`. A POI tap fires `onPoiTap` and does **not** also fire `onMapPress` (the react-native-maps `onPoiClick` convention). **No other Yandex-maps RN wrapper exposes built-in POI taps** — theirs return bare coordinates only. |
 | `onMapLoaded` | `MapLoadStatistics` | Once the map finishes loading — carries render stats (`renderObjectCount`, `tileMemoryUsage`, load timings). |
+| `onUserLocationChange` | `UserLocationChangeEvent` | The device's `{ point, accuracy }` whenever the user-location dot appears or moves. Requires `showUserPosition` + location permission. **No Yandex-maps RN wrapper surfaces the user's coordinates** — this answers the recurring ask ([yamap#295](https://github.com/volga-volga/react-native-yamap/issues/295)). |
 
 ### Types
 
@@ -322,6 +323,11 @@ type CameraPositionChangeEvent = {
 };
 
 type MapPressEvent = { point: Point };
+
+type UserLocationChangeEvent = {
+  point: Point;      // the device's current coordinate
+  accuracy: number;  // horizontal accuracy radius, in metres
+};
 
 // Opaque MapKit ids identifying a tapped built-in object, enough to (re)select it.
 type GeoObjectSelection = {

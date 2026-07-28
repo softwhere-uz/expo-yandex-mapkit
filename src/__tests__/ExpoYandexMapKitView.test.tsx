@@ -64,6 +64,12 @@ describe('YandexMapView user-location styling', () => {
     expect(props.userLocationAccuracyStrokeColor).toBeUndefined();
   });
 
+  it('forwards onUserLocationChange to the native view unchanged (issue #2)', () => {
+    const onUserLocationChange = jest.fn();
+    const props = renderMap({ showUserPosition: true, onUserLocationChange });
+    expect(props.onUserLocationChange).toBe(onUserLocationChange);
+  });
+
   it('forwards the scalar user-location props through unchanged', () => {
     const props = renderMap({
       showUserPosition: true,
