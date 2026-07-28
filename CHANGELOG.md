@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`mapPadding` prop** (beyond parity — [#2](https://github.com/softwhere-uz/expo-yandex-mapkit/issues/2)).
+  A persistent inset (`{ top?, right?, bottom?, left? }`, in points) around the map's logical viewport —
+  the react-native-maps `mapPadding` convention. It shifts the map's optical center and the target of
+  camera moves / gestures so content stays clear of a bottom sheet, header, or floating controls,
+  applied as MapKit's map-window focus rectangle. `fitMarkers` / `fitAllMarkers` fall back to it when
+  their own `edgePadding` is omitted. No Yandex-maps RN wrapper offers a map-padding equivalent.
+
+### Fixed
+
+- **Focus-rect crash on iOS with edge-padded fits.** The map-window focus rectangle (used by
+  `mapPadding` and by `fitMarkers` / `fitAllMarkers` when given `edgePadding`) was computed from
+  `UIScreen.scale × bounds`, which can drift from the window's true pixel size, and let the rect's
+  bottom-right corner land on the window edge — MapKit rejected it (`focusRect … is out of screen`) and
+  terminated the app. It now uses the map window's own reported pixel size and clamps the rect strictly
+  inside the window (Android's equivalent off-by-one clamp is fixed too).
+
 ## [2.1.0] - 2026-07-29
 
 ### Added

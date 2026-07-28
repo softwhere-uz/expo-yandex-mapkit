@@ -20,7 +20,7 @@ A complete Yandex Maps SDK for Expo — full feature parity with the most capabl
 
 **Map & camera**
 - 🗺️ Native MapKit `<YandexMapView>` (Fabric / New Architecture)
-- 🎥 Declarative, animatable camera (`cameraPosition`) + imperative ref methods — `setCenter`, `setZoom`, `fitMarkers` / `fitAllMarkers` (with edge padding), `getCameraPosition`, `getVisibleRegion`, world↔screen projection
+- 🎥 Declarative, animatable camera (`cameraPosition`) + imperative ref methods — `setCenter`, `setZoom`, `fitMarkers` / `fitAllMarkers` (with edge padding), `getCameraPosition`, `getVisibleRegion`, world↔screen projection; persistent `mapPadding` for bottom-sheet / header layouts
 - 👆 Press / long-press / camera-move / map-loaded events with identical payloads on iOS and Android
 - 📌 **POI taps** (`onPoiTap`) — tap a built-in place icon to get its name + coordinate, then highlight it with `selectGeoObject()` (**beyond parity — no other Yandex-maps RN wrapper exposes this**)
 - 🎨 `mapType` (`map` / `satellite` / `hybrid` / `vector`), JSON `mapStyle`, night mode, per-gesture toggles, logo placement
@@ -284,6 +284,7 @@ Get/set the map display language at runtime, as `language` or `language_REGION` 
 | `userLocationAccuracyStrokeColor` | `ColorValue` | — | Stroke (border) colour of the accuracy circle. Unset keeps MapKit's default. |
 | `userLocationAccuracyStrokeWidth` | `number` | — | Accuracy-circle stroke width, in points. |
 | `trafficVisible` | `boolean` | `false` | Show the live traffic-jams layer. |
+| `mapPadding` | `{ top?, right?, bottom?, left? }` (points) | — | Persistent inset around the map's logical viewport (the react-native-maps `mapPadding` convention). Shifts the optical center and the target of camera moves / gestures so content stays clear of a bottom sheet, header, or floating controls. Applied as MapKit's map-window focus rectangle. `fitMarkers` / `fitAllMarkers` fall back to it when their own `edgePadding` is omitted. |
 | `style` | `StyleProp<ViewStyle>` | — | Standard React Native view styling. |
 
 > For a non-interactive map (e.g. a static preview) set `interactiveDisabled` (shorthand for disabling all four movement gestures); toggle `rotateGesturesEnabled` / `tiltGesturesEnabled` off to keep the map flat and north-up.

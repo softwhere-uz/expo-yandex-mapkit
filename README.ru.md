@@ -20,7 +20,7 @@
 
 **Карта и камера**
 - 🗺️ Нативная карта MapKit `<YandexMapView>` (Fabric / Новая архитектура)
-- 🎥 Декларативная анимируемая камера (`cameraPosition`) + императивные методы через ref — `setCenter`, `setZoom`, `fitMarkers` / `fitAllMarkers` (с отступами по краям), `getCameraPosition`, `getVisibleRegion`, проекция мир↔экран
+- 🎥 Декларативная анимируемая камера (`cameraPosition`) + императивные методы через ref — `setCenter`, `setZoom`, `fitMarkers` / `fitAllMarkers` (с отступами по краям), `getCameraPosition`, `getVisibleRegion`, проекция мир↔экран; постоянный `mapPadding` для макетов с нижним листом / шапкой
 - 👆 События нажатий / долгих нажатий / движения камеры / загрузки карты с идентичными payload'ами на iOS и Android
 - 📌 **Нажатия на POI** (`onPoiTap`) — нажмите на встроенный значок места, чтобы получить его название и координату, затем выделите его через `selectGeoObject()` (**сверх паритета — ни одна другая RN-обёртка для Яндекс-карт этого не отдаёт**)
 - 🎨 `mapType` (`map` / `satellite` / `hybrid` / `vector`), JSON-`mapStyle`, ночной режим, переключатели отдельных жестов, размещение логотипа
@@ -284,6 +284,7 @@ export default function App() {
 | `userLocationAccuracyStrokeColor` | `ColorValue` | — | Цвет обводки (границы) круга точности. Без значения — стандартный для MapKit. |
 | `userLocationAccuracyStrokeWidth` | `number` | — | Толщина обводки круга точности, в пунктах. |
 | `trafficVisible` | `boolean` | `false` | Показывать слой пробок в реальном времени. |
+| `mapPadding` | `{ top?, right?, bottom?, left? }` (пункты) | — | Постоянный отступ вокруг логической области карты (соглашение `mapPadding` из react-native-maps). Смещает оптический центр и цель перемещений камеры / жестов, чтобы контент не перекрывался нижним листом (bottom sheet), шапкой или плавающими элементами управления. Применяется как фокус-прямоугольник окна карты MapKit. `fitMarkers` / `fitAllMarkers` используют его как запасной вариант, если их собственный `edgePadding` не задан. |
 | `style` | `StyleProp<ViewStyle>` | — | Стандартная стилизация React Native. |
 
 > Для неинтерактивной карты (например, статичного превью) задайте `interactiveDisabled` (сокращение для отключения всех четырёх жестов перемещения); отключите `rotateGesturesEnabled` / `tiltGesturesEnabled`, чтобы карта оставалась плоской и ориентированной на север.
