@@ -22,6 +22,7 @@
 - 🗺️ Нативная карта MapKit `<YandexMapView>` (Fabric / Новая архитектура)
 - 🎥 Декларативная анимируемая камера (`cameraPosition`) + императивные методы через ref — `setCenter`, `setZoom`, `fitMarkers` / `fitAllMarkers` (с отступами по краям), `getCameraPosition`, `getVisibleRegion`, проекция мир↔экран; постоянный `mapPadding` для макетов с нижним листом / шапкой
 - 👆 События нажатий / долгих нажатий / движения камеры / загрузки карты с идентичными payload'ами на iOS и Android
+- 📌 **Нажатия на POI** (`onPoiTap`) — нажмите на встроенный значок места, чтобы получить его название и координату, затем выделите его через `selectGeoObject()` (**сверх паритета — ни одна другая RN-обёртка для Яндекс-карт этого не отдаёт**)
 - 🎨 `mapType` (`map` / `satellite` / `hybrid` / `vector`), JSON-`mapStyle`, ночной режим, переключатели отдельных жестов, размещение логотипа
 
 **Объекты карты** (декларативные дети карты)
@@ -294,8 +295,9 @@ export default function App() {
 | --- | --- | --- |
 | `onMapReady` | `{}` | Один раз на view, когда нативная карта создана (после `initialize`). |
 | `onCameraPositionChanged` | `CameraPositionChangeEvent` | Пока камера движется; `reason` отличает жесты пользователя от программных перемещений, `finished` помечает конец движения. |
-| `onMapPress` | `MapPressEvent` | Одиночное нажатие на карту. |
+| `onMapPress` | `MapPressEvent` | Одиночное нажатие на пустую карту. |
 | `onMapLongPress` | `MapPressEvent` | Долгое нажатие на карту. |
+| `onPoiTap` | `PoiTapEvent` | Нажатие на встроенный объект карты (значок POI, топоним) — несёт его `name`, `point` и токен `selection` для `selectGeoObject()`. Нажатие на POI вызывает `onPoiTap` и **не** вызывает заодно `onMapPress` (соглашение `onPoiClick` из react-native-maps). **Ни один другой RN-обёртка для Яндекс-карт не отдаёт нажатия на встроенные POI** — они возвращают только голые координаты. |
 | `onMapLoaded` | `MapLoadStatistics` | Когда карта завершает загрузку — несёт статистику рендеринга (`renderObjectCount`, `tileMemoryUsage`, тайминги загрузки). |
 
 ### Типы
@@ -318,6 +320,20 @@ type CameraPositionChangeEvent = {
 };
 
 type MapPressEvent = { point: Point };
+
+// Непрозрачные id MapKit, идентифицирующие нажатый встроенный объект — достаточно, чтобы его (пере)выделить.
+type GeoObjectSelection = {
+  objectId: string;
+  dataSourceName: string;
+  layerId: string;
+  groupId?: number;
+};
+
+type PoiTapEvent = {
+  name?: string;               // подпись объекта, если есть
+  point?: Point;               // координата объекта, если доступна
+  selection: GeoObjectSelection; // передайте в mapRef.selectGeoObject(), чтобы выделить
+};
 
 type MapLoadStatistics = {
   renderObjectCount: number;      // число отрисованных объектов карты
@@ -348,6 +364,8 @@ type MapLoadStatistics = {
 | `getVisibleRegion()` | `Promise<VisibleRegion \| null>` | Видимый географический четырёхугольник (`topLeft` / `topRight` / `bottomLeft` / `bottomRight`). |
 | `getScreenPoints(points)` | `Promise<(ScreenPoint \| null)[]>` | Спроецировать мировые координаты в экранные пиксели; `null` для точки, которую нельзя спроецировать (за пределами глобуса / за камерой). |
 | `getWorldPoints(points)` | `Promise<(Point \| null)[]>` | Спроецировать экранные пиксели обратно в мировые координаты. |
+| `selectGeoObject(selection)` | `Promise<void>` | Нарисовать нативную подсветку выделения MapKit вокруг встроенного POI / гео-объекта. Передайте `selection` из события `onPoiTap`. No-op, пока карта не готова. |
+| `deselectGeoObject()` | `Promise<void>` | Снять подсветку выделения, нарисованную `selectGeoObject()`. |
 
 ```tsx
 const mapRef = useRef<YandexMapViewRef>(null);
@@ -357,6 +375,12 @@ const mapRef = useRef<YandexMapViewRef>(null);
 await mapRef.current?.setCenter({ latitude: 41.31, longitude: 69.24, zoom: 14 }, { durationSeconds: 0.4 });
 const region = await mapRef.current?.getVisibleRegion();
 const [screen] = await mapRef.current?.getScreenPoints([{ latitude: 41.31, longitude: 69.24 }]) ?? [];
+
+// Нажатие на встроенный POI → выделить его нативной подсветкой MapKit:
+<YandexMapView
+  ref={mapRef}
+  onPoiTap={({ nativeEvent }) => mapRef.current?.selectGeoObject(nativeEvent.selection)}
+/>;
 ```
 
 ### `<Marker />`

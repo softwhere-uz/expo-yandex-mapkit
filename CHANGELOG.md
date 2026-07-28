@@ -16,6 +16,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   applied as MapKit's map-window focus rectangle. `fitMarkers` / `fitAllMarkers` fall back to it when
   their own `edgePadding` is omitted. No Yandex-maps RN wrapper offers a map-padding equivalent.
 
+## [2.1.0] - 2026-07-29
+
+### Added
+
+- **POI taps + geo-object selection** (beyond parity — [#2](https://github.com/softwhere-uz/expo-yandex-mapkit/issues/2)).
+  A new `onPoiTap` event fires when a built-in map object (a POI icon, a labelled toponym) is tapped,
+  carrying its `name`, `point`, and a `selection` token. Pass that token to the two new map-ref methods
+  `selectGeoObject(selection)` / `deselectGeoObject()` to draw and clear MapKit's native selection
+  highlight. A POI tap fires `onPoiTap` and does **not** also fire `onMapPress` (the react-native-maps
+  `onPoiClick` convention). No other Yandex-maps RN wrapper exposes built-in POI taps — theirs return
+  bare coordinates only.
+
 ## [2.0.1] - 2026-07-26
 
 Docs/packaging patch — no code changes.

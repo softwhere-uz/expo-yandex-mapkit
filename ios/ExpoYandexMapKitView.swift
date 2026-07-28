@@ -79,6 +79,15 @@ internal struct ScreenPointRecord: Record {
   @Field var y: Double = 0
 }
 
+// The selection token for selectGeoObject(). Mirrors the JS `GeoObjectSelection` (the `selection`
+// carried by an onPoiTap event); reconstructs a YMKGeoObjectSelectionMetadata to select the object.
+internal struct GeoObjectSelectionRecord: Record {
+  @Field var objectId: String = ""
+  @Field var dataSourceName: String = ""
+  @Field var layerId: String = ""
+  @Field var groupId: Double?
+}
+
 internal enum CameraAnimationOption: String, Enumerable {
   case smooth
   case linear
@@ -132,6 +141,7 @@ class ExpoYandexMapKitView: ExpoView {
   let onMapPress = EventDispatcher()
   let onMapLongPress = EventDispatcher()
   let onMapLoaded = EventDispatcher()
+  let onPoiTap = EventDispatcher()
 
   var animated = true
 
@@ -141,6 +151,7 @@ class ExpoYandexMapKitView: ExpoView {
   private var cameraListener: CameraListener?
   private var inputListener: InputListener?
   private var mapLoadedListener: MapLoadedListener?
+  private var geoObjectTapListener: GeoObjectTapListener?
   private var pendingCameraPosition: CameraPositionRecord?
   private var nightMode = false
   // Gesture toggles default to MapKit's own defaults (all enabled). Stored so a
@@ -749,6 +760,26 @@ class ExpoYandexMapKitView: ExpoView {
     }
   }
 
+  // Draw MapKit's selection highlight around the POI/geo-object identified by `selection` (from an
+  // onPoiTap event). Reconstructs the selection metadata from the opaque ids. No-op until the map is
+  // ready.
+  func selectGeoObject(_ selection: GeoObjectSelectionRecord) {
+    guard let map = mapView?.mapWindow.map else {
+      return
+    }
+    let metadata = YMKGeoObjectSelectionMetadata(
+      objectId: selection.objectId,
+      dataSourceName: selection.dataSourceName,
+      layerId: selection.layerId,
+      groupId: selection.groupId.map { NSNumber(value: $0) }
+    )
+    map.selectGeoObject(withSelectionMetaData: metadata)
+  }
+
+  func deselectGeoObject() {
+    mapView?.mapWindow.map.deselectGeoObject()
+  }
+
   private func coordinatePayload(_ point: YMKPoint) -> [String: Any] {
     return ["latitude": point.latitude, "longitude": point.longitude]
   }
@@ -792,12 +823,15 @@ class ExpoYandexMapKitView: ExpoView {
     let cameraListener = CameraListener(view: self)
     let inputListener = InputListener(view: self)
     let mapLoadedListener = MapLoadedListener(view: self)
+    let geoObjectTapListener = GeoObjectTapListener(view: self)
     self.cameraListener = cameraListener
     self.inputListener = inputListener
     self.mapLoadedListener = mapLoadedListener
+    self.geoObjectTapListener = geoObjectTapListener
     map.addCameraListener(with: cameraListener)
     map.addInputListener(with: inputListener)
     map.setMapLoadedListenerWith(mapLoadedListener)
+    map.addTapListener(with: geoObjectTapListener)
 
     map.isNightModeEnabled = nightMode
     applyGestureState()
@@ -893,6 +927,29 @@ class ExpoYandexMapKitView: ExpoView {
     onMapLongPress(pointPayload(point))
   }
 
+  // Emit onPoiTap for a tapped built-in geo-object that carries selection metadata (a selectable
+  // POI/toponym). The `selection` lets JS call selectGeoObject() to highlight it later.
+  fileprivate func dispatchPoiTap(
+    _ geoObject: YMKGeoObject, selection: YMKGeoObjectSelectionMetadata
+  ) {
+    var selectionPayload: [String: Any] = [
+      "objectId": selection.objectId,
+      "dataSourceName": selection.dataSourceName,
+      "layerId": selection.layerId,
+    ]
+    if let groupId = selection.groupId {
+      selectionPayload["groupId"] = groupId
+    }
+    var payload: [String: Any] = ["selection": selectionPayload]
+    if let name = geoObject.name {
+      payload["name"] = name
+    }
+    if let point = geoObject.geometry.compactMap({ $0.point }).first {
+      payload["point"] = ["latitude": point.latitude, "longitude": point.longitude]
+    }
+    onPoiTap(payload)
+  }
+
   fileprivate func dispatchMapLoaded(_ statistics: YMKMapLoadStatistics) {
     onMapLoaded([
       "renderObjectCount": statistics.renderObjectCount,
@@ -964,6 +1021,28 @@ private final class MapLoadedListener: NSObject, YMKMapLoadedListener {
 
   func onMapLoaded(with statistics: YMKMapLoadStatistics) {
     view?.dispatchMapLoaded(statistics)
+  }
+}
+
+// Fires for taps on the map's own labelled objects (POIs, toponyms). Only objects that carry
+// selection metadata are surfaced as onPoiTap; returning true then consumes the tap so it does not
+// also reach the input listener as an onMapPress. Non-selectable geo-objects return false and fall
+// through to onMapPress unchanged.
+private final class GeoObjectTapListener: NSObject, YMKLayersGeoObjectTapListener {
+  private weak var view: ExpoYandexMapKitView?
+
+  init(view: ExpoYandexMapKitView) {
+    self.view = view
+  }
+
+  func onObjectTap(with event: YMKGeoObjectTapEvent) -> Bool {
+    guard let selection = event.geoObject.metadataContainer.getItemOf(
+      YMKGeoObjectSelectionMetadata.self) as? YMKGeoObjectSelectionMetadata
+    else {
+      return false
+    }
+    view?.dispatchPoiTap(event.geoObject, selection: selection)
+    return true
   }
 }
 

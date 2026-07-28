@@ -6,12 +6,15 @@ import android.graphics.PointF
 import android.util.Log
 import android.view.View
 import com.yandex.mapkit.Animation
+import com.yandex.mapkit.GeoObject
 import com.yandex.mapkit.MapKitFactory
 import com.yandex.mapkit.ScreenPoint
 import com.yandex.mapkit.ScreenRect
 import com.yandex.mapkit.geometry.BoundingBox
 import com.yandex.mapkit.geometry.Geometry
 import com.yandex.mapkit.geometry.Point
+import com.yandex.mapkit.layers.GeoObjectTapEvent
+import com.yandex.mapkit.layers.GeoObjectTapListener
 import com.yandex.mapkit.logo.Alignment as LogoAlignment
 import com.yandex.mapkit.logo.HorizontalAlignment
 import com.yandex.mapkit.logo.Padding as LogoPaddingNative
@@ -20,6 +23,7 @@ import com.yandex.mapkit.map.CameraListener
 import com.yandex.mapkit.map.CameraPosition
 import com.yandex.mapkit.map.CameraUpdateReason
 import com.yandex.mapkit.map.CircleMapObject
+import com.yandex.mapkit.map.GeoObjectSelectionMetadata
 import com.yandex.mapkit.map.IconStyle
 import com.yandex.mapkit.map.InputListener
 import com.yandex.mapkit.map.Map as YandexMap
@@ -138,6 +142,22 @@ class ScreenPointRecord : Record {
   var y: Double = 0.0
 }
 
+// The selection token for selectGeoObject(). Mirrors the JS `GeoObjectSelection` (the `selection`
+// carried by an onPoiTap event); reconstructs a GeoObjectSelectionMetadata to select the object.
+class GeoObjectSelectionRecord : Record {
+  @Field
+  var objectId: String = ""
+
+  @Field
+  var dataSourceName: String = ""
+
+  @Field
+  var layerId: String = ""
+
+  @Field
+  var groupId: Double? = null
+}
+
 enum class CameraAnimationOption(val value: String) : Enumerable {
   smooth("smooth"),
   linear("linear");
@@ -182,6 +202,7 @@ class ExpoYandexMapKitView(context: Context, appContext: AppContext) : ExpoView(
   private val onMapPress by EventDispatcher<Map<String, Any>>()
   private val onMapLongPress by EventDispatcher<Map<String, Any>>()
   private val onMapLoaded by EventDispatcher<Map<String, Any>>()
+  private val onPoiTap by EventDispatcher<Map<String, Any?>>()
 
   internal var animated = true
 
@@ -291,6 +312,20 @@ class ExpoYandexMapKitView(context: Context, appContext: AppContext) : ExpoView(
 
     override fun onMapLongTap(map: YandexMap, point: Point) {
       onMapLongPress(pointPayload(point))
+    }
+  }
+
+  // Fires for taps on the map's own labelled objects (POIs, toponyms). Only objects carrying
+  // selection metadata are surfaced as onPoiTap; returning true then consumes the tap so it does not
+  // also reach the input listener as an onMapPress. Non-selectable geo-objects return false and fall
+  // through to onMapPress unchanged.
+  private val geoObjectTapListener = GeoObjectTapListener { event: GeoObjectTapEvent ->
+    val selection = event.geoObject.metadataContainer.getItem(GeoObjectSelectionMetadata::class.java)
+    if (selection == null) {
+      false
+    } else {
+      onPoiTap(poiTapPayload(event.geoObject, selection))
+      true
     }
   }
 
@@ -617,6 +652,24 @@ class ExpoYandexMapKitView(context: Context, appContext: AppContext) : ExpoView(
     }
   }
 
+  // Draw MapKit's selection highlight around the POI/geo-object identified by `selection` (from an
+  // onPoiTap event). Reconstructs the selection metadata from the opaque ids. No-op until the map is
+  // ready.
+  internal fun selectGeoObject(selection: GeoObjectSelectionRecord) {
+    val map = mapView?.mapWindow?.map ?: return
+    val metadata = GeoObjectSelectionMetadata(
+      selection.objectId,
+      selection.dataSourceName,
+      selection.layerId,
+      selection.groupId?.toLong()
+    )
+    map.selectGeoObject(metadata)
+  }
+
+  internal fun deselectGeoObject() {
+    mapView?.mapWindow?.map?.deselectGeoObject()
+  }
+
   internal fun currentCameraPosition(): Map<String, Any>? {
     val map = mapView?.mapWindow?.map ?: return null
     return cameraPositionPayload(map.cameraPosition)
@@ -847,6 +900,7 @@ class ExpoYandexMapKitView(context: Context, appContext: AppContext) : ExpoView(
     // cameraListener/inputListener fields on this view keep the listeners alive.
     map.addCameraListener(WeakReference(cameraListener))
     map.addInputListener(WeakReference(inputListener))
+    map.addTapListener(WeakReference(geoObjectTapListener))
     map.setMapLoadedListener(WeakReference(mapLoadedListener))
     map.isNightModeEnabled = nightMode
     applyGestureState()
@@ -887,5 +941,26 @@ class ExpoYandexMapKitView(context: Context, appContext: AppContext) : ExpoView(
         "longitude" to point.longitude
       )
     )
+  }
+
+  // Build the onPoiTap payload: the selection token (opaque ids for selectGeoObject) plus the
+  // object's name and first point geometry, when present.
+  private fun poiTapPayload(
+    geoObject: GeoObject,
+    selection: GeoObjectSelectionMetadata
+  ): Map<String, Any?> {
+    val selectionPayload = mutableMapOf<String, Any?>(
+      "objectId" to selection.objectId,
+      "dataSourceName" to selection.dataSourceName,
+      "layerId" to selection.layerId
+    )
+    selection.groupId?.let { selectionPayload["groupId"] = it.toDouble() }
+
+    val payload = mutableMapOf<String, Any?>("selection" to selectionPayload)
+    geoObject.name?.let { payload["name"] = it }
+    geoObject.geometry.firstOrNull { it.point != null }?.point?.let { point ->
+      payload["point"] = mapOf("latitude" to point.latitude, "longitude" to point.longitude)
+    }
+    return payload
   }
 }
