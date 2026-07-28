@@ -301,6 +301,7 @@ Events:
 | `onMapLongPress` | `MapPressEvent` | On a long press on the map. |
 | `onPoiTap` | `PoiTapEvent` | On a tap on one of the map's own labelled objects (a POI icon, a toponym) — carries its `name`, `point`, and a `selection` token for `selectGeoObject()`. A POI tap fires `onPoiTap` and does **not** also fire `onMapPress` (the react-native-maps `onPoiClick` convention). **No other Yandex-maps RN wrapper exposes built-in POI taps** — theirs return bare coordinates only. |
 | `onMapLoaded` | `MapLoadStatistics` | Once the map finishes loading — carries render stats (`renderObjectCount`, `tileMemoryUsage`, load timings). |
+| `onTrafficChanged` | `TrafficChangeEvent` | The visible region's traffic score (`{ available, level? (0–10), color? ('red'/'yellow'/'green') }`) as it recomputes. Fires only while `trafficVisible`. No Yandex-maps RN wrapper surfaces it. |
 | `onUserLocationChange` | `UserLocationChangeEvent` | The device's `{ point, accuracy }` whenever the user-location dot appears or moves. Requires `showUserPosition` + location permission. **No Yandex-maps RN wrapper surfaces the user's coordinates** — this answers the recurring ask ([yamap#295](https://github.com/volga-volga/react-native-yamap/issues/295)). |
 
 ### Types
@@ -323,6 +324,12 @@ type CameraPositionChangeEvent = {
 };
 
 type MapPressEvent = { point: Point };
+
+type TrafficChangeEvent = {
+  available: boolean;                      // false while loading / expired / unavailable
+  level?: number;                          // congestion score 0–10 (higher = worse)
+  color?: 'red' | 'yellow' | 'green';      // the traffic badge color
+};
 
 type UserLocationChangeEvent = {
   point: Point;      // the device's current coordinate

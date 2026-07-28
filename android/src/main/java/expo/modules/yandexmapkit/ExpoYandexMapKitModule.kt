@@ -84,6 +84,7 @@ class ExpoYandexMapKitModule : Module() {
     View(ExpoYandexMapKitView::class) {
       Events(
         "onMapReady", "onCameraPositionChanged", "onMapPress", "onMapLongPress", "onMapLoaded",
+        "onTrafficChanged",
         "onUserLocationChange",
         "onPoiTap"
       )

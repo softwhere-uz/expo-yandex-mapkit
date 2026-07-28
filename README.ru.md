@@ -301,6 +301,7 @@ export default function App() {
 | `onMapLongPress` | `MapPressEvent` | Долгое нажатие на карту. |
 | `onPoiTap` | `PoiTapEvent` | Нажатие на встроенный объект карты (значок POI, топоним) — несёт его `name`, `point` и токен `selection` для `selectGeoObject()`. Нажатие на POI вызывает `onPoiTap` и **не** вызывает заодно `onMapPress` (соглашение `onPoiClick` из react-native-maps). **Ни один другой RN-обёртка для Яндекс-карт не отдаёт нажатия на встроенные POI** — они возвращают только голые координаты. |
 | `onMapLoaded` | `MapLoadStatistics` | Когда карта завершает загрузку — несёт статистику рендеринга (`renderObjectCount`, `tileMemoryUsage`, тайминги загрузки). |
+| `onTrafficChanged` | `TrafficChangeEvent` | Балл пробок для видимой области (`{ available, level? (0–10), color? ('red'/'yellow'/'green') }`) по мере пересчёта. Срабатывает только при `trafficVisible`. Ни одна обёртка для Яндекс-карт этого не отдаёт. |
 | `onUserLocationChange` | `UserLocationChangeEvent` | `{ point, accuracy }` устройства при появлении / перемещении точки геопозиции. Требует `showUserPosition` + разрешение на геолокацию. **Ни одна обёртка для Яндекс-карт не отдаёт координаты пользователя** — это закрывает частый запрос ([yamap#295](https://github.com/volga-volga/react-native-yamap/issues/295)). |
 
 ### Типы

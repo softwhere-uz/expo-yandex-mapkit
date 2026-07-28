@@ -73,7 +73,7 @@ public class ExpoYandexMapKitModule: Module {
     View(ExpoYandexMapKitView.self) {
       Events(
         "onMapReady", "onCameraPositionChanged", "onMapPress", "onMapLongPress", "onMapLoaded",
-        "onUserLocationChange", "onPoiTap")
+        "onTrafficChanged", "onUserLocationChange", "onPoiTap")
 
       Prop("cameraPosition") { (view: ExpoYandexMapKitView, cameraPosition: CameraPositionRecord) in
         view.setCameraPosition(cameraPosition)
