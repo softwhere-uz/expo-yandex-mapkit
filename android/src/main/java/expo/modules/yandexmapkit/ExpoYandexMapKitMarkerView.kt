@@ -12,6 +12,7 @@ import com.yandex.mapkit.map.ClusterizedPlacemarkCollection
 import com.yandex.mapkit.map.IconStyle
 import com.yandex.mapkit.map.MapObject
 import com.yandex.mapkit.map.MapObjectCollection
+import com.yandex.mapkit.map.MapObjectDragListener
 import com.yandex.mapkit.map.MapObjectTapListener
 import com.yandex.mapkit.map.PlacemarkMapObject
 import com.yandex.mapkit.map.RotationType
@@ -43,12 +44,16 @@ class MarkerAnchorRecord : Record {
 // every setter re-applies through [updateMarker], which no-ops until both the placemark and a
 // point are present.
 class ExpoYandexMapKitMarkerView(context: Context, appContext: AppContext) :
-  ExpoView(context, appContext), MapObjectTapListener, MapObjectChild {
+  ExpoView(context, appContext), MapObjectTapListener, MapObjectDragListener, MapObjectChild {
   // Named onMarkerPress (not onPress): React Native normalizes onPress to the top-level bubbling
   // event topPress, which collides with Expo's direct-event registration ("Event cannot be both
   // direct and bubbling: topPress") and red-screens on the first marker mount. topMarkerPress is
   // free. The public JS prop stays `onPress` — the wrapper forwards it to this native event.
   private val onMarkerPress by EventDispatcher<Map<String, Any?>>()
+  // Drag events use onMarker* native names (like onMarkerPress) to avoid RN's reserved bubbling names.
+  private val onMarkerDragStart by EventDispatcher<Map<String, Any?>>()
+  private val onMarkerDrag by EventDispatcher<Map<String, Any?>>()
+  private val onMarkerDragEnd by EventDispatcher<Map<String, Any?>>()
 
   private var placemark: PlacemarkMapObject? = null
   private var point: Point? = null
@@ -59,6 +64,7 @@ class ExpoYandexMapKitMarkerView(context: Context, appContext: AppContext) :
   private var rotated = false
   private var handled = false
   private var identifier: String? = null
+  private var draggable = false
   private var iconSource: String? = null
   // The icon URI currently applied to the placemark; guards against reloading the same image on
   // every unrelated prop change (image loads are async and would otherwise thrash).
@@ -147,6 +153,11 @@ class ExpoYandexMapKitMarkerView(context: Context, appContext: AppContext) :
     identifier = value
   }
 
+  internal fun setDraggable(value: Boolean) {
+    draggable = value
+    placemark?.let { if (it.isValid) it.isDraggable = value }
+  }
+
   internal fun setIconSource(value: String?) {
     iconSource = value
     updateMarker()
@@ -182,6 +193,8 @@ class ExpoYandexMapKitMarkerView(context: Context, appContext: AppContext) :
     // MapKit 4.41+ takes an explicit WeakReference; this view is the strong owner of the listener
     // and is itself kept alive by the map view's child list while mounted.
     created.addTapListener(WeakReference(this))
+    created.setDragListener(WeakReference(this))
+    created.isDraggable = draggable
     appliedIconSource = null
     hasIcon = false
     updateMarker()
@@ -326,6 +339,25 @@ class ExpoYandexMapKitMarkerView(context: Context, appContext: AppContext) :
     // Returning true consumes the tap so it does not also fall through to the map's onMapPress.
     return handled
   }
+
+  // Drag callbacks. Start/end read the placemark's current geometry (its resting position); onDrag
+  // carries the live drag point. Payload mirrors the tap event's identifier + point shape.
+  override fun onMapObjectDragStart(mapObject: MapObject) {
+    onMarkerDragStart(dragPayload(placemark?.geometry))
+  }
+
+  override fun onMapObjectDrag(mapObject: MapObject, point: Point) {
+    onMarkerDrag(dragPayload(point))
+  }
+
+  override fun onMapObjectDragEnd(mapObject: MapObject) {
+    onMarkerDragEnd(dragPayload(placemark?.geometry))
+  }
+
+  private fun dragPayload(point: Point?): Map<String, Any?> = mapOf(
+    "identifier" to identifier,
+    "point" to point?.let { mapOf("latitude" to it.latitude, "longitude" to it.longitude) }
+  )
 
   // Imperative animations, invoked via the marker's view ref. Linear tween of the placemark's
   // geometry / heading; no-op if the placemark is not on the map yet.

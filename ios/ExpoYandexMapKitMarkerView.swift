@@ -25,11 +25,18 @@ class ExpoYandexMapKitMarkerView: ExpoView, MapObjectChild {
   // direct and bubbling: topPress") and red-screens on the first marker mount. topMarkerPress is
   // free. The public JS prop stays `onPress` — the wrapper forwards it to this native event.
   let onMarkerPress = EventDispatcher()
+  // Drag events use onMarker* native names (like onMarkerPress) to avoid RN's reserved bubbling names.
+  let onMarkerDragStart = EventDispatcher()
+  let onMarkerDrag = EventDispatcher()
+  let onMarkerDragEnd = EventDispatcher()
 
   private var placemark: YMKPlacemarkMapObject?
   // MapKit holds the tap listener; keep it strongly retained here (this view is itself kept alive
   // by the map view's marker list while mounted).
   private var tapListener: MarkerTapListener?
+  // The drag listener is NOT retained by MapKit (documented) — keep it strongly here.
+  private var dragListener: MarkerDragListener?
+  private var draggable = false
   private var point: YMKPoint?
   private var scale: NSNumber = 1
   private var anchor: NSValue?
@@ -113,6 +120,13 @@ class ExpoYandexMapKitMarkerView: ExpoView, MapObjectChild {
     identifier = value
   }
 
+  func setDraggable(_ value: Bool) {
+    draggable = value
+    if let placemark = placemark, placemark.isValid {
+      placemark.isDraggable = value
+    }
+  }
+
   func setExcludeFromCluster(_ value: Bool) {
     guard value != excludeFromCluster else {
       return
@@ -168,6 +182,10 @@ class ExpoYandexMapKitMarkerView: ExpoView, MapObjectChild {
     let listener = MarkerTapListener(view: self)
     tapListener = listener
     created.addTapListener(with: listener)
+    let dragListener = MarkerDragListener(view: self)
+    self.dragListener = dragListener
+    created.setDragListenerWith(dragListener)
+    created.isDraggable = draggable
     appliedIconSource = nil
     hasIcon = false
     updateMarker()
@@ -176,6 +194,7 @@ class ExpoYandexMapKitMarkerView: ExpoView, MapObjectChild {
   private func clearPlacemark() {
     placemark = nil
     tapListener = nil
+    dragListener = nil
     appliedIconSource = nil
     hasIcon = false
     stopTracking()
@@ -326,6 +345,33 @@ class ExpoYandexMapKitMarkerView: ExpoView, MapObjectChild {
     return handled
   }
 
+  // Drag callbacks. Start/end read the placemark's current geometry (its resting position); onDrag
+  // carries the live drag point. Payload mirrors the tap event's identifier + point shape.
+  fileprivate func handleDragStart() {
+    guard let placemark = placemark, placemark.isValid else {
+      return
+    }
+    onMarkerDragStart(dragPayload(placemark.geometry))
+  }
+
+  fileprivate func handleDrag(_ point: YMKPoint) {
+    onMarkerDrag(dragPayload(point))
+  }
+
+  fileprivate func handleDragEnd() {
+    guard let placemark = placemark, placemark.isValid else {
+      return
+    }
+    onMarkerDragEnd(dragPayload(placemark.geometry))
+  }
+
+  private func dragPayload(_ point: YMKPoint) -> [String: Any] {
+    return [
+      "identifier": identifier.map { $0 as Any } ?? NSNull(),
+      "point": ["latitude": point.latitude, "longitude": point.longitude],
+    ]
+  }
+
   // MARK: - Animations (invoked via the marker's view ref)
 
   func animatedMoveTo(_ target: YMKPoint, durationMs: Double) {
@@ -438,5 +484,26 @@ private final class MarkerTapListener: NSObject, YMKMapObjectTapListener {
 
   func onMapObjectTap(with mapObject: YMKMapObject, point: YMKPoint) -> Bool {
     return view?.handleTap(point) ?? false
+  }
+}
+
+// Drag listener. MapKit does not retain it (documented), so the marker view holds it strongly.
+private final class MarkerDragListener: NSObject, YMKMapObjectDragListener {
+  private weak var view: ExpoYandexMapKitMarkerView?
+
+  init(view: ExpoYandexMapKitMarkerView) {
+    self.view = view
+  }
+
+  func onMapObjectDragStart(with mapObject: YMKMapObject) {
+    view?.handleDragStart()
+  }
+
+  func onMapObjectDrag(with mapObject: YMKMapObject, point: YMKPoint) {
+    view?.handleDrag(point)
+  }
+
+  func onMapObjectDragEnd(with mapObject: YMKMapObject) {
+    view?.handleDragEnd()
   }
 }

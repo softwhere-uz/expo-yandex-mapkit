@@ -94,3 +94,39 @@ describe('Marker excludeFromCluster prop', () => {
     ).resolves.toBeUndefined();
   });
 });
+
+// Draggable markers (issue #2, Section A) — baseline in react-native-maps, requested in yamap#217,
+// shipped by no Yandex-maps RN wrapper. The drag events are renamed to the onMarker* native names
+// (like onPress→onMarkerPress) to dodge React Native's reserved bubbling event names.
+describe('Marker draggable + drag events', () => {
+  afterEach(() => {
+    mockNative.props = null;
+  });
+
+  it('forwards draggable through to the native marker', () => {
+    const props = render(<Marker point={{ latitude: 41.3, longitude: 69.2 }} draggable />);
+    expect(props.draggable).toBe(true);
+  });
+
+  it('maps onDragStart / onDrag / onDragEnd to the native onMarkerDrag* events', () => {
+    const onDragStart = jest.fn();
+    const onDrag = jest.fn();
+    const onDragEnd = jest.fn();
+    const props = render(
+      <Marker
+        point={{ latitude: 41.3, longitude: 69.2 }}
+        draggable
+        onDragStart={onDragStart}
+        onDrag={onDrag}
+        onDragEnd={onDragEnd}
+      />
+    );
+    expect(props.onMarkerDragStart).toBe(onDragStart);
+    expect(props.onMarkerDrag).toBe(onDrag);
+    expect(props.onMarkerDragEnd).toBe(onDragEnd);
+    // The public prop names must not leak through to the native view (they aren't native events).
+    expect(props.onDragStart).toBeUndefined();
+    expect(props.onDrag).toBeUndefined();
+    expect(props.onDragEnd).toBeUndefined();
+  });
+});
