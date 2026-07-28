@@ -108,6 +108,17 @@ class ExpoYandexSuggestModule : Module() {
     item.center?.let {
       result["center"] = mapOf("latitude" to it.latitude, "longitude" to it.longitude)
     }
+    // The result item's kind (distinct from the request `types` filter): what the suggestion is.
+    result["type"] = when (item.type) {
+      SuggestItem.Type.TOPONYM -> "toponym"
+      SuggestItem.Type.BUSINESS -> "business"
+      SuggestItem.Type.TRANSIT -> "transit"
+      SuggestItem.Type.LINK -> "link"
+      SuggestItem.Type.UNKNOWN -> "unknown"
+    }
+    if (item.tags.isNotEmpty()) {
+      result["tags"] = item.tags
+    }
     return result
   }
 }

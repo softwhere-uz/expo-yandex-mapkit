@@ -607,7 +607,8 @@ const items = await suggest('coffee', {
   userPosition: { latitude: 41.31, longitude: 69.24 }, // bias toward the user
   types: ['biz', 'geo'], // organizations + places (also 'transit')
 });
-// items: { title, subtitle?, searchText, uri?, center?, distance? }[]
+// items: { title, subtitle?, searchText, uri?, center?, distance?, type?, tags? }[]
+//   type: 'toponym' | 'business' | 'transit' | 'link' | 'unknown' (the suggestion's kind)
 // Call resetSuggest() to cancel an in-flight request (e.g. on unmount).
 ```
 

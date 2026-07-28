@@ -398,6 +398,10 @@ export type SuggestItem = {
   uri?: string; // an opaque MapKit URI for the object (resolve via search when center is absent)
   center?: Point; // the item's coordinate — read natively; present when MapKit provides one
   distance?: string; // human-readable distance from userPosition, when available
+  // What kind of thing the suggestion is (distinct from the request `types` filter). Note: `'link'`
+  // is only surfaced on Android; iOS reports it as `'unknown'`.
+  type?: 'toponym' | 'business' | 'transit' | 'link' | 'unknown';
+  tags?: string[]; // extra classification tags MapKit attaches (e.g. category hints), when present
 };
 
 // ── Search & geocoding — requires the MapKit `full` flavor ───────────────────────────────────────
