@@ -13,6 +13,8 @@ jest.mock('expo', () => ({
 }));
 
 // eslint-disable-next-line import/first
+import type { YandexMapViewRef } from '../ExpoYandexMapKit.types';
+// eslint-disable-next-line import/first
 import { YandexMapView } from '../ExpoYandexMapKitView';
 
 function renderMap(props: Record<string, unknown>): any {
@@ -94,5 +96,54 @@ describe('YandexMapView zoom bounds', () => {
     const props = renderMap({});
     expect(props.minZoom).toBeUndefined();
     expect(props.maxZoom).toBeUndefined();
+  });
+});
+
+// mapPadding (issue #2, Section A) — a persistent focus-rect inset, the react-native-maps convention.
+// It is a plain passthrough prop (the native side turns it into the map-window focus rectangle).
+describe('YandexMapView mapPadding', () => {
+  afterEach(() => {
+    mockNative.props = null;
+  });
+
+  it('forwards mapPadding to the native view unchanged', () => {
+    const mapPadding = { top: 0, right: 0, bottom: 240, left: 0 };
+    const props = renderMap({ mapPadding });
+    expect(props.mapPadding).toBe(mapPadding);
+  });
+
+  it('leaves mapPadding undefined when unset (full viewport)', () => {
+    const props = renderMap({});
+    expect(props.mapPadding).toBeUndefined();
+  });
+});
+
+// POI tap + geo-object selection (issue #2, Section A) — beyond-parity: no Yandex-maps RN wrapper
+// exposes built-in POI taps or selection. The event is a plain passthrough; the ref methods delegate
+// to the native view and must stay callable (resolving) before the native view is ready.
+describe('YandexMapView POI tap + geo-object selection', () => {
+  afterEach(() => {
+    mockNative.props = null;
+  });
+
+  it('forwards onPoiTap to the native view unchanged', () => {
+    const onPoiTap = jest.fn();
+    const props = renderMap({ onPoiTap });
+    expect(props.onPoiTap).toBe(onPoiTap);
+  });
+
+  it('exposes selectGeoObject / deselectGeoObject on the ref, resolving even before the native view is ready', async () => {
+    const ref = React.createRef<YandexMapViewRef>();
+    act(() => {
+      TestRenderer.create(<YandexMapView ref={ref} />);
+    });
+    expect(typeof ref.current?.selectGeoObject).toBe('function');
+    expect(typeof ref.current?.deselectGeoObject).toBe('function');
+    // Native view is mocked to render null (no ref methods attached), so these hit the resolved
+    // fallback rather than throwing a synchronous TypeError at the call site.
+    await expect(
+      ref.current!.selectGeoObject({ objectId: 'a', dataSourceName: 'b', layerId: 'c' })
+    ).resolves.toBeUndefined();
+    await expect(ref.current!.deselectGeoObject()).resolves.toBeUndefined();
   });
 });

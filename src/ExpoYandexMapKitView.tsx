@@ -6,6 +6,7 @@ import {
   CameraMoveOptions,
   CameraPosition,
   FitOptions,
+  GeoObjectSelection,
   Point,
   ScreenPoint,
   YandexMapViewProps,
@@ -66,6 +67,9 @@ export const YandexMapView = React.forwardRef<YandexMapViewRef, YandexMapViewPro
           nativeRef.current?.getScreenPoints(points) ?? Promise.resolve([]),
         getWorldPoints: (points: ScreenPoint[]) =>
           nativeRef.current?.getWorldPoints(points) ?? Promise.resolve([]),
+        selectGeoObject: (selection: GeoObjectSelection) =>
+          nativeRef.current?.selectGeoObject(selection) ?? Promise.resolve(),
+        deselectGeoObject: () => nativeRef.current?.deselectGeoObject() ?? Promise.resolve(),
       }),
       []
     );

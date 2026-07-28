@@ -82,7 +82,10 @@ class ExpoYandexMapKitModule : Module() {
     }
 
     View(ExpoYandexMapKitView::class) {
-      Events("onMapReady", "onCameraPositionChanged", "onMapPress", "onMapLongPress", "onMapLoaded")
+      Events(
+        "onMapReady", "onCameraPositionChanged", "onMapPress", "onMapLongPress", "onMapLoaded",
+        "onPoiTap"
+      )
 
       // <Marker> children are managed here, not through the Android view hierarchy — each drives a
       // MapKit placemark rather than a laid-out view.
@@ -158,6 +161,10 @@ class ExpoYandexMapKitModule : Module() {
         view.setLogoPadding(logoPadding)
       }
 
+      Prop("mapPadding") { view: ExpoYandexMapKitView, mapPadding: EdgePaddingRecord? ->
+        view.setMapPadding(mapPadding)
+      }
+
       Prop("showUserPosition") { view: ExpoYandexMapKitView, show: Boolean ->
         view.setShowUserPosition(show)
       }
@@ -225,6 +232,16 @@ class ExpoYandexMapKitModule : Module() {
       AsyncFunction("getWorldPoints") { view: ExpoYandexMapKitView, points: List<ScreenPointRecord> ->
         view.worldPoints(points)
       }
+
+      // Selection mutates the map layer state, so run on the main thread (Expo runs AsyncFunctions
+      // off the main queue by default).
+      AsyncFunction("selectGeoObject") { view: ExpoYandexMapKitView, selection: GeoObjectSelectionRecord ->
+        view.selectGeoObject(selection)
+      }.runOnQueue(Queues.MAIN)
+
+      AsyncFunction("deselectGeoObject") { view: ExpoYandexMapKitView ->
+        view.deselectGeoObject()
+      }.runOnQueue(Queues.MAIN)
     }
 
     // The <Marker> child view. Named, so it is required as requireNativeView('ExpoYandexMapKit',

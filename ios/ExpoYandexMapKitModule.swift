@@ -71,7 +71,9 @@ public class ExpoYandexMapKitModule: Module {
     }.runOnQueue(.main)
 
     View(ExpoYandexMapKitView.self) {
-      Events("onMapReady", "onCameraPositionChanged", "onMapPress", "onMapLongPress", "onMapLoaded")
+      Events(
+        "onMapReady", "onCameraPositionChanged", "onMapPress", "onMapLongPress", "onMapLoaded",
+        "onPoiTap")
 
       Prop("cameraPosition") { (view: ExpoYandexMapKitView, cameraPosition: CameraPositionRecord) in
         view.setCameraPosition(cameraPosition)
@@ -131,6 +133,10 @@ public class ExpoYandexMapKitModule: Module {
 
       Prop("logoPadding") { (view: ExpoYandexMapKitView, logoPadding: LogoPaddingRecord?) in
         view.setLogoPadding(logoPadding)
+      }
+
+      Prop("mapPadding") { (view: ExpoYandexMapKitView, mapPadding: EdgePaddingRecord?) in
+        view.setMapPadding(mapPadding)
       }
 
       Prop("showUserPosition") { (view: ExpoYandexMapKitView, show: Bool) in
@@ -202,6 +208,16 @@ public class ExpoYandexMapKitModule: Module {
       AsyncFunction("getWorldPoints") { (view: ExpoYandexMapKitView, points: [ScreenPointRecord]) -> [Any] in
         view.worldPoints(forScreenPoints: points)
       }
+
+      // Selection mutates the map layer state, so run on the main queue (Expo runs AsyncFunctions
+      // off-main by default).
+      AsyncFunction("selectGeoObject") { (view: ExpoYandexMapKitView, selection: GeoObjectSelectionRecord) in
+        view.selectGeoObject(selection)
+      }.runOnQueue(.main)
+
+      AsyncFunction("deselectGeoObject") { (view: ExpoYandexMapKitView) in
+        view.deselectGeoObject()
+      }.runOnQueue(.main)
     }
 
     // The <Marker> child view. Named via ViewName (the iOS view-builder element — the top-level
