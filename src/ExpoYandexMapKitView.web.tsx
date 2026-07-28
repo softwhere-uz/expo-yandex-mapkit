@@ -21,6 +21,8 @@ export const YandexMapView = React.forwardRef<YandexMapViewRef, YandexMapViewPro
         getScreenPoints: unsupported,
         getWorldPoints: unsupported,
         takeSnapshot: unsupported,
+        selectGeoObject: unsupported,
+        deselectGeoObject: unsupported,
       };
     }, []);
     return null;
