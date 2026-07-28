@@ -173,6 +173,10 @@ class ExpoYandexMapKitView: ExpoView {
   // the value persists — passing undefined later does not revert it (matches mapType/mapStyle).
   private var logoPosition: LogoPositionRecord?
   private var logoPadding: LogoPaddingRecord?
+  // Camera zoom-bound hints, nil until set. Applied through the map's cameraBounds; a nil value
+  // clears that bound back to MapKit's default.
+  private var minZoom: Float?
+  private var maxZoom: Float?
   // Persistent map-padding inset, applied as the map window's focus rectangle. nil = full viewport.
   // Kept so it can be re-applied when the view is (re)laid out, since the focus rect is in pixels.
   private var mapPadding: EdgePaddingRecord?
@@ -502,6 +506,32 @@ class ExpoYandexMapKitView: ExpoView {
   func setFastTapEnabled(_ enabled: Bool) {
     fastTapEnabled = enabled
     mapView?.mapWindow.map.isFastTapEnabled = enabled
+  }
+
+  func setMinZoom(_ zoom: Double?) {
+    minZoom = zoom.map { Float($0) }
+    applyZoomBounds()
+  }
+
+  func setMaxZoom(_ zoom: Double?) {
+    maxZoom = zoom.map { Float($0) }
+    applyZoomBounds()
+  }
+
+  // MapKit's cameraBounds exposes only a combined reset, so re-establish the full state each time:
+  // reset both preferences, then re-apply whichever bound is set. This makes clearing one bound (its
+  // prop set to undefined) restore MapKit's default for that bound while keeping the other.
+  private func applyZoomBounds() {
+    guard let bounds = mapView?.mapWindow.map.cameraBounds else {
+      return
+    }
+    bounds.resetMinMaxZoomPreference()
+    if let minZoom = minZoom {
+      bounds.setMinZoomPreferenceWithZoom(minZoom)
+    }
+    if let maxZoom = maxZoom {
+      bounds.setMaxZoomPreferenceWithZoom(maxZoom)
+    }
   }
 
   func setMapType(_ type: YMKMapType) {
@@ -843,6 +873,9 @@ class ExpoYandexMapKitView: ExpoView {
     map.isNightModeEnabled = nightMode
     applyGestureState()
     map.isFastTapEnabled = fastTapEnabled
+    if minZoom != nil || maxZoom != nil {
+      applyZoomBounds()
+    }
     if let mapType = mapType {
       map.mapType = mapType
     }

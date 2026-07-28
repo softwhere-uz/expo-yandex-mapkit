@@ -23,7 +23,7 @@ A complete Yandex Maps SDK for Expo — full feature parity with the most capabl
 - 🎥 Declarative, animatable camera (`cameraPosition`) + imperative ref methods — `setCenter`, `setZoom`, `fitMarkers` / `fitAllMarkers` (with edge padding), `getCameraPosition`, `getVisibleRegion`, world↔screen projection; persistent `mapPadding` for bottom-sheet / header layouts
 - 👆 Press / long-press / camera-move / map-loaded events with identical payloads on iOS and Android
 - 📌 **POI taps** (`onPoiTap`) — tap a built-in place icon to get its name + coordinate, then highlight it with `selectGeoObject()` (**beyond parity — no other Yandex-maps RN wrapper exposes this**)
-- 🎨 `mapType` (`map` / `satellite` / `hybrid` / `vector`), JSON `mapStyle`, night mode, per-gesture toggles, logo placement
+- 🎨 `mapType` (`map` / `satellite` / `hybrid` / `vector`), JSON `mapStyle`, night mode, per-gesture toggles, `minZoom` / `maxZoom` bounds, logo placement
 
 **Map objects** (declarative children of the map)
 - 📍 `<Marker>` — image **or React-children** icons (reliable, with a `tracksViewChanges` re-snapshot pipeline), `onPress` with an identifying payload, `animatedMoveTo` / `animatedRotateTo`
@@ -272,6 +272,8 @@ Get/set the map display language at runtime, as `language` or `language_REGION` 
 | `rotateGesturesEnabled` | `boolean` | `true` | Allow the two-finger twist that rotates the map. |
 | `fastTapEnabled` | `boolean` | `true` | Report a tap immediately instead of waiting to see if it becomes a double-tap. |
 | `interactiveDisabled` | `boolean` | `false` | When `true`, disables all four movement gestures at once — a shorthand that overrides the individual `*GesturesEnabled` props. Tap events (`onMapPress`/`onMapLongPress`) still fire. |
+| `minZoom` | `number` | — (MapKit default) | Clamp the camera's minimum (most zoomed-out) zoom level. Applies to gestures and programmatic moves. Requested in [yamap#187](https://github.com/volga-volga/react-native-yamap/issues/187) — no other wrapper ships it. |
+| `maxZoom` | `number` | — (MapKit default) | Clamp the camera's maximum (most zoomed-in) zoom level. |
 | `mapType` | `'none' \| 'map' \| 'satellite' \| 'hybrid' \| 'vector'` | — (SDK default) | Base map layer. `'map'`, `'satellite'` and `'hybrid'` are raster; `'vector'` is the styleable vector scheme. Left unset, the map keeps MapKit's own default (vector). **`'satellite'` / `'hybrid'` need a key with satellite-imagery access enabled** — the prop still takes effect (the map leaves the road scheme and shows the empty tile grid), but no aerial tiles load on a free-tier MapKit Mobile SDK key; request imagery access for your key in the Yandex dashboard. |
 | `mapStyle` | `string` | — | A [Yandex JSON map style](https://yandex.com/dev/mapkit/doc/en/android/generated/style) applied to the map. **Only affects the `'vector'` and `'hybrid'` layers** — leave `mapType` unset (the default is vector) or set `mapType='vector'`; it is a silent no-op on the raster `'map'` / `'satellite'` layers. Pass `''` to clear a previously applied style. Invalid JSON is ignored with a warning. |
 | `logoPosition` | `{ horizontal: 'left' \| 'center' \| 'right'; vertical: 'top' \| 'bottom' }` | — | Corner the mandatory Yandex logo is aligned to. |

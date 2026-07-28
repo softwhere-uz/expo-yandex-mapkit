@@ -69,6 +69,8 @@ export type YandexMapViewProps = {
   rotateGesturesEnabled?: boolean; // two-finger twist to rotate, default true
   fastTapEnabled?: boolean; // report taps immediately instead of waiting for a possible double-tap, default true
   interactiveDisabled?: boolean; // when true, disable all four movement gestures at once (overrides the individual *GesturesEnabled), default false
+  minZoom?: number; // clamp the camera's minimum (most zoomed-out) zoom level; unset = MapKit default. Applies to gestures and programmatic moves.
+  maxZoom?: number; // clamp the camera's maximum (most zoomed-in) zoom level; unset = MapKit default.
   mapType?: 'none' | 'map' | 'satellite' | 'hybrid' | 'vector'; // base map layer; unset = SDK default (vector). 'satellite'/'hybrid' may need a Yandex-app key
   mapStyle?: string; // Yandex JSON style; only affects 'vector'/'hybrid' layers (no-op on raster 'map'/'satellite'); pass '' to clear
   logoPosition?: { horizontal: 'left' | 'center' | 'right'; vertical: 'top' | 'bottom' }; // corner the mandatory Yandex logo aligns to

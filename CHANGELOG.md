@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Camera zoom bounds** — `minZoom` / `maxZoom` props (beyond parity — [#2](https://github.com/softwhere-uz/expo-yandex-mapkit/issues/2)).
+  Clamp the camera's zoom range (for gestures and programmatic moves) via MapKit's `cameraBounds`
+  zoom preferences. Requested in [yamap#187](https://github.com/volga-volga/react-native-yamap/issues/187)
+  and never shipped by any Yandex-maps RN wrapper. Either bound is independent; unsetting one restores
+  MapKit's default for it while keeping the other.
+
 ## [2.2.0] - 2026-07-29
 
 ### Added

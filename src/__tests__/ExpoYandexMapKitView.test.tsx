@@ -78,6 +78,27 @@ describe('YandexMapView user-location styling', () => {
   });
 });
 
+// Camera zoom bounds (issue #2, Section A) — min/max zoom clamps, requested in yamap#187 and never
+// shipped by any wrapper. Plain passthrough props; the native side applies them via the map's
+// cameraBounds.
+describe('YandexMapView zoom bounds', () => {
+  afterEach(() => {
+    mockNative.props = null;
+  });
+
+  it('forwards minZoom / maxZoom to the native view unchanged', () => {
+    const props = renderMap({ minZoom: 5, maxZoom: 17 });
+    expect(props.minZoom).toBe(5);
+    expect(props.maxZoom).toBe(17);
+  });
+
+  it('leaves minZoom / maxZoom undefined when unset (MapKit defaults)', () => {
+    const props = renderMap({});
+    expect(props.minZoom).toBeUndefined();
+    expect(props.maxZoom).toBeUndefined();
+  });
+});
+
 // mapPadding (issue #2, Section A) — a persistent focus-rect inset, the react-native-maps convention.
 // It is a plain passthrough prop (the native side turns it into the map-window focus rectangle).
 describe('YandexMapView mapPadding', () => {
