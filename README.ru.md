@@ -27,7 +27,7 @@
 
 **Объекты карты** (декларативные дети карты)
 - 📍 `<Marker>` — иконки-картинки **или из React-детей** (надёжно, с конвейером повторного снапшота через `tracksViewChanges`), `onPress` с идентифицирующим payload'ом, `draggable` + события перетаскивания, `animatedMoveTo` / `animatedRotateTo`
-- 〰️ `<Polyline>` (штрихи + обводка), `<Polygon>` (дырки через `innerRings`), `<Circle>`
+- 〰️ `<Polyline>` (штрихи + обводка), `<Polygon>` (дырки через `innerRings`), `<Circle>`, `<Geojson>` (разворачивает объект GeoJSON в объекты карты)
 - 🔵 `<Clusterer>` — декларативная кластеризация, где ваши собственные `<Marker>` служат render-пропом; настраиваемый бейдж (цвет / размер / **иконка**), `excludeFromCluster`, тап-для-подгонки, настраиваемые радиус / minZoom
 - 📡 Слой геопозиции пользователя (кастомная иконка точки + стилизация круга точности, координаты через `onUserLocationChange`) и живой 🚦 слой пробок
 
@@ -491,6 +491,27 @@ import { YandexMapView, Polygon, Circle } from 'expo-yandex-mapkit';
 
 - **`<Polygon>`**: `points` (внешнее кольцо, 3+), `innerRings?` (дырки), `fillColor`, `strokeColor`, `strokeWidth`, `zIndex`, `onPress`, `handled`.
 - **`<Circle>`**: `center`, `radius` (в метрах), `fillColor`, `strokeColor`, `strokeWidth`, `zIndex`, `onPress`, `handled`.
+
+### `<Geojson />`
+
+Рендер объекта [GeoJSON](https://datatracker.ietf.org/doc/html/rfc7946) напрямую — чисто-JS «сахар», разворачивающийся в `<Marker>` / `<Polyline>` / `<Polygon>` (соглашение react-native-maps; ни одна другая обёртка для Яндекс-карт этого не имеет):
+
+```tsx
+import { YandexMapView, Geojson } from 'expo-yandex-mapkit';
+
+<YandexMapView style={StyleSheet.absoluteFill} cameraPosition={{ latitude: 41.31, longitude: 69.24, zoom: 11 }}>
+  <Geojson
+    geojson={featureCollection}
+    strokeColor="#1e88e5"
+    strokeWidth={3}
+    fillColor="rgba(30,136,229,0.2)"
+    markerSource={require('./pin.png')}
+    onPress={(feature) => console.log('нажата', feature.properties)}
+  />
+</YandexMapView>;
+```
+
+Принимает `FeatureCollection`, `Feature` или голую `Geometry`. `Point`/`MultiPoint` → маркеры, `LineString`/`MultiLineString` → полилинии, `Polygon`/`MultiPolygon` → полигоны (первое кольцо — внешнее, остальные — дырки); `GeometryCollection` разворачивается рекурсивно. Пропсы: `geojson`, `markerSource` / `markerScale`, `strokeColor` / `strokeWidth`, `fillColor`, `zIndex`, `onPress(feature)`. GeoJSON `[lng, lat]` конвертируется в `{ latitude, longitude }` за вас.
 
 ### `<Clusterer />`
 

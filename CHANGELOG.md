@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`<Geojson>` component** (beyond parity — [#2](https://github.com/softwhere-uz/expo-yandex-mapkit/issues/2)).
+  Pure-JS sugar that renders a GeoJSON object (RFC 7946) as native map objects — `Point`/`MultiPoint`
+  → `<Marker>`, `LineString`/`MultiLineString` → `<Polyline>`, `Polygon`/`MultiPolygon` → `<Polygon>`
+  (first ring outer, the rest holes), `GeometryCollection` recursively. Accepts a `FeatureCollection`,
+  `Feature`, or bare `Geometry`; style props (`markerSource`, `strokeColor`/`strokeWidth`, `fillColor`,
+  `zIndex`) and `onPress(feature)`. The react-native-maps convention; no Yandex-maps RN wrapper has it.
+  Works on web too (it composes the existing components).
+
 ## [2.6.0] - 2026-07-29
 
 ### Added
