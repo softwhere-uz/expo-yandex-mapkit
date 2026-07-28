@@ -12,6 +12,7 @@ import com.yandex.mapkit.map.ClusterizedPlacemarkCollection
 import com.yandex.mapkit.map.IconStyle
 import com.yandex.mapkit.map.MapObject
 import com.yandex.mapkit.map.MapObjectCollection
+import com.yandex.mapkit.map.MapObjectDragListener
 import com.yandex.mapkit.map.MapObjectTapListener
 import com.yandex.mapkit.map.PlacemarkMapObject
 import com.yandex.mapkit.map.RotationType
@@ -22,6 +23,10 @@ import expo.modules.kotlin.records.Record
 import expo.modules.kotlin.viewevent.EventDispatcher
 import expo.modules.kotlin.views.ExpoView
 import java.lang.ref.WeakReference
+import kotlin.math.atan2
+import kotlin.math.cos
+import kotlin.math.sin
+import kotlin.math.sqrt
 
 // The `anchor` prop shape: icon anchor as [0,1] fractions of the icon size.
 class MarkerAnchorRecord : Record {
@@ -39,12 +44,16 @@ class MarkerAnchorRecord : Record {
 // every setter re-applies through [updateMarker], which no-ops until both the placemark and a
 // point are present.
 class ExpoYandexMapKitMarkerView(context: Context, appContext: AppContext) :
-  ExpoView(context, appContext), MapObjectTapListener, MapObjectChild {
+  ExpoView(context, appContext), MapObjectTapListener, MapObjectDragListener, MapObjectChild {
   // Named onMarkerPress (not onPress): React Native normalizes onPress to the top-level bubbling
   // event topPress, which collides with Expo's direct-event registration ("Event cannot be both
   // direct and bubbling: topPress") and red-screens on the first marker mount. topMarkerPress is
   // free. The public JS prop stays `onPress` — the wrapper forwards it to this native event.
   private val onMarkerPress by EventDispatcher<Map<String, Any?>>()
+  // Drag events use onMarker* native names (like onMarkerPress) to avoid RN's reserved bubbling names.
+  private val onMarkerDragStart by EventDispatcher<Map<String, Any?>>()
+  private val onMarkerDrag by EventDispatcher<Map<String, Any?>>()
+  private val onMarkerDragEnd by EventDispatcher<Map<String, Any?>>()
 
   private var placemark: PlacemarkMapObject? = null
   private var point: Point? = null
@@ -55,6 +64,7 @@ class ExpoYandexMapKitMarkerView(context: Context, appContext: AppContext) :
   private var rotated = false
   private var handled = false
   private var identifier: String? = null
+  private var draggable = false
   private var iconSource: String? = null
   // The icon URI currently applied to the placemark; guards against reloading the same image on
   // every unrelated prop change (image loads are async and would otherwise thrash).
@@ -143,6 +153,11 @@ class ExpoYandexMapKitMarkerView(context: Context, appContext: AppContext) :
     identifier = value
   }
 
+  internal fun setDraggable(value: Boolean) {
+    draggable = value
+    placemark?.let { if (it.isValid) it.isDraggable = value }
+  }
+
   internal fun setIconSource(value: String?) {
     iconSource = value
     updateMarker()
@@ -178,6 +193,8 @@ class ExpoYandexMapKitMarkerView(context: Context, appContext: AppContext) :
     // MapKit 4.41+ takes an explicit WeakReference; this view is the strong owner of the listener
     // and is itself kept alive by the map view's child list while mounted.
     created.addTapListener(WeakReference(this))
+    created.setDragListener(WeakReference(this))
+    created.isDraggable = draggable
     appliedIconSource = null
     hasIcon = false
     updateMarker()
@@ -323,6 +340,25 @@ class ExpoYandexMapKitMarkerView(context: Context, appContext: AppContext) :
     return handled
   }
 
+  // Drag callbacks. Start/end read the placemark's current geometry (its resting position); onDrag
+  // carries the live drag point. Payload mirrors the tap event's identifier + point shape.
+  override fun onMapObjectDragStart(mapObject: MapObject) {
+    onMarkerDragStart(dragPayload(placemark?.geometry))
+  }
+
+  override fun onMapObjectDrag(mapObject: MapObject, point: Point) {
+    onMarkerDrag(dragPayload(point))
+  }
+
+  override fun onMapObjectDragEnd(mapObject: MapObject) {
+    onMarkerDragEnd(dragPayload(placemark?.geometry))
+  }
+
+  private fun dragPayload(point: Point?): Map<String, Any?> = mapOf(
+    "identifier" to identifier,
+    "point" to point?.let { mapOf("latitude" to it.latitude, "longitude" to it.longitude) }
+  )
+
   // Imperative animations, invoked via the marker's view ref. Linear tween of the placemark's
   // geometry / heading; no-op if the placemark is not on the map yet.
   internal fun animatedMoveTo(target: Point, durationMs: Double) {
@@ -365,5 +401,66 @@ class ExpoYandexMapKitMarkerView(context: Context, appContext: AppContext) :
       }
       start()
     }
+  }
+
+  // Animate the marker along a polyline over durationMs at constant speed, facing each segment's
+  // bearing (visible when the marker is `rotated`) — courier/route-tracking. No-op until on the map
+  // or with fewer than 2 points.
+  internal fun animateAlong(points: List<Point>, durationMs: Double) {
+    val placemark = placemark ?: return
+    if (!placemark.isValid || points.size < 2) {
+      return
+    }
+    val lengths = (0 until points.size - 1).map { approxDistance(points[it], points[it + 1]) }
+    val total = lengths.sum()
+    if (total <= 0.0) {
+      return
+    }
+    ValueAnimator.ofFloat(0f, 1f).apply {
+      duration = durationMs.toLong().coerceAtLeast(0L)
+      interpolator = LinearInterpolator()
+      addUpdateListener { animation ->
+        val current = this@ExpoYandexMapKitMarkerView.placemark ?: return@addUpdateListener
+        if (!current.isValid) {
+          return@addUpdateListener
+        }
+        var remaining = total * animation.animatedFraction
+        for (i in lengths.indices) {
+          val length = lengths[i]
+          if (remaining <= length || i == lengths.size - 1) {
+            val t = if (length > 0.0) remaining / length else 0.0
+            val a = points[i]
+            val b = points[i + 1]
+            current.geometry = Point(
+              a.latitude + t * (b.latitude - a.latitude),
+              a.longitude + t * (b.longitude - a.longitude)
+            )
+            current.direction = bearing(a, b).toFloat()
+            return@addUpdateListener
+          }
+          remaining -= length
+        }
+      }
+      start()
+    }
+  }
+
+  // Equirectangular length approximation (only relative weighting matters for the tween).
+  private fun approxDistance(a: Point, b: Point): Double {
+    val meanLat = (a.latitude + b.latitude) / 2 * Math.PI / 180
+    val dx = (b.longitude - a.longitude) * cos(meanLat)
+    val dy = b.latitude - a.latitude
+    return sqrt(dx * dx + dy * dy)
+  }
+
+  // Initial bearing a→b in degrees clockwise from north (MapKit's `direction` convention).
+  private fun bearing(a: Point, b: Point): Double {
+    val lat1 = a.latitude * Math.PI / 180
+    val lat2 = b.latitude * Math.PI / 180
+    val dLon = (b.longitude - a.longitude) * Math.PI / 180
+    val y = sin(dLon) * cos(lat2)
+    val x = cos(lat1) * sin(lat2) - sin(lat1) * cos(lat2) * cos(dLon)
+    val deg = atan2(y, x) * 180 / Math.PI
+    return if (deg < 0) deg + 360 else deg
   }
 }

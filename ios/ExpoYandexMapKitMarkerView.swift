@@ -25,11 +25,18 @@ class ExpoYandexMapKitMarkerView: ExpoView, MapObjectChild {
   // direct and bubbling: topPress") and red-screens on the first marker mount. topMarkerPress is
   // free. The public JS prop stays `onPress` — the wrapper forwards it to this native event.
   let onMarkerPress = EventDispatcher()
+  // Drag events use onMarker* native names (like onMarkerPress) to avoid RN's reserved bubbling names.
+  let onMarkerDragStart = EventDispatcher()
+  let onMarkerDrag = EventDispatcher()
+  let onMarkerDragEnd = EventDispatcher()
 
   private var placemark: YMKPlacemarkMapObject?
   // MapKit holds the tap listener; keep it strongly retained here (this view is itself kept alive
   // by the map view's marker list while mounted).
   private var tapListener: MarkerTapListener?
+  // The drag listener is NOT retained by MapKit (documented) — keep it strongly here.
+  private var dragListener: MarkerDragListener?
+  private var draggable = false
   private var point: YMKPoint?
   private var scale: NSNumber = 1
   private var anchor: NSValue?
@@ -113,6 +120,13 @@ class ExpoYandexMapKitMarkerView: ExpoView, MapObjectChild {
     identifier = value
   }
 
+  func setDraggable(_ value: Bool) {
+    draggable = value
+    if let placemark = placemark, placemark.isValid {
+      placemark.isDraggable = value
+    }
+  }
+
   func setExcludeFromCluster(_ value: Bool) {
     guard value != excludeFromCluster else {
       return
@@ -168,6 +182,10 @@ class ExpoYandexMapKitMarkerView: ExpoView, MapObjectChild {
     let listener = MarkerTapListener(view: self)
     tapListener = listener
     created.addTapListener(with: listener)
+    let dragListener = MarkerDragListener(view: self)
+    self.dragListener = dragListener
+    created.setDragListenerWith(dragListener)
+    created.isDraggable = draggable
     appliedIconSource = nil
     hasIcon = false
     updateMarker()
@@ -176,6 +194,7 @@ class ExpoYandexMapKitMarkerView: ExpoView, MapObjectChild {
   private func clearPlacemark() {
     placemark = nil
     tapListener = nil
+    dragListener = nil
     appliedIconSource = nil
     hasIcon = false
     stopTracking()
@@ -326,6 +345,33 @@ class ExpoYandexMapKitMarkerView: ExpoView, MapObjectChild {
     return handled
   }
 
+  // Drag callbacks. Start/end read the placemark's current geometry (its resting position); onDrag
+  // carries the live drag point. Payload mirrors the tap event's identifier + point shape.
+  fileprivate func handleDragStart() {
+    guard let placemark = placemark, placemark.isValid else {
+      return
+    }
+    onMarkerDragStart(dragPayload(placemark.geometry))
+  }
+
+  fileprivate func handleDrag(_ point: YMKPoint) {
+    onMarkerDrag(dragPayload(point))
+  }
+
+  fileprivate func handleDragEnd() {
+    guard let placemark = placemark, placemark.isValid else {
+      return
+    }
+    onMarkerDragEnd(dragPayload(placemark.geometry))
+  }
+
+  private func dragPayload(_ point: YMKPoint) -> [String: Any] {
+    return [
+      "identifier": identifier.map { $0 as Any } ?? NSNull(),
+      "point": ["latitude": point.latitude, "longitude": point.longitude],
+    ]
+  }
+
   // MARK: - Animations (invoked via the marker's view ref)
 
   func animatedMoveTo(_ target: YMKPoint, durationMs: Double) {
@@ -362,6 +408,59 @@ class ExpoYandexMapKitMarkerView: ExpoView, MapObjectChild {
     }
   }
 
+  // Animate the marker along a polyline (`points`) over `durationMs`, at constant speed. Each frame
+  // the marker sits at the position `fraction` of the way along the total path length and faces the
+  // current segment's bearing (visible when the marker is `rotated`) — courier/route-tracking. No-op
+  // until on the map or with fewer than 2 points.
+  func animateAlong(_ points: [YMKPoint], durationMs: Double) {
+    guard let placemark = placemark, placemark.isValid, points.count >= 2 else {
+      return
+    }
+    let segments = Array(zip(points, points.dropFirst()))
+    let lengths = segments.map { Self.approxDistance($0.0, $0.1) }
+    let total = lengths.reduce(0, +)
+    guard total > 0 else {
+      return
+    }
+    let totalFrames = max(Int((durationMs / 1000.0) * Self.framesPerSecond), 1)
+    animateFrame(0, totalFrames: totalFrames) { [weak self] fraction in
+      guard let placemark = self?.placemark, placemark.isValid else {
+        return
+      }
+      var remaining = total * fraction
+      for (index, length) in lengths.enumerated() {
+        if remaining <= length || index == lengths.count - 1 {
+          let t = length > 0 ? remaining / length : 0
+          let (a, b) = segments[index]
+          placemark.geometry = YMKPoint(
+            latitude: a.latitude + t * (b.latitude - a.latitude),
+            longitude: a.longitude + t * (b.longitude - a.longitude))
+          placemark.direction = Float(Self.bearing(a, b))
+          return
+        }
+        remaining -= length
+      }
+    }
+  }
+
+  // Equirectangular length approximation (metres-ish; only relative weighting matters for the tween).
+  private static func approxDistance(_ a: YMKPoint, _ b: YMKPoint) -> Double {
+    let meanLat = (a.latitude + b.latitude) / 2 * .pi / 180
+    let dx = (b.longitude - a.longitude) * cos(meanLat)
+    let dy = b.latitude - a.latitude
+    return (dx * dx + dy * dy).squareRoot()
+  }
+
+  // Initial bearing a→b in degrees clockwise from north (MapKit's `direction` convention).
+  private static func bearing(_ a: YMKPoint, _ b: YMKPoint) -> Double {
+    let lat1 = a.latitude * .pi / 180, lat2 = b.latitude * .pi / 180
+    let dLon = (b.longitude - a.longitude) * .pi / 180
+    let y = sin(dLon) * cos(lat2)
+    let x = cos(lat1) * sin(lat2) - sin(lat1) * cos(lat2) * cos(dLon)
+    let deg = atan2(y, x) * 180 / .pi
+    return deg < 0 ? deg + 360 : deg
+  }
+
   // Linear per-frame tween on the main queue. `apply` receives the eased fraction in [0, 1] and is
   // computed from the animation start each frame, so it never drifts.
   private func animateFrame(_ frame: Int, totalFrames: Int, apply: @escaping (Double) -> Void) {
@@ -385,5 +484,26 @@ private final class MarkerTapListener: NSObject, YMKMapObjectTapListener {
 
   func onMapObjectTap(with mapObject: YMKMapObject, point: YMKPoint) -> Bool {
     return view?.handleTap(point) ?? false
+  }
+}
+
+// Drag listener. MapKit does not retain it (documented), so the marker view holds it strongly.
+private final class MarkerDragListener: NSObject, YMKMapObjectDragListener {
+  private weak var view: ExpoYandexMapKitMarkerView?
+
+  init(view: ExpoYandexMapKitMarkerView) {
+    self.view = view
+  }
+
+  func onMapObjectDragStart(with mapObject: YMKMapObject) {
+    view?.handleDragStart()
+  }
+
+  func onMapObjectDrag(with mapObject: YMKMapObject, point: YMKPoint) {
+    view?.handleDrag(point)
+  }
+
+  func onMapObjectDragEnd(with mapObject: YMKMapObject) {
+    view?.handleDragEnd()
   }
 }

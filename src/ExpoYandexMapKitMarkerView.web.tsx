@@ -10,6 +10,7 @@ export const Marker = React.forwardRef<MarkerRef, MarkerProps>((_props, ref) => 
     () => ({
       animatedMoveTo: async () => {},
       animatedRotateTo: async () => {},
+      animateAlong: async () => {},
     }),
     []
   );

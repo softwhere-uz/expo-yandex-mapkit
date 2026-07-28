@@ -12,6 +12,7 @@ public class ExpoYandexTransportModule: Module {
     private var drivingRouter: YMKDrivingRouter?
     private var masstransitRouter: YMKMasstransitRouter?
     private var pedestrianRouter: YMKPedestrianRouter?
+    private var bicycleRouter: YMKBicycleRouter?
     // Sessions must be retained until their routes arrive — dropping one cancels the request.
     private var sessions: [Any] = []
   #endif
@@ -30,6 +31,8 @@ public class ExpoYandexTransportModule: Module {
         case "driving": self.requestDriving(requestPoints, promise)
         case "masstransit": self.requestMasstransit(requestPoints, promise)
         case "pedestrian": self.requestPedestrian(requestPoints, promise)
+        case "bicycle": self.requestBicycle(requestPoints, .bicycle, promise)
+        case "scooter": self.requestBicycle(requestPoints, .scooter, promise)
         default:
           promise.reject("E_ROUTE_MODE", "expo-yandex-mapkit: unknown route mode '\(mode)'")
         }
@@ -89,6 +92,34 @@ public class ExpoYandexTransportModule: Module {
         self.handleMasstransit(routes, error, promise)
       }
       sessions.append(session)
+    }
+
+    // Bicycle / scooter routing (YMKBicycleRouter with a YMKBicycleVehicleType). Its route carries a
+    // single continuous leg — no transit sections — so `sections` is empty; the summary + geometry
+    // carry it.
+    private func requestBicycle(
+      _ points: [YMKRequestPoint], _ vehicleType: YMKBicycleVehicleType, _ promise: Promise
+    ) {
+      let router = bicycleRouter ?? YMKTransportFactory.instance().createBicycleRouter()
+      bicycleRouter = router
+      let session = router.requestRoutes(with: points, type: vehicleType) { routes, error in
+        if let error = error {
+          promise.reject("E_ROUTE", self.routeError(error))
+          return
+        }
+        promise.resolve((routes ?? []).map { self.serializeBicycle($0) })
+      }
+      sessions.append(session)
+    }
+
+    private func serializeBicycle(_ route: YMKBicycleRoute) -> [String: Any?] {
+      let weight = route.weight
+      return [
+        "time": weight.time.text,
+        "distance": weight.distance.value,
+        "points": geometryPoints(route.geometry.points),
+        "sections": [[String: Any?]](),
+      ]
     }
 
     private func handleMasstransit(
