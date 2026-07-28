@@ -1050,6 +1050,7 @@ class ExpoYandexMapKitView: ExpoView {
       payload["point"] = ["latitude": point.latitude, "longitude": point.longitude]
     }
     onPoiTap(payload)
+  }
 
   fileprivate func dispatchMapLoaded(_ statistics: YMKMapLoadStatistics) {
     onMapLoaded([
