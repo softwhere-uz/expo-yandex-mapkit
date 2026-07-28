@@ -11,10 +11,18 @@ import { MarkerProps, MarkerRef, Point } from './ExpoYandexMapKit.types';
 // The public `onPress` prop is forwarded to the native `onMarkerPress` event: React Native reserves
 // `onPress`/`topPress` as a bubbling event, which collides with Expo's direct view events and
 // red-screens on mount ("Event cannot be both direct and bubbling: topPress").
-type NativeMarkerProps = Omit<MarkerProps, 'source' | 'zIndex' | 'onPress'> & {
+type NativeMarkerProps = Omit<
+  MarkerProps,
+  'source' | 'zIndex' | 'onPress' | 'onDragStart' | 'onDrag' | 'onDragEnd'
+> & {
   source?: string;
   zI?: number;
   onMarkerPress?: MarkerProps['onPress'];
+  // Drag events use the onMarker* native names for the same reason as onMarkerPress (RN reserves the
+  // bare event names as bubbling events, which collide with Expo's direct view events).
+  onMarkerDragStart?: MarkerProps['onDragStart'];
+  onMarkerDrag?: MarkerProps['onDrag'];
+  onMarkerDragEnd?: MarkerProps['onDragEnd'];
   ref?: React.Ref<unknown>;
 };
 
@@ -33,7 +41,7 @@ const NativeMarkerView: React.ComponentType<NativeMarkerProps> = requireNativeVi
  * ```
  */
 export const Marker = React.forwardRef<MarkerRef, MarkerProps>(
-  ({ source, zIndex, onPress, children, ...props }, ref) => {
+  ({ source, zIndex, onPress, onDragStart, onDrag, onDragEnd, children, ...props }, ref) => {
     const nativeRef = React.useRef<any>(null);
 
     // Turn an ImageSourcePropType (require(...) number or { uri }) into the URI the native side
@@ -57,7 +65,15 @@ export const Marker = React.forwardRef<MarkerRef, MarkerProps>(
     );
 
     return (
-      <NativeMarkerView {...props} source={uri} zI={zIndex} onMarkerPress={onPress} ref={nativeRef}>
+      <NativeMarkerView
+        {...props}
+        source={uri}
+        zI={zIndex}
+        onMarkerPress={onPress}
+        onMarkerDragStart={onDragStart}
+        onMarkerDrag={onDrag}
+        onMarkerDragEnd={onDragEnd}
+        ref={nativeRef}>
         {children != null ? <View style={styles.childWrap}>{children}</View> : null}
       </NativeMarkerView>
     );
