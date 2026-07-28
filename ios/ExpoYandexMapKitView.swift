@@ -79,6 +79,15 @@ internal struct ScreenPointRecord: Record {
   @Field var y: Double = 0
 }
 
+// The selection token for selectGeoObject(). Mirrors the JS `GeoObjectSelection` (the `selection`
+// carried by an onPoiTap event); reconstructs a YMKGeoObjectSelectionMetadata to select the object.
+internal struct GeoObjectSelectionRecord: Record {
+  @Field var objectId: String = ""
+  @Field var dataSourceName: String = ""
+  @Field var layerId: String = ""
+  @Field var groupId: Double?
+}
+
 internal enum CameraAnimationOption: String, Enumerable {
   case smooth
   case linear
@@ -132,6 +141,9 @@ class ExpoYandexMapKitView: ExpoView {
   let onMapPress = EventDispatcher()
   let onMapLongPress = EventDispatcher()
   let onMapLoaded = EventDispatcher()
+  let onTrafficChanged = EventDispatcher()
+  let onUserLocationChange = EventDispatcher()
+  let onPoiTap = EventDispatcher()
 
   var animated = true
 
@@ -141,6 +153,7 @@ class ExpoYandexMapKitView: ExpoView {
   private var cameraListener: CameraListener?
   private var inputListener: InputListener?
   private var mapLoadedListener: MapLoadedListener?
+  private var geoObjectTapListener: GeoObjectTapListener?
   private var pendingCameraPosition: CameraPositionRecord?
   private var nightMode = false
   // Gesture toggles default to MapKit's own defaults (all enabled). Stored so a
@@ -162,6 +175,13 @@ class ExpoYandexMapKitView: ExpoView {
   // the value persists — passing undefined later does not revert it (matches mapType/mapStyle).
   private var logoPosition: LogoPositionRecord?
   private var logoPadding: LogoPaddingRecord?
+  // Camera zoom-bound hints, nil until set. Applied through the map's cameraBounds; a nil value
+  // clears that bound back to MapKit's default.
+  private var minZoom: Float?
+  private var maxZoom: Float?
+  // Persistent map-padding inset, applied as the map window's focus rectangle. nil = full viewport.
+  // Kept so it can be re-applied when the view is (re)laid out, since the focus rect is in pixels.
+  private var mapPadding: EdgePaddingRecord?
   private var mapReadyEmitted = false
   private var didWarnAboutMissingInit = false
 
@@ -173,6 +193,8 @@ class ExpoYandexMapKitView: ExpoView {
   // User-location and traffic layers, created lazily on first use (they need the map window).
   private var userLocationLayer: YMKUserLocationLayer?
   private var trafficLayer: YMKTrafficLayer?
+  // Retained strongly (MapKit holds it weakly) — emits onTrafficChanged with the region's traffic score.
+  private var trafficListener: TrafficListener?
   private var showUserPosition = false
   private var followUser = false
   private var trafficVisible = false
@@ -210,6 +232,9 @@ class ExpoYandexMapKitView: ExpoView {
   override func layoutSubviews() {
     super.layoutSubviews()
     mapView?.frame = bounds
+    // The focus rect is in pixels and depends on the map size, so re-apply the map padding whenever
+    // the view is (re)laid out — the first real size, a rotation, or a resized container.
+    applyMapPadding()
   }
 
   // MARK: - Marker children
@@ -345,6 +370,19 @@ class ExpoYandexMapKitView: ExpoView {
   func onUserLocationObjectAvailable(_ view: YMKUserLocationView) {
     userLocationView = view
     applyUserLocationStyle()
+    dispatchUserLocationChange(view)
+  }
+
+  // Emit onUserLocationChange with the dot's current coordinate + accuracy. Called when the location
+  // dot first appears and on every position/heading update (from the object listener) — so it never
+  // fires from a prop-driven style pass, only on a real location change. The pin's geometry is the
+  // device coordinate; the accuracy circle's radius is the horizontal accuracy in metres.
+  private func dispatchUserLocationChange(_ view: YMKUserLocationView) {
+    let point = view.pin.geometry
+    onUserLocationChange([
+      "point": ["latitude": point.latitude, "longitude": point.longitude],
+      "accuracy": Double(view.accuracyCircle.geometry.radius),
+    ])
   }
 
   func onUserLocationObjectRemoved(_ view: YMKUserLocationView) {
@@ -416,6 +454,10 @@ class ExpoYandexMapKitView: ExpoView {
     } else {
       layer = YMKMapKit.sharedInstance().createTrafficLayer(with: mapWindow)
       trafficLayer = layer
+      // MapKit holds the listener weakly (matches the map listeners); the strong field keeps it.
+      let listener = TrafficListener(view: self)
+      trafficListener = listener
+      layer.addTrafficListener(withTrafficListener: listener)
     }
     layer.setTrafficVisibleWithOn(trafficVisible)
   }
@@ -487,6 +529,32 @@ class ExpoYandexMapKitView: ExpoView {
     mapView?.mapWindow.map.isFastTapEnabled = enabled
   }
 
+  func setMinZoom(_ zoom: Double?) {
+    minZoom = zoom.map { Float($0) }
+    applyZoomBounds()
+  }
+
+  func setMaxZoom(_ zoom: Double?) {
+    maxZoom = zoom.map { Float($0) }
+    applyZoomBounds()
+  }
+
+  // MapKit's cameraBounds exposes only a combined reset, so re-establish the full state each time:
+  // reset both preferences, then re-apply whichever bound is set. This makes clearing one bound (its
+  // prop set to undefined) restore MapKit's default for that bound while keeping the other.
+  private func applyZoomBounds() {
+    guard let bounds = mapView?.mapWindow.map.cameraBounds else {
+      return
+    }
+    bounds.resetMinMaxZoomPreference()
+    if let minZoom = minZoom {
+      bounds.setMinZoomPreferenceWithZoom(minZoom)
+    }
+    if let maxZoom = maxZoom {
+      bounds.setMaxZoomPreferenceWithZoom(maxZoom)
+    }
+  }
+
   func setMapType(_ type: YMKMapType) {
     mapType = type
     mapView?.mapWindow.map.mapType = type
@@ -519,6 +587,21 @@ class ExpoYandexMapKitView: ExpoView {
   func setLogoPadding(_ padding: LogoPaddingRecord?) {
     logoPadding = padding
     applyLogo(to: mapView?.mapWindow.map)
+  }
+
+  func setMapPadding(_ padding: EdgePaddingRecord?) {
+    mapPadding = padding
+    applyMapPadding()
+  }
+
+  // Apply the persistent map-padding inset as the map window's focus rectangle. Only touches the
+  // focus rect when a padding is set — when nil, the focus rect is left alone (a fitMarkers call may
+  // own it). The rect is in pixels, so this is re-run from layoutSubviews when the view is resized.
+  private func applyMapPadding() {
+    guard let mapWindow = mapView?.mapWindow, mapPadding != nil else {
+      return
+    }
+    mapWindow.focusRect = focusRect(mapPadding)
   }
 
   private func applyLogo(to map: YMKMap?) {
@@ -625,7 +708,9 @@ class ExpoYandexMapKitView: ExpoView {
     guard let mapWindow = mapView?.mapWindow else {
       return
     }
-    mapWindow.focusRect = focusRect(options.edgePadding)
+    // A fit with no edgePadding of its own falls back to the persistent mapPadding, so a fit never
+    // silently discards the map's configured inset. An explicit edgePadding overrides it for this fit.
+    mapWindow.focusRect = focusRect(options.edgePadding ?? mapPadding)
     let current = map.cameraPosition
     let target: YMKCameraPosition
     if points.count == 1 {
@@ -649,19 +734,26 @@ class ExpoYandexMapKitView: ExpoView {
   // scale). Returns nil when there is no padding or the map has no size yet — nil resets the map
   // window to its full-viewport focus.
   private func focusRect(_ padding: EdgePaddingRecord?) -> YMKScreenRect? {
-    guard let padding = padding, let mapView = mapView else {
+    guard let padding = padding, let mapView = mapView, let mapWindow = mapView.mapWindow else {
       return nil
     }
-    let scale = Float(UIScreen.main.scale)
-    let width = Float(mapView.bounds.width) * scale
-    let height = Float(mapView.bounds.height) * scale
+    // The focus rect lives in the map window's own physical-pixel space — use the window's reported
+    // size, NOT UIScreen.scale × bounds, which can drift from it by several pixels (MapKit then rejects
+    // the rect as "out of screen"). Convert the point-based padding with the window's true pixels/point.
+    let width = Float(mapWindow.width())
+    let height = Float(mapWindow.height())
     guard width > 0, height > 0 else {
       return nil
     }
-    let left = min(max(Float(padding.left) * scale, 0), width - 1)
-    let top = min(max(Float(padding.top) * scale, 0), height - 1)
-    let right = min(max(width - Float(padding.right) * scale, left + 1), width)
-    let bottom = min(max(height - Float(padding.bottom) * scale, top + 1), height)
+    let viewWidth = Float(mapView.bounds.width)
+    let scale = viewWidth > 0 ? width / viewWidth : Float(UIScreen.main.scale)
+    // MapKit rejects a focusRect whose bottomRight corner sits on the window edge ("out of screen"),
+    // so the right/bottom edge must stay strictly inside — clamp to width-1 / height-1 (as left/top
+    // already are), and cap left/top at width-2 / height-2 so the rect never collapses (right > left).
+    let left = min(max(Float(padding.left) * scale, 0), width - 2)
+    let top = min(max(Float(padding.top) * scale, 0), height - 2)
+    let right = min(max(width - Float(padding.right) * scale, left + 1), width - 1)
+    let bottom = min(max(height - Float(padding.bottom) * scale, top + 1), height - 1)
     return YMKScreenRect(
       topLeft: YMKScreenPoint(x: left, y: top),
       bottomRight: YMKScreenPoint(x: right, y: bottom))
@@ -726,6 +818,44 @@ class ExpoYandexMapKitView: ExpoView {
     }
   }
 
+  // Capture the currently-rendered map as a base64 PNG data URI (usable directly in <Image>). MapKit
+  // has no snapshot API on iOS, so this snapshots the on-screen compositor output via drawHierarchy
+  // (afterScreenUpdates: true) — best-effort: it captures what is presented, so call it after
+  // onMapLoaded. Returns nil if the map has no size yet. Must run on the main thread.
+  func takeSnapshot() -> String? {
+    guard let mapView = mapView, mapView.bounds.width > 0, mapView.bounds.height > 0 else {
+      return nil
+    }
+    let renderer = UIGraphicsImageRenderer(bounds: mapView.bounds)
+    let image = renderer.image { _ in
+      mapView.drawHierarchy(in: mapView.bounds, afterScreenUpdates: true)
+    }
+    guard let data = image.pngData() else {
+      return nil
+    }
+    return "data:image/png;base64," + data.base64EncodedString()
+  }
+
+  // Draw MapKit's selection highlight around the POI/geo-object identified by `selection` (from an
+  // onPoiTap event). Reconstructs the selection metadata from the opaque ids. No-op until the map is
+  // ready.
+  func selectGeoObject(_ selection: GeoObjectSelectionRecord) {
+    guard let map = mapView?.mapWindow.map else {
+      return
+    }
+    let metadata = YMKGeoObjectSelectionMetadata(
+      objectId: selection.objectId,
+      dataSourceName: selection.dataSourceName,
+      layerId: selection.layerId,
+      groupId: selection.groupId.map { NSNumber(value: $0) }
+    )
+    map.selectGeoObject(withSelectionMetaData: metadata)
+  }
+
+  func deselectGeoObject() {
+    mapView?.mapWindow.map.deselectGeoObject()
+  }
+
   private func coordinatePayload(_ point: YMKPoint) -> [String: Any] {
     return ["latitude": point.latitude, "longitude": point.longitude]
   }
@@ -769,21 +899,28 @@ class ExpoYandexMapKitView: ExpoView {
     let cameraListener = CameraListener(view: self)
     let inputListener = InputListener(view: self)
     let mapLoadedListener = MapLoadedListener(view: self)
+    let geoObjectTapListener = GeoObjectTapListener(view: self)
     self.cameraListener = cameraListener
     self.inputListener = inputListener
     self.mapLoadedListener = mapLoadedListener
+    self.geoObjectTapListener = geoObjectTapListener
     map.addCameraListener(with: cameraListener)
     map.addInputListener(with: inputListener)
     map.setMapLoadedListenerWith(mapLoadedListener)
+    map.addTapListener(with: geoObjectTapListener)
 
     map.isNightModeEnabled = nightMode
     applyGestureState()
     map.isFastTapEnabled = fastTapEnabled
+    if minZoom != nil || maxZoom != nil {
+      applyZoomBounds()
+    }
     if let mapType = mapType {
       map.mapType = mapType
     }
     applyMapStyle(to: map)
     applyLogo(to: map)
+    applyMapPadding()
     // The initial camera position is applied instantly — the map has not been shown yet.
     applyPendingCameraPosition(allowAnimation: false)
     // Wire up any <Marker> children that mounted before the map existed.
@@ -869,6 +1006,52 @@ class ExpoYandexMapKitView: ExpoView {
     onMapLongPress(pointPayload(point))
   }
 
+  // Emit onTrafficChanged with the current region's traffic score. A nil level (loading / expired /
+  // no data) surfaces as { available: false }.
+  fileprivate func dispatchTrafficChanged(_ level: YMKTrafficLevel?) {
+    guard let level = level else {
+      onTrafficChanged(["available": false])
+      return
+    }
+    onTrafficChanged([
+      "available": true,
+      "level": level.level,
+      "color": Self.trafficColorName(level.color),
+    ])
+  }
+
+  private static func trafficColorName(_ color: YMKTrafficColor) -> String {
+    switch color {
+    case .red: return "red"
+    case .yellow: return "yellow"
+    case .green: return "green"
+    @unknown default: return "green"
+    }
+  }
+
+  // Emit onPoiTap for a tapped built-in geo-object that carries selection metadata (a selectable
+  // POI/toponym). The `selection` lets JS call selectGeoObject() to highlight it later.
+  fileprivate func dispatchPoiTap(
+    _ geoObject: YMKGeoObject, selection: YMKGeoObjectSelectionMetadata
+  ) {
+    var selectionPayload: [String: Any] = [
+      "objectId": selection.objectId,
+      "dataSourceName": selection.dataSourceName,
+      "layerId": selection.layerId,
+    ]
+    if let groupId = selection.groupId {
+      selectionPayload["groupId"] = groupId
+    }
+    var payload: [String: Any] = ["selection": selectionPayload]
+    if let name = geoObject.name {
+      payload["name"] = name
+    }
+    if let point = geoObject.geometry.compactMap({ $0.point }).first {
+      payload["point"] = ["latitude": point.latitude, "longitude": point.longitude]
+    }
+    onPoiTap(payload)
+  }
+
   fileprivate func dispatchMapLoaded(_ statistics: YMKMapLoadStatistics) {
     onMapLoaded([
       "renderObjectCount": statistics.renderObjectCount,
@@ -940,6 +1123,49 @@ private final class MapLoadedListener: NSObject, YMKMapLoadedListener {
 
   func onMapLoaded(with statistics: YMKMapLoadStatistics) {
     view?.dispatchMapLoaded(statistics)
+  }
+}
+
+// The traffic-jams delegate: reports the visible region's overall traffic score as it recomputes.
+private final class TrafficListener: NSObject, YMKTrafficDelegate {
+  private weak var view: ExpoYandexMapKitView?
+
+  init(view: ExpoYandexMapKitView) {
+    self.view = view
+  }
+
+  func onTrafficChanged(with trafficLevel: YMKTrafficLevel?) {
+    view?.dispatchTrafficChanged(trafficLevel)
+  }
+
+  func onTrafficLoading() {
+    view?.dispatchTrafficChanged(nil)
+  }
+
+  func onTrafficExpired() {
+    view?.dispatchTrafficChanged(nil)
+  }
+}
+
+// Fires for taps on the map's own labelled objects (POIs, toponyms). Only objects that carry
+// selection metadata are surfaced as onPoiTap; returning true then consumes the tap so it does not
+// also reach the input listener as an onMapPress. Non-selectable geo-objects return false and fall
+// through to onMapPress unchanged.
+private final class GeoObjectTapListener: NSObject, YMKLayersGeoObjectTapListener {
+  private weak var view: ExpoYandexMapKitView?
+
+  init(view: ExpoYandexMapKitView) {
+    self.view = view
+  }
+
+  func onObjectTap(with event: YMKGeoObjectTapEvent) -> Bool {
+    guard let selection = event.geoObject.metadataContainer.getItemOf(
+      YMKGeoObjectSelectionMetadata.self) as? YMKGeoObjectSelectionMetadata
+    else {
+      return false
+    }
+    view?.dispatchPoiTap(event.geoObject, selection: selection)
+    return true
   }
 }
 
