@@ -30,6 +30,26 @@ export type UserLocationChangeEvent = {
   accuracy: number; // horizontal accuracy radius, in metres (the accuracy-circle radius)
 };
 
+// Identifies a tapped built-in map object (a POI icon, a labelled toponym) precisely enough to
+// (re)select it. The IDs are opaque MapKit values — read them off an `onPoiTap` event and pass the
+// whole object back to the map ref's `selectGeoObject()` to draw MapKit's selection highlight.
+export type GeoObjectSelection = {
+  objectId: string;
+  dataSourceName: string;
+  layerId: string;
+  groupId?: number;
+};
+
+// Payload for `onPoiTap` — a tap on one of the map's own labelled objects (a POI icon, a toponym).
+// Distinct from `onMapPress` (a tap on blank map): a POI tap fires `onPoiTap` and does NOT also fire
+// `onMapPress` — the react-native-maps `onPoiClick` convention. No Yandex-maps RN wrapper exposes
+// this; their map taps return bare coordinates only.
+export type PoiTapEvent = {
+  name?: string; // the object's label, when MapKit provides one
+  point?: Point; // the object's coordinate (its point geometry), when available
+  selection: GeoObjectSelection; // pass to the map ref's `selectGeoObject()` to highlight this object
+};
+
 export type MapLoadStatistics = {
   renderObjectCount: number; // number of map objects rendered
   tileMemoryUsage: number; // tile cache memory usage, in bytes
@@ -55,6 +75,8 @@ export type YandexMapViewProps = {
   rotateGesturesEnabled?: boolean; // two-finger twist to rotate, default true
   fastTapEnabled?: boolean; // report taps immediately instead of waiting for a possible double-tap, default true
   interactiveDisabled?: boolean; // when true, disable all four movement gestures at once (overrides the individual *GesturesEnabled), default false
+  minZoom?: number; // clamp the camera's minimum (most zoomed-out) zoom level; unset = MapKit default. Applies to gestures and programmatic moves.
+  maxZoom?: number; // clamp the camera's maximum (most zoomed-in) zoom level; unset = MapKit default.
   mapType?: 'none' | 'map' | 'satellite' | 'hybrid' | 'vector'; // base map layer; unset = SDK default (vector). 'satellite'/'hybrid' may need a Yandex-app key
   mapStyle?: string; // Yandex JSON style; only affects 'vector'/'hybrid' layers (no-op on raster 'map'/'satellite'); pass '' to clear
   logoPosition?: { horizontal: 'left' | 'center' | 'right'; vertical: 'top' | 'bottom' }; // corner the mandatory Yandex logo aligns to
@@ -73,10 +95,20 @@ export type YandexMapViewProps = {
   // Requires `showUserPosition` (and location permission). Answers the recurring "how do I get the
   // user's coordinates" ask — no Yandex-maps RN wrapper surfaces it.
   onUserLocationChange?: (event: { nativeEvent: UserLocationChangeEvent }) => void;
+  // Persistent inset (in points) around the map's logical viewport — the react-native-maps
+  // `mapPadding` convention. Shifts the map's optical center and the target of camera moves / gestures
+  // so content stays clear of a bottom sheet, header, or floating controls. Applied as MapKit's
+  // map-window focus rectangle. Unset = full viewport. `fitMarkers`/`fitAllMarkers` fall back to this
+  // when their own `edgePadding` is omitted.
+  mapPadding?: EdgePadding;
   onMapReady?: (event: { nativeEvent: Record<string, never> }) => void;
   onCameraPositionChanged?: (event: { nativeEvent: CameraPositionChangeEvent }) => void;
   onMapPress?: (event: { nativeEvent: MapPressEvent }) => void;
   onMapLongPress?: (event: { nativeEvent: MapPressEvent }) => void;
+  // Fires when a built-in map POI / geo-object (a labelled place icon or toponym) is tapped, with
+  // its name, coordinate, and a `selection` token for `selectGeoObject()`. A POI tap does not also
+  // fire `onMapPress`.
+  onPoiTap?: (event: { nativeEvent: PoiTapEvent }) => void;
   onMapLoaded?: (event: { nativeEvent: MapLoadStatistics }) => void; // fires once the map finishes loading, with render stats
   style?: StyleProp<ViewStyle>;
   children?: ReactNode; // <Marker> (and future map-object) children
@@ -96,6 +128,14 @@ export type MarkerPressEvent = {
   point: Point; // the marker's geographic position at tap time
 };
 
+// Payload for a draggable marker's onDragStart / onDrag / onDragEnd.
+export type MarkerDragEvent = {
+  identifier?: string; // the marker's `identifier`, echoed back
+  // The marker's coordinate: the live drag position during onDrag, and the resting position for
+  // onDragStart (pick-up) / onDragEnd (drop). Read onDragEnd's point to persist the new location.
+  point: Point;
+};
+
 export type MarkerProps = {
   point: Point; // geographic position of the marker (required)
   source?: ImageSourcePropType; // icon image — require('./pin.png') or { uri }; ignored when `children` are provided
@@ -106,7 +146,14 @@ export type MarkerProps = {
   rotated?: boolean; // when true the icon rotates with the map's azimuth, default false
   handled?: boolean; // when true a tap is consumed and does NOT also fire the map's onMapPress, default false
   identifier?: string; // opaque id echoed back in onPress — lets a shared handler identify the marker
+  // Allow dragging the marker: long-press it to pick it up, then drag. Default false. The drag is
+  // uncontrolled natively — read onDragEnd's `point` and update your state (and the `point` prop) to
+  // persist the new location. Baseline in react-native-maps; no Yandex-maps RN wrapper offers it.
+  draggable?: boolean;
   onPress?: (event: { nativeEvent: MarkerPressEvent }) => void;
+  onDragStart?: (event: { nativeEvent: MarkerDragEvent }) => void; // drag picked up (long-press)
+  onDrag?: (event: { nativeEvent: MarkerDragEvent }) => void; // finger moving, marker following
+  onDragEnd?: (event: { nativeEvent: MarkerDragEvent }) => void; // released — `point` is the new location
   // React children rendered as the marker's icon (a custom pin). Takes precedence over `source`.
   children?: ReactNode;
   // Whether to re-render the icon when the `children` change. Default true. When the content has
@@ -252,6 +299,15 @@ export type YandexMapViewRef = {
   getScreenPoints(points: Point[]): Promise<(ScreenPoint | null)[]>;
   // Project screen points to world coordinates. Each result is null when unprojectable.
   getWorldPoints(points: ScreenPoint[]): Promise<(Point | null)[]>;
+  // Capture the currently-rendered map as a base64 PNG **data URI** (`data:image/png;base64,…`),
+  // usable directly as an `<Image source={{ uri }}>`. Call it after `onMapLoaded` so the map has
+  // rendered. Resolves `null` if the map isn't ready / can't be captured. Requested in yamap#48.
+  takeSnapshot(): Promise<string | null>;
+  // Draw MapKit's selection highlight around a built-in POI / geo-object. Pass the `selection`
+  // carried by an `onPoiTap` event. No-op until the map is ready.
+  selectGeoObject(selection: GeoObjectSelection): Promise<void>;
+  // Clear any geo-object selection highlight drawn by `selectGeoObject()`.
+  deselectGeoObject(): Promise<void>;
 };
 
 // ── Suggest (search-as-you-type) — requires the MapKit `full` flavor ────────────────────────────

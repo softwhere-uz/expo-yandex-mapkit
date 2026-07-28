@@ -84,7 +84,8 @@ class ExpoYandexMapKitModule : Module() {
     View(ExpoYandexMapKitView::class) {
       Events(
         "onMapReady", "onCameraPositionChanged", "onMapPress", "onMapLongPress", "onMapLoaded",
-        "onUserLocationChange"
+        "onUserLocationChange",
+        "onPoiTap"
       )
 
       // <Marker> children are managed here, not through the Android view hierarchy — each drives a
@@ -133,6 +134,14 @@ class ExpoYandexMapKitModule : Module() {
         view.setFastTapEnabled(enabled)
       }
 
+      Prop("minZoom") { view: ExpoYandexMapKitView, zoom: Double? ->
+        view.setMinZoom(zoom)
+      }
+
+      Prop("maxZoom") { view: ExpoYandexMapKitView, zoom: Double? ->
+        view.setMaxZoom(zoom)
+      }
+
       Prop("interactiveDisabled") { view: ExpoYandexMapKitView, disabled: Boolean ->
         view.setInteractiveDisabled(disabled)
       }
@@ -151,6 +160,10 @@ class ExpoYandexMapKitModule : Module() {
 
       Prop("logoPadding") { view: ExpoYandexMapKitView, logoPadding: LogoPaddingRecord? ->
         view.setLogoPadding(logoPadding)
+      }
+
+      Prop("mapPadding") { view: ExpoYandexMapKitView, mapPadding: EdgePaddingRecord? ->
+        view.setMapPadding(mapPadding)
       }
 
       Prop("showUserPosition") { view: ExpoYandexMapKitView, show: Boolean ->
@@ -220,13 +233,28 @@ class ExpoYandexMapKitModule : Module() {
       AsyncFunction("getWorldPoints") { view: ExpoYandexMapKitView, points: List<ScreenPointRecord> ->
         view.worldPoints(points)
       }
+
+      // Snapshots the on-screen map — must run on the main thread (reads the GL surface).
+      AsyncFunction("takeSnapshot") { view: ExpoYandexMapKitView ->
+        view.takeSnapshot()
+      }.runOnQueue(Queues.MAIN)
+
+      // Selection mutates the map layer state, so run on the main thread (Expo runs AsyncFunctions
+      // off the main queue by default).
+      AsyncFunction("selectGeoObject") { view: ExpoYandexMapKitView, selection: GeoObjectSelectionRecord ->
+        view.selectGeoObject(selection)
+      }.runOnQueue(Queues.MAIN)
+
+      AsyncFunction("deselectGeoObject") { view: ExpoYandexMapKitView ->
+        view.deselectGeoObject()
+      }.runOnQueue(Queues.MAIN)
     }
 
     // The <Marker> child view. Named, so it is required as requireNativeView('ExpoYandexMapKit',
     // 'ExpoYandexMapKitMarkerView'); the map view above stays the module's default view.
     View(ExpoYandexMapKitMarkerView::class) {
       Name("ExpoYandexMapKitMarkerView")
-      Events("onMarkerPress")
+      Events("onMarkerPress", "onMarkerDragStart", "onMarkerDrag", "onMarkerDragEnd")
 
       Prop("point") { view: ExpoYandexMapKitMarkerView, point: PointRecord ->
         view.setPoint(Point(point.latitude, point.longitude))
@@ -262,6 +290,10 @@ class ExpoYandexMapKitModule : Module() {
 
       Prop("identifier") { view: ExpoYandexMapKitMarkerView, identifier: String? ->
         view.setIdentifier(identifier)
+      }
+
+      Prop("draggable") { view: ExpoYandexMapKitMarkerView, draggable: Boolean ->
+        view.setDraggable(draggable)
       }
 
       Prop("tracksViewChanges") { view: ExpoYandexMapKitMarkerView, tracks: Boolean ->

@@ -20,12 +20,13 @@
 
 **Карта и камера**
 - 🗺️ Нативная карта MapKit `<YandexMapView>` (Fabric / Новая архитектура)
-- 🎥 Декларативная анимируемая камера (`cameraPosition`) + императивные методы через ref — `setCenter`, `setZoom`, `fitMarkers` / `fitAllMarkers` (с отступами по краям), `getCameraPosition`, `getVisibleRegion`, проекция мир↔экран
+- 🎥 Декларативная анимируемая камера (`cameraPosition`) + императивные методы через ref — `setCenter`, `setZoom`, `fitMarkers` / `fitAllMarkers` (с отступами по краям), `getCameraPosition`, `getVisibleRegion`, проекция мир↔экран, `takeSnapshot`; постоянный `mapPadding` для макетов с нижним листом / шапкой
 - 👆 События нажатий / долгих нажатий / движения камеры / загрузки карты с идентичными payload'ами на iOS и Android
-- 🎨 `mapType` (`map` / `satellite` / `hybrid` / `vector`), JSON-`mapStyle`, ночной режим, переключатели отдельных жестов, размещение логотипа
+- 📌 **Нажатия на POI** (`onPoiTap`) — нажмите на встроенный значок места, чтобы получить его название и координату, затем выделите его через `selectGeoObject()` (**сверх паритета — ни одна другая RN-обёртка для Яндекс-карт этого не отдаёт**)
+- 🎨 `mapType` (`map` / `satellite` / `hybrid` / `vector`), JSON-`mapStyle`, ночной режим, переключатели отдельных жестов, границы зума `minZoom` / `maxZoom`, размещение логотипа
 
 **Объекты карты** (декларативные дети карты)
-- 📍 `<Marker>` — иконки-картинки **или из React-детей** (надёжно, с конвейером повторного снапшота через `tracksViewChanges`), `onPress` с идентифицирующим payload'ом, `animatedMoveTo` / `animatedRotateTo`
+- 📍 `<Marker>` — иконки-картинки **или из React-детей** (надёжно, с конвейером повторного снапшота через `tracksViewChanges`), `onPress` с идентифицирующим payload'ом, `draggable` + события перетаскивания, `animatedMoveTo` / `animatedRotateTo`
 - 〰️ `<Polyline>` (штрихи + обводка), `<Polygon>` (дырки через `innerRings`), `<Circle>`
 - 🔵 `<Clusterer>` — декларативная кластеризация, где ваши собственные `<Marker>` служат render-пропом; настраиваемый бейдж (цвет / размер / **иконка**), `excludeFromCluster`, тап-для-подгонки, настраиваемые радиус / minZoom
 - 📡 Слой геопозиции пользователя (кастомная иконка точки + стилизация круга точности, координаты через `onUserLocationChange`) и живой 🚦 слой пробок
@@ -271,6 +272,8 @@ export default function App() {
 | `rotateGesturesEnabled` | `boolean` | `true` | Разрешить поворот карты вращением двумя пальцами. |
 | `fastTapEnabled` | `boolean` | `true` | Сообщать о тапе сразу, не дожидаясь, не станет ли он двойным. |
 | `interactiveDisabled` | `boolean` | `false` | При `true` отключает сразу все четыре жеста перемещения — сокращение, перекрывающее отдельные пропсы `*GesturesEnabled`. События нажатий (`onMapPress`/`onMapLongPress`) продолжают срабатывать. |
+| `minZoom` | `number` | — (дефолт MapKit) | Ограничить минимальный (максимально отдалённый) уровень зума камеры. Действует для жестов и программных перемещений. Запрошено в [yamap#187](https://github.com/volga-volga/react-native-yamap/issues/187) — ни одна другая обёртка этого не даёт. |
+| `maxZoom` | `number` | — (дефолт MapKit) | Ограничить максимальный (максимально приближённый) уровень зума камеры. |
 | `mapType` | `'none' \| 'map' \| 'satellite' \| 'hybrid' \| 'vector'` | — (дефолт SDK) | Базовый слой карты. `'map'`, `'satellite'` и `'hybrid'` — растровые; `'vector'` — стилизуемая векторная схема. Если не задан, карта сохраняет собственный дефолт MapKit (векторный). **`'satellite'` / `'hybrid'` требуют ключа с включённым доступом к спутниковым снимкам** — проп всё равно применяется (карта уходит с дорожной схемы и показывает пустую сетку тайлов), но на ключе MapKit Mobile SDK бесплатного тарифа спутниковые тайлы не загружаются; запросите доступ к снимкам для своего ключа в кабинете Яндекса. |
 | `mapStyle` | `string` | — | [JSON-стиль карты Яндекса](https://yandex.com/dev/mapkit/doc/en/android/generated/style), применяемый к карте. **Влияет только на слои `'vector'` и `'hybrid'`** — оставьте `mapType` незаданным (дефолт — векторный) или задайте `mapType='vector'`; на растровых слоях `'map'` / `'satellite'` это тихий no-op. Передайте `''`, чтобы сбросить ранее применённый стиль. Невалидный JSON игнорируется с предупреждением. |
 | `logoPosition` | `{ horizontal: 'left' \| 'center' \| 'right'; vertical: 'top' \| 'bottom' }` | — | Угол, к которому выравнивается обязательный логотип Яндекса. |
@@ -283,6 +286,7 @@ export default function App() {
 | `userLocationAccuracyStrokeColor` | `ColorValue` | — | Цвет обводки (границы) круга точности. Без значения — стандартный для MapKit. |
 | `userLocationAccuracyStrokeWidth` | `number` | — | Толщина обводки круга точности, в пунктах. |
 | `trafficVisible` | `boolean` | `false` | Показывать слой пробок в реальном времени. |
+| `mapPadding` | `{ top?, right?, bottom?, left? }` (пункты) | — | Постоянный отступ вокруг логической области карты (соглашение `mapPadding` из react-native-maps). Смещает оптический центр и цель перемещений камеры / жестов, чтобы контент не перекрывался нижним листом (bottom sheet), шапкой или плавающими элементами управления. Применяется как фокус-прямоугольник окна карты MapKit. `fitMarkers` / `fitAllMarkers` используют его как запасной вариант, если их собственный `edgePadding` не задан. |
 | `style` | `StyleProp<ViewStyle>` | — | Стандартная стилизация React Native. |
 
 > Для неинтерактивной карты (например, статичного превью) задайте `interactiveDisabled` (сокращение для отключения всех четырёх жестов перемещения); отключите `rotateGesturesEnabled` / `tiltGesturesEnabled`, чтобы карта оставалась плоской и ориентированной на север.
@@ -293,8 +297,9 @@ export default function App() {
 | --- | --- | --- |
 | `onMapReady` | `{}` | Один раз на view, когда нативная карта создана (после `initialize`). |
 | `onCameraPositionChanged` | `CameraPositionChangeEvent` | Пока камера движется; `reason` отличает жесты пользователя от программных перемещений, `finished` помечает конец движения. |
-| `onMapPress` | `MapPressEvent` | Одиночное нажатие на карту. |
+| `onMapPress` | `MapPressEvent` | Одиночное нажатие на пустую карту. |
 | `onMapLongPress` | `MapPressEvent` | Долгое нажатие на карту. |
+| `onPoiTap` | `PoiTapEvent` | Нажатие на встроенный объект карты (значок POI, топоним) — несёт его `name`, `point` и токен `selection` для `selectGeoObject()`. Нажатие на POI вызывает `onPoiTap` и **не** вызывает заодно `onMapPress` (соглашение `onPoiClick` из react-native-maps). **Ни один другой RN-обёртка для Яндекс-карт не отдаёт нажатия на встроенные POI** — они возвращают только голые координаты. |
 | `onMapLoaded` | `MapLoadStatistics` | Когда карта завершает загрузку — несёт статистику рендеринга (`renderObjectCount`, `tileMemoryUsage`, тайминги загрузки). |
 | `onUserLocationChange` | `UserLocationChangeEvent` | `{ point, accuracy }` устройства при появлении / перемещении точки геопозиции. Требует `showUserPosition` + разрешение на геолокацию. **Ни одна обёртка для Яндекс-карт не отдаёт координаты пользователя** — это закрывает частый запрос ([yamap#295](https://github.com/volga-volga/react-native-yamap/issues/295)). |
 
@@ -318,6 +323,20 @@ type CameraPositionChangeEvent = {
 };
 
 type MapPressEvent = { point: Point };
+
+// Непрозрачные id MapKit, идентифицирующие нажатый встроенный объект — достаточно, чтобы его (пере)выделить.
+type GeoObjectSelection = {
+  objectId: string;
+  dataSourceName: string;
+  layerId: string;
+  groupId?: number;
+};
+
+type PoiTapEvent = {
+  name?: string;               // подпись объекта, если есть
+  point?: Point;               // координата объекта, если доступна
+  selection: GeoObjectSelection; // передайте в mapRef.selectGeoObject(), чтобы выделить
+};
 
 type MapLoadStatistics = {
   renderObjectCount: number;      // число отрисованных объектов карты
@@ -348,6 +367,9 @@ type MapLoadStatistics = {
 | `getVisibleRegion()` | `Promise<VisibleRegion \| null>` | Видимый географический четырёхугольник (`topLeft` / `topRight` / `bottomLeft` / `bottomRight`). |
 | `getScreenPoints(points)` | `Promise<(ScreenPoint \| null)[]>` | Спроецировать мировые координаты в экранные пиксели; `null` для точки, которую нельзя спроецировать (за пределами глобуса / за камерой). |
 | `getWorldPoints(points)` | `Promise<(Point \| null)[]>` | Спроецировать экранные пиксели обратно в мировые координаты. |
+| `takeSnapshot()` | `Promise<string \| null>` | Снять отрендеренную карту как base64-PNG **data URI** (`data:image/png;base64,…`), пригодный прямо для `<Image source={{ uri }}>`. Вызывайте после `onMapLoaded`. `null`, если карта не готова. Запрошено в [yamap#48](https://github.com/volga-volga/react-native-yamap/issues/48) — ни одна обёртка этого не даёт. |
+| `selectGeoObject(selection)` | `Promise<void>` | Нарисовать нативную подсветку выделения MapKit вокруг встроенного POI / гео-объекта. Передайте `selection` из события `onPoiTap`. No-op, пока карта не готова. |
+| `deselectGeoObject()` | `Promise<void>` | Снять подсветку выделения, нарисованную `selectGeoObject()`. |
 
 ```tsx
 const mapRef = useRef<YandexMapViewRef>(null);
@@ -357,6 +379,12 @@ const mapRef = useRef<YandexMapViewRef>(null);
 await mapRef.current?.setCenter({ latitude: 41.31, longitude: 69.24, zoom: 14 }, { durationSeconds: 0.4 });
 const region = await mapRef.current?.getVisibleRegion();
 const [screen] = await mapRef.current?.getScreenPoints([{ latitude: 41.31, longitude: 69.24 }]) ?? [];
+
+// Нажатие на встроенный POI → выделить его нативной подсветкой MapKit:
+<YandexMapView
+  ref={mapRef}
+  onPoiTap={({ nativeEvent }) => mapRef.current?.selectGeoObject(nativeEvent.selection)}
+/>;
 ```
 
 ### `<Marker />`
@@ -388,7 +416,9 @@ import { YandexMapView, Marker } from 'expo-yandex-mapkit';
 | `rotated` | `boolean` | `false` | Если `true`, иконка поворачивается вместе с азимутом карты. |
 | `handled` | `boolean` | `false` | Если `true`, нажатие поглощается и **не** вызывает `onMapPress` карты. |
 | `identifier` | `string` | — | Непрозрачный id, возвращаемый в `onPress` — чтобы один обработчик различал маркеры. |
+| `draggable` | `boolean` | `false` | Разрешить перетаскивание маркера — долгое нажатие «поднимает» его, затем тащите. Перетаскивание неуправляемое на нативной стороне; прочитайте `point` из `onDragEnd` и обновите своё состояние (и проп `point`), чтобы сохранить положение. Базовая возможность в react-native-maps ([yamap#217](https://github.com/volga-volga/react-native-yamap/issues/217)) — ни одна обёртка для Яндекс-карт этого не даёт. |
 | `onPress` | `(event) => void` | — | `event.nativeEvent` — это `{ identifier?, point }`. |
+| `onDragStart` / `onDrag` / `onDragEnd` | `(event) => void` | — | Срабатывают при перетаскивании маркера с `draggable`. `event.nativeEvent` — это `{ identifier?, point }`: живая точка перетаскивания в `onDrag`, положение покоя — на start/end. |
 | `children` | `ReactNode` | — | React-контент, отрисованный как иконка маркера (кастомный пин). Имеет приоритет над `source`. Рендерится нативно через view-провайдер MapKit (без хрупкого снапшота в bitmap). |
 | `tracksViewChanges` | `boolean` | `true` | Перерисовывать ли иконку при изменении `children`. Поставьте `false`, когда контент устоялся (например, статичный бабл) — иконка снапшотится один раз (большой выигрыш в производительности вместо перерисовки каждый кадр). |
 | `excludeFromCluster` | `boolean` | `false` | Имеет смысл только внутри `<Clusterer>`: при `true` этот маркер никогда не сливается в кластер — он остаётся отдельным плейсмарком на любом зуме. |
