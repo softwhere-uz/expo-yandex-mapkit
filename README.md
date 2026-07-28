@@ -26,7 +26,7 @@ A complete Yandex Maps SDK for Expo — full feature parity with the most capabl
 - 🎨 `mapType` (`map` / `satellite` / `hybrid` / `vector`), JSON `mapStyle`, night mode, per-gesture toggles, `minZoom` / `maxZoom` bounds, logo placement
 
 **Map objects** (declarative children of the map)
-- 📍 `<Marker>` — image **or React-children** icons (reliable, with a `tracksViewChanges` re-snapshot pipeline), `onPress` with an identifying payload, `animatedMoveTo` / `animatedRotateTo`
+- 📍 `<Marker>` — image **or React-children** icons (reliable, with a `tracksViewChanges` re-snapshot pipeline), `onPress` with an identifying payload, `draggable` + drag events, `animatedMoveTo` / `animatedRotateTo`
 - 〰️ `<Polyline>` (dash + outline), `<Polygon>` (holes via `innerRings`), `<Circle>`
 - 🔵 `<Clusterer>` — declarative clustering where your own `<Marker>`s are the render-prop; custom badge (color / size / **icon**), `excludeFromCluster`, tap-to-fit, configurable radius / minZoom
 - 📡 User-location layer (custom dot icon + accuracy-circle styling) and a live 🚦 traffic layer
@@ -414,7 +414,9 @@ import { YandexMapView, Marker } from 'expo-yandex-mapkit';
 | `rotated` | `boolean` | `false` | When `true`, the icon rotates with the map's azimuth. |
 | `handled` | `boolean` | `false` | When `true`, a tap is consumed and does **not** also fire the map's `onMapPress`. |
 | `identifier` | `string` | — | Opaque id echoed back in `onPress` so one handler can tell markers apart. |
+| `draggable` | `boolean` | `false` | Allow dragging the marker — long-press to pick it up, then drag. The drag is uncontrolled natively; read `onDragEnd`'s `point` and update your state (and the `point` prop) to persist it. Baseline in react-native-maps ([yamap#217](https://github.com/volga-volga/react-native-yamap/issues/217)) — no Yandex-maps RN wrapper offers it. |
 | `onPress` | `(event) => void` | — | `event.nativeEvent` is `{ identifier?, point }`. |
+| `onDragStart` / `onDrag` / `onDragEnd` | `(event) => void` | — | Fire while dragging a `draggable` marker. `event.nativeEvent` is `{ identifier?, point }` — the live drag point during `onDrag`, the resting position on start/end. |
 | `children` | `ReactNode` | — | React content rendered as the marker's icon (a custom pin). Takes precedence over `source`. Rendered natively via MapKit's view provider (no fragile bitmap snapshotting). |
 | `tracksViewChanges` | `boolean` | `true` | Whether to keep re-rendering the icon as the `children` change. Set `false` once the content has settled (e.g. a static bubble) so it's rendered once — a large perf win vs. re-rendering every frame. |
 | `excludeFromCluster` | `boolean` | `false` | Only meaningful inside a `<Clusterer>`: when `true`, this marker is never merged into a cluster — it stays a standalone placemark at every zoom. |

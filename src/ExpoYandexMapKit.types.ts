@@ -118,6 +118,14 @@ export type MarkerPressEvent = {
   point: Point; // the marker's geographic position at tap time
 };
 
+// Payload for a draggable marker's onDragStart / onDrag / onDragEnd.
+export type MarkerDragEvent = {
+  identifier?: string; // the marker's `identifier`, echoed back
+  // The marker's coordinate: the live drag position during onDrag, and the resting position for
+  // onDragStart (pick-up) / onDragEnd (drop). Read onDragEnd's point to persist the new location.
+  point: Point;
+};
+
 export type MarkerProps = {
   point: Point; // geographic position of the marker (required)
   source?: ImageSourcePropType; // icon image — require('./pin.png') or { uri }; ignored when `children` are provided
@@ -128,7 +136,14 @@ export type MarkerProps = {
   rotated?: boolean; // when true the icon rotates with the map's azimuth, default false
   handled?: boolean; // when true a tap is consumed and does NOT also fire the map's onMapPress, default false
   identifier?: string; // opaque id echoed back in onPress — lets a shared handler identify the marker
+  // Allow dragging the marker: long-press it to pick it up, then drag. Default false. The drag is
+  // uncontrolled natively — read onDragEnd's `point` and update your state (and the `point` prop) to
+  // persist the new location. Baseline in react-native-maps; no Yandex-maps RN wrapper offers it.
+  draggable?: boolean;
   onPress?: (event: { nativeEvent: MarkerPressEvent }) => void;
+  onDragStart?: (event: { nativeEvent: MarkerDragEvent }) => void; // drag picked up (long-press)
+  onDrag?: (event: { nativeEvent: MarkerDragEvent }) => void; // finger moving, marker following
+  onDragEnd?: (event: { nativeEvent: MarkerDragEvent }) => void; // released — `point` is the new location
   // React children rendered as the marker's icon (a custom pin). Takes precedence over `source`.
   children?: ReactNode;
   // Whether to re-render the icon when the `children` change. Default true. When the content has

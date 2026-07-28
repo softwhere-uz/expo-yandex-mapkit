@@ -26,7 +26,7 @@
 - 🎨 `mapType` (`map` / `satellite` / `hybrid` / `vector`), JSON-`mapStyle`, ночной режим, переключатели отдельных жестов, границы зума `minZoom` / `maxZoom`, размещение логотипа
 
 **Объекты карты** (декларативные дети карты)
-- 📍 `<Marker>` — иконки-картинки **или из React-детей** (надёжно, с конвейером повторного снапшота через `tracksViewChanges`), `onPress` с идентифицирующим payload'ом, `animatedMoveTo` / `animatedRotateTo`
+- 📍 `<Marker>` — иконки-картинки **или из React-детей** (надёжно, с конвейером повторного снапшота через `tracksViewChanges`), `onPress` с идентифицирующим payload'ом, `draggable` + события перетаскивания, `animatedMoveTo` / `animatedRotateTo`
 - 〰️ `<Polyline>` (штрихи + обводка), `<Polygon>` (дырки через `innerRings`), `<Circle>`
 - 🔵 `<Clusterer>` — декларативная кластеризация, где ваши собственные `<Marker>` служат render-пропом; настраиваемый бейдж (цвет / размер / **иконка**), `excludeFromCluster`, тап-для-подгонки, настраиваемые радиус / minZoom
 - 📡 Слой геопозиции пользователя (кастомная иконка точки + стилизация круга точности) и живой 🚦 слой пробок
@@ -414,7 +414,9 @@ import { YandexMapView, Marker } from 'expo-yandex-mapkit';
 | `rotated` | `boolean` | `false` | Если `true`, иконка поворачивается вместе с азимутом карты. |
 | `handled` | `boolean` | `false` | Если `true`, нажатие поглощается и **не** вызывает `onMapPress` карты. |
 | `identifier` | `string` | — | Непрозрачный id, возвращаемый в `onPress` — чтобы один обработчик различал маркеры. |
+| `draggable` | `boolean` | `false` | Разрешить перетаскивание маркера — долгое нажатие «поднимает» его, затем тащите. Перетаскивание неуправляемое на нативной стороне; прочитайте `point` из `onDragEnd` и обновите своё состояние (и проп `point`), чтобы сохранить положение. Базовая возможность в react-native-maps ([yamap#217](https://github.com/volga-volga/react-native-yamap/issues/217)) — ни одна обёртка для Яндекс-карт этого не даёт. |
 | `onPress` | `(event) => void` | — | `event.nativeEvent` — это `{ identifier?, point }`. |
+| `onDragStart` / `onDrag` / `onDragEnd` | `(event) => void` | — | Срабатывают при перетаскивании маркера с `draggable`. `event.nativeEvent` — это `{ identifier?, point }`: живая точка перетаскивания в `onDrag`, положение покоя — на start/end. |
 | `children` | `ReactNode` | — | React-контент, отрисованный как иконка маркера (кастомный пин). Имеет приоритет над `source`. Рендерится нативно через view-провайдер MapKit (без хрупкого снапшота в bitmap). |
 | `tracksViewChanges` | `boolean` | `true` | Перерисовывать ли иконку при изменении `children`. Поставьте `false`, когда контент устоялся (например, статичный бабл) — иконка снапшотится один раз (большой выигрыш в производительности вместо перерисовки каждый кадр). |
 | `excludeFromCluster` | `boolean` | `false` | Имеет смысл только внутри `<Clusterer>`: при `true` этот маркер никогда не сливается в кластер — он остаётся отдельным плейсмарком на любом зуме. |

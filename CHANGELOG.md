@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Draggable markers** — a `<Marker>` `draggable` prop + `onDragStart` / `onDrag` / `onDragEnd`
+  events (beyond parity — [#2](https://github.com/softwhere-uz/expo-yandex-mapkit/issues/2)).
+  Long-press a draggable marker to pick it up and drag it; each event carries `{ identifier?, point }`
+  (the live drag point during `onDrag`, the resting position on start/end). The drag is uncontrolled
+  natively — read `onDragEnd`'s `point` to persist the new location. Baseline in react-native-maps
+  ([yamap#217](https://github.com/volga-volga/react-native-yamap/issues/217)); shipped by no
+  Yandex-maps RN wrapper.
+
 ## [2.3.0] - 2026-07-29
 
 ### Added
