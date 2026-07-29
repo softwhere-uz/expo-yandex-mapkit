@@ -137,7 +137,7 @@ private final class TileUrlProvider: NSObject, YMKTilesUrlProvider {
     self.urlTemplate = urlTemplate
   }
 
-  func formatUrl(withTileId tileId: YMKTileId, version: YMKVersion, features: [String: String]) -> String {
+  func formatUrl(with tileId: YMKTileId, version: YMKVersion, features: [String: String]) -> String {
     return urlTemplate
       .replacingOccurrences(of: "{x}", with: String(tileId.x))
       .replacingOccurrences(of: "{y}", with: String(tileId.y))
