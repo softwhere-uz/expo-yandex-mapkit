@@ -223,6 +223,15 @@ public class ExpoYandexMapKitModule: Module {
       AsyncFunction("deselectGeoObject") { (view: ExpoYandexMapKitView) in
         view.deselectGeoObject()
       }.runOnQueue(.main)
+
+      // Tile overlays mutate the map's layer stack — run on the main queue.
+      AsyncFunction("addTileOverlay") { (view: ExpoYandexMapKitView, options: TileOverlayRecord) -> String in
+        view.addTileOverlay(options)
+      }.runOnQueue(.main)
+
+      AsyncFunction("removeTileOverlay") { (view: ExpoYandexMapKitView, id: String) in
+        view.removeTileOverlay(id)
+      }.runOnQueue(.main)
     }
 
     // The <Marker> child view. Named via ViewName (the iOS view-builder element — the top-level

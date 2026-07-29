@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import type { Point, ScreenPoint } from './ExpoYandexMapKit.types';
+import type { Point, ScreenPoint, TileOverlayOptions } from './ExpoYandexMapKit.types';
 
 // Shared by `YandexMapView` (provider) and JS overlay children like `<Callout>` (consumers).
 // MapKit has no native callout/balloon, so overlays are plain React views positioned over the map:
@@ -13,6 +13,10 @@ export interface MapOverlayContextValue {
   // Subscribe to camera movements (fires continuously during a gesture and once it settles).
   // Returns an unsubscribe function.
   subscribeCameraChange: (listener: () => void) => () => void;
+  // Add (or replace, by id) a custom raster tile layer; resolves the overlay id. Used by `<UrlTile>`.
+  addTileOverlay: (options: TileOverlayOptions) => Promise<string>;
+  // Remove a tile overlay by id.
+  removeTileOverlay: (id: string) => Promise<void>;
 }
 
 // `null` outside a `YandexMapView` — overlay components render nothing in that case.
