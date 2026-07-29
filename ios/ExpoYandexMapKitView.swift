@@ -1150,7 +1150,7 @@ private final class IndoorStateListener: NSObject, YMKIndoorStateListener {
     self.view = view
   }
 
-  func onActivePlanFocused(with activePlan: YMKIndoorPlan) {
+  func onActivePlanFocused(withActivePlan activePlan: YMKIndoorPlan) {
     view?.handleIndoorPlanFocused(activePlan)
   }
 
