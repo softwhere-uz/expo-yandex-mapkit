@@ -491,6 +491,28 @@ export type RouteMode = 'driving' | 'masstransit' | 'pedestrian' | 'bicycle' | '
 
 // Options for a driving route request (ignored for non-driving modes). The SDK supports all of these;
 // no Yandex-maps RN wrapper forwards them.
+// ── Offline maps — requires the `full` flavor AND a paid Yandex MapKit license ───────────────────
+
+// The download state of an offline region (mirrors MapKit's OfflineCacheRegionState).
+export type OfflineRegionState =
+  | 'available' // not downloaded; can be started
+  | 'downloading'
+  | 'paused'
+  | 'completed' // fully downloaded and current
+  | 'outdated' // downloaded but a newer version exists
+  | 'unsupported'
+  | 'needUpdate';
+
+// A downloadable offline map region (a city / area MapKit offers for offline use).
+export type OfflineRegion = {
+  id: number; // region id — pass to startDownload / dropRegion etc.
+  name: string; // localized region name
+  country: string; // localized country name
+  center: Point; // the region's center coordinate
+  state: OfflineRegionState; // current download state (polled)
+  progress: number; // download progress 0..1 (polled)
+};
+
 export type DrivingRouteOptions = {
   avoidTolls?: boolean; // avoid toll roads
   avoidUnpaved?: boolean; // avoid unpaved roads

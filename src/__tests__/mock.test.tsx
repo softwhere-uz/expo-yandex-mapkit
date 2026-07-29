@@ -23,6 +23,7 @@ describe('jest mock preset (expo-yandex-mapkit/mock)', () => {
       'boundingBox',
       'findBicycleRoutes',
       'findScooterRoutes',
+      'offlineMaps',
       'initialize',
       'setLocale',
       'getLocale',
