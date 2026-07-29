@@ -714,13 +714,12 @@ const routes = await findRoutes(
 ```tsx
 import { offlineMaps } from 'expo-yandex-mapkit';
 
-const regions = await offlineMaps.getRegions(); // [{ id, name, country, center, state, progress }]
+const regions = await offlineMaps.getRegions(); // [{ id, name, country, center }]
 const region = regions.find((r) => r.name.includes('Ташкент'));
 if (region) await offlineMaps.startDownload(region.id);
-// Прогресс/состояние опрашиваются: offlineMaps.getRegionState(id) / getRegionProgress(id).
 ```
 
-`offlineMaps`: `getRegions()`, `getRegionState(id)`, `getRegionProgress(id)`, `startDownload(id)`, `stopDownload(id)`, `pauseDownload(id)`, `dropRegion(id)`, `allowUseCellularNetwork(allow)`, `clearCache()`.
+`offlineMaps`: `getRegions()`, `startDownload(id)`, `stopDownload(id)`, `pauseDownload(id)`, `dropRegion(id)`, `allowUseCellularNetwork(allow)`, `clearCache()`. _(Отчёт о состоянии/прогрессе загрузки по регионам — в планах.)_
 
 > ⚠️ Черновик — компилируется в CI против реального (full) MapKit SDK на обеих платформах, но без лицензионного ключа проверить в рантайме нельзя; проверьте на устройстве с лицензией.
 

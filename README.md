@@ -727,16 +727,12 @@ Each `Route` carries a summary (`time`; `timeWithTraffic` + `distance` for drivi
 ```tsx
 import { offlineMaps } from 'expo-yandex-mapkit';
 
-const regions = await offlineMaps.getRegions(); // [{ id, name, country, center, state, progress }]
+const regions = await offlineMaps.getRegions(); // [{ id, name, country, center }]
 const tashkent = regions.find((r) => r.name.includes('Tashkent'));
 if (tashkent) await offlineMaps.startDownload(tashkent.id);
-
-// Progress/state are polled — refresh on an interval while downloading:
-const state = await offlineMaps.getRegionState(tashkent!.id);   // 'downloading' | 'completed' | …
-const progress = await offlineMaps.getRegionProgress(tashkent!.id); // 0..1
 ```
 
-`offlineMaps`: `getRegions()`, `getRegionState(id)`, `getRegionProgress(id)`, `startDownload(id)`, `stopDownload(id)`, `pauseDownload(id)`, `dropRegion(id)`, `allowUseCellularNetwork(allow)`, `clearCache()`. Real demand in the lineage ([yamap#311](https://github.com/volga-volga/react-native-yamap/issues/311), [#210](https://github.com/volga-volga/react-native-yamap/issues/210)); no wrapper ships it.
+`offlineMaps`: `getRegions()`, `startDownload(id)`, `stopDownload(id)`, `pauseDownload(id)`, `dropRegion(id)`, `allowUseCellularNetwork(allow)`, `clearCache()`. Real demand in the lineage ([yamap#311](https://github.com/volga-volga/react-native-yamap/issues/311), [#210](https://github.com/volga-volga/react-native-yamap/issues/210)); no wrapper ships it. _(Live per-region download state/progress reporting is a follow-up.)_
 
 > ⚠️ Draft — this native feature is CI-compiled against the real (full-flavor) MapKit SDK on both platforms, but it cannot be runtime-tested without a licensed key; validate on a device with a license before relying on it.
 

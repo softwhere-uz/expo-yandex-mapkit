@@ -69,8 +69,6 @@ const ExpoYandexSearchModule = {
 const ExpoYandexTransportModule = { findRoutes: fn(async () => []) };
 const ExpoYandexOfflineModule = {
   getRegions: fn(async () => []),
-  getRegionState: fn(async () => 'unsupported'),
-  getRegionProgress: fn(async () => 0),
   startDownload: fn(async () => {}),
   stopDownload: fn(async () => {}),
   pauseDownload: fn(async () => {}),
@@ -100,8 +98,6 @@ module.exports = {
   // Offline maps namespace (full-flavor + paid-license feature; mocked to harmless defaults).
   offlineMaps: {
     getRegions: fn(async () => []),
-    getRegionState: fn(async () => 'unsupported'),
-    getRegionProgress: fn(async () => 0),
     startDownload: fn(async () => {}),
     stopDownload: fn(async () => {}),
     pauseDownload: fn(async () => {}),

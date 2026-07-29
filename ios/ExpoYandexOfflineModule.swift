@@ -8,7 +8,7 @@ import ExpoModulesCore
 // `#if YANDEX_MAPS_FULL`, and even then the SDK requires a Yandex MapKit license that permits offline
 // caching (the free tier does not). In the lite flavor every call rejects with a clear message.
 // Surface: list regions, control a region's download (start / stop / pause / drop), clear the cache.
-// Progress/state are polled (getRegions / getRegionState / getRegionProgress).
+// (Live per-region state/progress reporting is a follow-up — see the module's JS docs.)
 public class ExpoYandexOfflineModule: Module {
   public func definition() -> ModuleDefinition {
     Name("ExpoYandexOffline")
@@ -22,29 +22,9 @@ public class ExpoYandexOfflineModule: Module {
             "name": region.name,
             "country": region.country,
             "center": ["latitude": region.center.latitude, "longitude": region.center.longitude],
-            "state": Self.stateName(manager.state(withRegionId: region.id)),
-            "progress": Double(manager.progress(withRegionId: region.id)),
           ]
         }
         promise.resolve(regions)
-      #else
-        promise.reject("E_FULL_REQUIRED", Self.fullRequiredMessage)
-      #endif
-    }.runOnQueue(.main)
-
-    AsyncFunction("getRegionState") { (regionId: Int, promise: Promise) in
-      #if YANDEX_MAPS_FULL
-        let manager = YMKMapKit.sharedInstance().offlineCacheManager
-        promise.resolve(Self.stateName(manager.state(withRegionId: UInt(regionId))))
-      #else
-        promise.reject("E_FULL_REQUIRED", Self.fullRequiredMessage)
-      #endif
-    }.runOnQueue(.main)
-
-    AsyncFunction("getRegionProgress") { (regionId: Int, promise: Promise) in
-      #if YANDEX_MAPS_FULL
-        let manager = YMKMapKit.sharedInstance().offlineCacheManager
-        promise.resolve(Double(manager.progress(withRegionId: UInt(regionId))))
       #else
         promise.reject("E_FULL_REQUIRED", Self.fullRequiredMessage)
       #endif
@@ -109,19 +89,4 @@ public class ExpoYandexOfflineModule: Module {
       promise.reject("E_FULL_REQUIRED", Self.fullRequiredMessage)
     #endif
   }
-
-  #if YANDEX_MAPS_FULL
-    private static func stateName(_ state: YMKOfflineCacheRegionState) -> String {
-      switch state {
-      case .available: return "available"
-      case .downloading: return "downloading"
-      case .paused: return "paused"
-      case .completed: return "completed"
-      case .outdated: return "outdated"
-      case .unsupported: return "unsupported"
-      case .needUpdate: return "needUpdate"
-      @unknown default: return "unsupported"
-      }
-    }
-  #endif
 }

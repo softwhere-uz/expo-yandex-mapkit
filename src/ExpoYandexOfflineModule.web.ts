@@ -1,6 +1,6 @@
 import { registerWebModule, NativeModule } from 'expo';
 
-import { OfflineRegion, OfflineRegionState } from './ExpoYandexMapKit.types';
+import { OfflineRegion } from './ExpoYandexMapKit.types';
 import { warnWebNotSupportedOnce } from './ExpoYandexMapKitModule.web';
 
 // Offline maps are not available on the web platform.
@@ -8,14 +8,6 @@ class ExpoYandexOfflineModule extends NativeModule {
   async getRegions(): Promise<OfflineRegion[]> {
     warnWebNotSupportedOnce();
     return [];
-  }
-  async getRegionState(_regionId: number): Promise<OfflineRegionState> {
-    warnWebNotSupportedOnce();
-    return 'unsupported';
-  }
-  async getRegionProgress(_regionId: number): Promise<number> {
-    warnWebNotSupportedOnce();
-    return 0;
   }
   async startDownload(_regionId: number): Promise<void> {
     warnWebNotSupportedOnce();

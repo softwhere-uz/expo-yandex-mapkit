@@ -12,8 +12,6 @@ class ExpoYandexOfflineModule : Module() {
     Name("ExpoYandexOffline")
 
     AsyncFunction("getRegions") { promise: Promise -> reject(promise) }
-    AsyncFunction("getRegionState") { _: Int, promise: Promise -> reject(promise) }
-    AsyncFunction("getRegionProgress") { _: Int, promise: Promise -> reject(promise) }
     AsyncFunction("startDownload") { _: Int, promise: Promise -> reject(promise) }
     AsyncFunction("stopDownload") { _: Int, promise: Promise -> reject(promise) }
     AsyncFunction("pauseDownload") { _: Int, promise: Promise -> reject(promise) }

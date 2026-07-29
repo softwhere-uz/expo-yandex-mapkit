@@ -3,7 +3,6 @@
 import type {
   DrivingRouteOptions,
   OfflineRegion,
-  OfflineRegionState,
   Point,
   Route,
   RouteMode,
@@ -202,18 +201,11 @@ export { default as ExpoYandexTransportModule } from './ExpoYandexTransportModul
  * ⚠️ Requires the MapKit **full** flavor (`flavor: 'full'` in the config plugin) **and a paid Yandex
  * MapKit license** that permits offline caching — the free tier does not. On `lite` (or without a
  * license) the calls reject with a clear message. Progress / state are **polled** — call
- * `getRegions` (or `getRegionState` / `getRegionProgress`) to refresh, e.g. on an interval while a
- * download runs.
+ * `getRegions` to refresh the region list, e.g. after `onListUpdated`.
  */
 export const offlineMaps = {
-  /** List the regions MapKit offers for offline download, with each region's current state + progress. */
+  /** List the regions MapKit offers for offline download. */
   getRegions: (): Promise<OfflineRegion[]> => ExpoYandexOfflineModule.getRegions(),
-  /** The current download {@link OfflineRegionState} of a region. */
-  getRegionState: (regionId: number): Promise<OfflineRegionState> =>
-    ExpoYandexOfflineModule.getRegionState(regionId),
-  /** A region's download progress, 0..1. */
-  getRegionProgress: (regionId: number): Promise<number> =>
-    ExpoYandexOfflineModule.getRegionProgress(regionId),
   /** Start (or resume) downloading a region. */
   startDownload: (regionId: number): Promise<void> => ExpoYandexOfflineModule.startDownload(regionId),
   /** Stop a region's download (does not delete what was already downloaded). */
