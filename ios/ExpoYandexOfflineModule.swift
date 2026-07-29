@@ -22,8 +22,8 @@ public class ExpoYandexOfflineModule: Module {
             "name": region.name,
             "country": region.country,
             "center": ["latitude": region.center.latitude, "longitude": region.center.longitude],
-            "state": Self.stateName(manager.getState(withRegionId: region.id)),
-            "progress": Double(manager.getProgress(withRegionId: region.id)),
+            "state": Self.stateName(manager.state(withRegionId: region.id)),
+            "progress": Double(manager.progress(withRegionId: region.id)),
           ]
         }
         promise.resolve(regions)
@@ -35,7 +35,7 @@ public class ExpoYandexOfflineModule: Module {
     AsyncFunction("getRegionState") { (regionId: Int, promise: Promise) in
       #if YANDEX_MAPS_FULL
         let manager = YMKMapKit.sharedInstance().offlineCacheManager
-        promise.resolve(Self.stateName(manager.getState(withRegionId: UInt(regionId))))
+        promise.resolve(Self.stateName(manager.state(withRegionId: UInt(regionId))))
       #else
         promise.reject("E_FULL_REQUIRED", Self.fullRequiredMessage)
       #endif
@@ -44,7 +44,7 @@ public class ExpoYandexOfflineModule: Module {
     AsyncFunction("getRegionProgress") { (regionId: Int, promise: Promise) in
       #if YANDEX_MAPS_FULL
         let manager = YMKMapKit.sharedInstance().offlineCacheManager
-        promise.resolve(Double(manager.getProgress(withRegionId: UInt(regionId))))
+        promise.resolve(Double(manager.progress(withRegionId: UInt(regionId))))
       #else
         promise.reject("E_FULL_REQUIRED", Self.fullRequiredMessage)
       #endif
