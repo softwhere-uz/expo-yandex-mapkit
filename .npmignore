@@ -27,3 +27,6 @@ __tests__
 
 # README artwork — referenced by absolute URL, not shipped in the tarball
 /media/
+
+# Generated API docs — not shipped in the tarball
+/docs/

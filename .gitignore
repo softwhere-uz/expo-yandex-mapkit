@@ -68,3 +68,6 @@ plugin/build/
 
 # npm pack artifacts (created by the bare CI jobs)
 /*.tgz
+
+# Generated API docs (typedoc) — build with `npm run docs`
+/docs/api/

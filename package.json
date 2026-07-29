@@ -12,7 +12,8 @@
     "prepare": "node internal/module_scripts/prepare.js",
     "open:ios": "node internal/module_scripts/open-ios.js",
     "open:android": "node internal/module_scripts/open-android.js",
-    "check:plugin": "node scripts/check-plugin.mjs"
+    "check:plugin": "node scripts/check-plugin.mjs",
+    "docs": "typedoc"
   },
   "keywords": [
     "yandex",
@@ -54,6 +55,7 @@
     "prettier": "^3.0.0",
     "react": "19.2.3",
     "react-native": "0.86.0",
+    "typedoc": "^0.28.20",
     "typescript": "^5.9.2"
   },
   "jest": {

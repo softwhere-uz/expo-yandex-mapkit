@@ -1,0 +1,18 @@
+{
+  "$schema": "https://typedoc.org/schema.json",
+  "entryPoints": ["src/index.ts"],
+  "out": "docs/api",
+  "name": "expo-yandex-mapkit",
+  "readme": "README.md",
+  "tsconfig": "tsconfig.json",
+  "excludePrivate": true,
+  "excludeInternal": true,
+  "excludeExternals": true,
+  "githubPages": false,
+  "highlightLanguages": ["typescript", "tsx", "javascript", "jsx", "json", "jsonc", "bash", "sh", "diff", "properties"],
+  "navigationLinks": {
+    "GitHub": "https://github.com/softwhere-uz/expo-yandex-mapkit",
+    "Migration guide": "https://github.com/softwhere-uz/expo-yandex-mapkit/blob/main/MIGRATION.md",
+    "Русский (README)": "https://github.com/softwhere-uz/expo-yandex-mapkit/blob/main/README.ru.md"
+  }
+}

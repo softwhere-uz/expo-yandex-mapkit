@@ -249,6 +249,8 @@ The full version (night-mode toggle included) lives in [`example/`](./example).
 
 ## API reference
 
+> Prefer generated docs? Run **`npm run docs`** to build a full [Typedoc](https://typedoc.org/) API reference from the TypeScript types + JSDoc into `docs/api/` (open `docs/api/index.html`). Every exported component, function, and type is documented from the source, so it never drifts from the code.
+
 ### `initialize(apiKey: string): Promise<void>`
 
 Initializes the native MapKit SDK. Call it once, before rendering any `YandexMapView` — a map view rendered before initialization stays empty and logs a warning (it does not crash), then recovers automatically once `initialize` resolves.
