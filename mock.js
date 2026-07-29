@@ -51,6 +51,7 @@ const Circle = mockComponent('Circle');
 const Geojson = mockComponent('Geojson');
 const Route = mockComponent('Route');
 const Callout = mockComponent('Callout');
+const MarkerView = mockComponent('MarkerView');
 
 // The raw native modules (escape hatches) — enough shape that a consumer can spy on them.
 const ExpoYandexMapKitModule = {
@@ -77,6 +78,7 @@ module.exports = {
   Geojson,
   Route,
   Callout,
+  MarkerView,
 
   ExpoYandexMapKitModule,
   ExpoYandexSuggestModule,

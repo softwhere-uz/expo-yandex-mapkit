@@ -350,6 +350,27 @@ export type CalloutProps = {
   onPress?: () => void;
 };
 
+// ── <MarkerView> — a live, interactive React view positioned at a world coordinate ───────────────
+
+export type MarkerViewProps = {
+  // The world coordinate the view is positioned at.
+  point: Point;
+  // Which point inside the view (0..1 of its own size) sits on `point`. Default { x: 0.5, y: 0.5 }
+  // (center) — a marker sits on the coordinate.
+  anchor?: CalloutAnchor;
+  // Extra offset applied after anchoring, in React Native points (x → right, y → down).
+  offset?: ScreenPoint;
+  // The live React Native content.
+  children?: ReactNode;
+  // Style for the absolutely-positioned container.
+  style?: StyleProp<ViewStyle>;
+  // Touch handling for the container. Default `'box-none'` — taps on the transparent area pass
+  // through to the map, but the view's own children stay interactive.
+  pointerEvents?: 'auto' | 'none' | 'box-none' | 'box-only';
+  // Called when the view is pressed (wraps the content in a Pressable when set).
+  onPress?: () => void;
+};
+
 export type VisibleRegion = {
   topLeft: Point;
   topRight: Point;

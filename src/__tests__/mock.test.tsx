@@ -17,6 +17,7 @@ describe('jest mock preset (expo-yandex-mapkit/mock)', () => {
       'Geojson',
       'Route',
       'Callout',
+      'MarkerView',
       'distanceBetween',
       'pathLength',
       'boundingBox',
