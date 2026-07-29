@@ -29,6 +29,7 @@ export { Circle } from './ExpoYandexMapKitCircleView';
 export { Route } from './ExpoYandexMapKitRoute';
 export { distanceBetween, pathLength, boundingBox } from './geometry';
 export { Geojson } from './ExpoYandexMapKitGeojson';
+export { Callout } from './ExpoYandexMapKitCallout';
 // eslint-disable-next-line import/export
 export * from './ExpoYandexMapKit.types';
 

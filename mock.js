@@ -29,6 +29,7 @@ const mapRef = {
 const markerRef = {
   animatedMoveTo: fn(async () => {}),
   animatedRotateTo: fn(async () => {}),
+  animateAlong: fn(async () => {}),
 };
 
 // A component that renders its children in a <View>, optionally exposing `refValue` on its ref.
@@ -47,6 +48,9 @@ const Clusterer = mockComponent('Clusterer');
 const Polyline = mockComponent('Polyline');
 const Polygon = mockComponent('Polygon');
 const Circle = mockComponent('Circle');
+const Geojson = mockComponent('Geojson');
+const Route = mockComponent('Route');
+const Callout = mockComponent('Callout');
 
 // The raw native modules (escape hatches) — enough shape that a consumer can spy on them.
 const ExpoYandexMapKitModule = {
@@ -70,11 +74,19 @@ module.exports = {
   Polyline,
   Polygon,
   Circle,
+  Geojson,
+  Route,
+  Callout,
 
   ExpoYandexMapKitModule,
   ExpoYandexSuggestModule,
   ExpoYandexSearchModule,
   ExpoYandexTransportModule,
+
+  // Geometry helpers (pure — mocked to harmless defaults).
+  distanceBetween: fn(() => 0),
+  pathLength: fn(() => 0),
+  boundingBox: fn(() => null),
 
   // Top-level functions.
   initialize: fn(async () => {}),
@@ -92,4 +104,6 @@ module.exports = {
   findDrivingRoutes: fn(async () => []),
   findMasstransitRoutes: fn(async () => []),
   findPedestrianRoutes: fn(async () => []),
+  findBicycleRoutes: fn(async () => []),
+  findScooterRoutes: fn(async () => []),
 };

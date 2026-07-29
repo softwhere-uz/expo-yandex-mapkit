@@ -16,6 +16,7 @@ import {
   YandexMapViewProps,
   YandexMapViewRef,
 } from './ExpoYandexMapKit.types';
+import { MapOverlayContext, MapOverlayContextValue } from './ExpoYandexMapKitMapContext';
 
 // Turn the visible region quad + the camera center into a react-native-maps `Region`.
 function toRegion(center: CameraPosition, region: VisibleRegion): Region {
@@ -58,11 +59,27 @@ export const YandexMapView = React.forwardRef<YandexMapViewRef, YandexMapViewPro
   ) => {
     const nativeRef = React.useRef<any>(null);
 
-    // Forward the native camera event to the user's handler, and — for the react-native-maps
-    // `onRegionChangeComplete` alias — once a move settles, read the visible region and hand back a
-    // `Region`. Recreated each render so it always sees the latest props.
+    // JS overlay children (e.g. `<Callout>`) subscribe to camera movements so they can reposition.
+    // Kept in a ref (mutating it must not re-render); `overlayCount` state only exists to force the
+    // native camera handler to be wired while there is at least one overlay subscriber.
+    const cameraListeners = React.useRef<Set<() => void>>(new Set());
+    const [overlayCount, setOverlayCount] = React.useState(0);
+
+    const subscribeCameraChange = React.useCallback((listener: () => void) => {
+      cameraListeners.current.add(listener);
+      setOverlayCount((count) => count + 1);
+      return () => {
+        cameraListeners.current.delete(listener);
+        setOverlayCount((count) => count - 1);
+      };
+    }, []);
+
+    // Forward the native camera event to the user's handler, notify overlay subscribers, and — for
+    // the react-native-maps `onRegionChangeComplete` alias — once a move settles, read the visible
+    // region and hand back a `Region`. Recreated each render so it always sees the latest props.
     const handleCameraPositionChanged = (event: { nativeEvent: CameraPositionChangeEvent }) => {
       onCameraPositionChanged?.(event);
+      cameraListeners.current.forEach((listener) => listener());
       if (event.nativeEvent.finished && onRegionChangeComplete) {
         nativeRef.current?.getVisibleRegion().then((region: VisibleRegion | null) => {
           if (region) {
@@ -71,6 +88,15 @@ export const YandexMapView = React.forwardRef<YandexMapViewRef, YandexMapViewPro
         });
       }
     };
+
+    const overlayContext = React.useMemo<MapOverlayContextValue>(
+      () => ({
+        getScreenPoints: (points: Point[]) =>
+          nativeRef.current?.getScreenPoints(points) ?? Promise.resolve([]),
+        subscribeCameraChange,
+      }),
+      [subscribeCameraChange]
+    );
 
     // Resolve the user-location icon (require(...) number or { uri }) to the URI the native side
     // loads; undefined keeps MapKit's default location dot.
@@ -119,18 +145,20 @@ export const YandexMapView = React.forwardRef<YandexMapViewRef, YandexMapViewPro
     );
 
     return (
-      <NativeView
-        {...props}
-        onCameraPositionChanged={
-          onCameraPositionChanged || onRegionChangeComplete
-            ? handleCameraPositionChanged
-            : undefined
-        }
-        userLocationIcon={userLocationIconUri}
-        userLocationAccuracyFillColor={processColor(userLocationAccuracyFillColor)}
-        userLocationAccuracyStrokeColor={processColor(userLocationAccuracyStrokeColor)}
-        ref={nativeRef}
-      />
+      <MapOverlayContext.Provider value={overlayContext}>
+        <NativeView
+          {...props}
+          onCameraPositionChanged={
+            onCameraPositionChanged || onRegionChangeComplete || overlayCount > 0
+              ? handleCameraPositionChanged
+              : undefined
+          }
+          userLocationIcon={userLocationIconUri}
+          userLocationAccuracyFillColor={processColor(userLocationAccuracyFillColor)}
+          userLocationAccuracyStrokeColor={processColor(userLocationAccuracyStrokeColor)}
+          ref={nativeRef}
+        />
+      </MapOverlayContext.Provider>
     );
   }
 );

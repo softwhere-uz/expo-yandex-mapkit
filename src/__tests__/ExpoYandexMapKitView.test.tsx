@@ -8,7 +8,9 @@ const mockNative: { props: any } = { props: null };
 jest.mock('expo', () => ({
   requireNativeView: () => (props: any) => {
     mockNative.props = props;
-    return null;
+    // Render children so nested JS overlays (e.g. <Callout>) actually mount, the way the real
+    // native view hosts them. Most tests pass no children, so this is a harmless null.
+    return props.children ?? null;
   },
 }));
 
@@ -16,6 +18,8 @@ jest.mock('expo', () => ({
 import type { YandexMapViewRef } from '../ExpoYandexMapKit.types';
 // eslint-disable-next-line import/first
 import { YandexMapView } from '../ExpoYandexMapKitView';
+// eslint-disable-next-line import/first
+import { Callout } from '../ExpoYandexMapKitCallout';
 
 function renderMap(props: Record<string, unknown>): any {
   act(() => {
@@ -220,5 +224,25 @@ describe('YandexMapView react-native-maps aliases', () => {
     expect(typeof props.onCameraPositionChanged).toBe('function');
     // The public alias must not leak to the native view (it is not a native event).
     expect(props.onRegionChangeComplete).toBeUndefined();
+  });
+});
+
+// <Callout> overlay integration (issue #2, Section B) — a Callout child subscribes to camera
+// movements via the map context, which must force the native camera handler to be wired even when
+// the app sets no camera event props (otherwise the balloon could never reposition).
+describe('YandexMapView overlay (Callout) camera wiring', () => {
+  afterEach(() => {
+    mockNative.props = null;
+  });
+
+  it('wires the native camera handler while a Callout child is mounted', async () => {
+    await act(async () => {
+      TestRenderer.create(
+        <YandexMapView>
+          <Callout point={{ latitude: 41.3, longitude: 69.2 }} />
+        </YandexMapView>
+      );
+    });
+    expect(typeof mockNative.props.onCameraPositionChanged).toBe('function');
   });
 });

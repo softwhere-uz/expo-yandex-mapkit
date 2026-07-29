@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **`<Callout>` component** (beyond parity — [#2](https://github.com/softwhere-uz/expo-yandex-mapkit/issues/2)).
+  A React balloon anchored to a world coordinate. MapKit has no native callout, so it is a pure-JS
+  overlay: it projects `point` to a screen position (world→screen) and repositions on every camera
+  movement. Render any React Native content inside, as a child of `<YandexMapView>` alongside your
+  `<Marker>`s. Props: `point`, `anchor` (default bottom-center), `offset`, `onPress`, `pointerEvents`,
+  `style`. No other Yandex-maps RN wrapper ships one ([yamap#144](https://github.com/volga-volga/react-native-yamap/issues/144)).
+- **Jest mock preset synced with the public API.** `expo-yandex-mapkit/mock` now also exports
+  `Geojson`, `Route`, `Callout`, the geometry helpers (`distanceBetween` / `pathLength` /
+  `boundingBox`), `findBicycleRoutes` / `findScooterRoutes`, and the marker `animateAlong` ref method
+  — they were missing since the preset was first cut.
+
 ## [2.16.0] - 2026-07-29
 
 ### Added

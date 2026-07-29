@@ -29,6 +29,7 @@
 - 📍 `<Marker>` — иконки-картинки **или из React-детей** (надёжно, с конвейером повторного снапшота через `tracksViewChanges`), `onPress` с идентифицирующим payload'ом, `draggable` + события перетаскивания, `animatedMoveTo` / `animatedRotateTo` / `animateAlong`
 - 〰️ `<Polyline>` (штрихи + обводка), `<Polygon>` (дырки через `innerRings`), `<Circle>`, `<Geojson>` (разворачивает объект GeoJSON в объекты карты)
 - 🔵 `<Clusterer>` — декларативная кластеризация, где ваши собственные `<Marker>` служат render-пропом; настраиваемый бейдж (цвет / размер / **иконка**), `excludeFromCluster`, тап-для-подгонки, настраиваемые радиус / minZoom
+- 💬 `<Callout>` — **React-балун**, привязанный к мировой координате (у MapKit нет нативного callout); любой RN-контент, сам перепозиционируется при движении камеры
 - 📡 Слой геопозиции пользователя (кастомная иконка точки + стилизация круга точности, координаты через `onUserLocationChange`) и живой 🚦 слой пробок
 
 **Модули flavor `full`** — задайте `flavor: 'full'` ([lite и full](#lite-и-full))
@@ -544,6 +545,35 @@ import { YandexMapView, Geojson } from 'expo-yandex-mapkit';
 ```
 
 Принимает `FeatureCollection`, `Feature` или голую `Geometry`. `Point`/`MultiPoint` → маркеры, `LineString`/`MultiLineString` → полилинии, `Polygon`/`MultiPolygon` → полигоны (первое кольцо — внешнее, остальные — дырки); `GeometryCollection` разворачивается рекурсивно. Пропсы: `geojson`, `markerSource` / `markerScale`, `strokeColor` / `strokeWidth`, `fillColor`, `zIndex`, `onPress(feature)`. GeoJSON `[lng, lat]` конвертируется в `{ latitude, longitude }` за вас.
+
+### `<Callout />`
+
+React-**балун** (callout), привязанный к мировой координате. У MapKit нет нативного callout, поэтому это обычная overlay-вью: она проецирует `point` в экранную позицию (мир→экран) и перепозиционируется при каждом движении камеры. Рендерите её как дочерний элемент `<YandexMapView>`, рядом с вашими `<Marker>` — внутрь кладите любой React Native-контент:
+
+```tsx
+import { YandexMapView, Marker, Callout } from 'expo-yandex-mapkit';
+
+<YandexMapView style={StyleSheet.absoluteFill} cameraPosition={{ latitude: 41.31, longitude: 69.24, zoom: 14 }}>
+  <Marker point={place} />
+  <Callout point={place} onPress={() => openDetails(place)}>
+    <View style={styles.bubble}>
+      <Text style={styles.title}>{place.name}</Text>
+      <Text>{place.address}</Text>
+    </View>
+  </Callout>
+</YandexMapView>;
+```
+
+| Пропс | Тип | По умолчанию | Примечание |
+| --- | --- | --- | --- |
+| `point` | `Point` | — | Мировая координата, к которой привязан балун. |
+| `anchor` | `{ x: number; y: number }` | `{ x: 0.5, y: 1 }` | Какая точка внутри балуна (0..1 от его размера) садится на `point`. По умолчанию низ-центр, чтобы балун висел над координатой как пин. |
+| `offset` | `{ x: number; y: number }` | `undefined` | Доп. смещение в точках React Native, применяется после привязки. |
+| `pointerEvents` | `'auto' \| 'none' \| 'box-none' \| 'box-only'` | `'box-none'` | Тапы по прозрачной области проходят к карте; сам контент балуна остаётся кликабельным. |
+| `onPress` | `() => void` | `undefined` | Оборачивает контент в `Pressable`. |
+| `style` | `StyleProp<ViewStyle>` | — | Стиль абсолютно спозиционированного контейнера. |
+
+Ни одна другая RN-обёртка для Яндекс-карт не поставляет компонент callout ([yamap#144](https://github.com/volga-volga/react-native-yamap/issues/144)). На вебе (карты нет) рендерит пустоту.
 
 ### `<Clusterer />`
 
