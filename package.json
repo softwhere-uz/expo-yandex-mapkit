@@ -1,6 +1,6 @@
 {
   "name": "expo-yandex-mapkit",
-  "version": "2.18.0",
+  "version": "2.19.0",
   "description": "Yandex Maps (MapKit) for Expo — Expo Modules API, config plugin, New Architecture",
   "main": "build/index.js",
   "types": "build/index.d.ts",
