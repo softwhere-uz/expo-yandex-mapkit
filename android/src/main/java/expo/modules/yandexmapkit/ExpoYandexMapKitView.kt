@@ -15,6 +15,8 @@ import com.yandex.mapkit.ScreenRect
 import com.yandex.mapkit.geometry.BoundingBox
 import com.yandex.mapkit.geometry.Geometry
 import com.yandex.mapkit.geometry.Point
+import com.yandex.mapkit.indoor.IndoorPlan
+import com.yandex.mapkit.indoor.IndoorStateListener
 import com.yandex.mapkit.layers.GeoObjectTapEvent
 import com.yandex.mapkit.layers.GeoObjectTapListener
 import com.yandex.mapkit.logo.Alignment as LogoAlignment
@@ -210,6 +212,9 @@ class ExpoYandexMapKitView(context: Context, appContext: AppContext) : ExpoView(
   private val onTrafficChanged by EventDispatcher<Map<String, Any?>>()
   private val onUserLocationChange by EventDispatcher<Map<String, Any>>()
   private val onPoiTap by EventDispatcher<Map<String, Any?>>()
+  private val onIndoorPlanFocused by EventDispatcher<Map<String, Any?>>()
+  private val onIndoorPlanLeft by EventDispatcher<Map<String, Any?>>()
+  private val onIndoorLevelChanged by EventDispatcher<Map<String, Any?>>()
 
   internal var animated = true
 
@@ -368,6 +373,34 @@ class ExpoYandexMapKitView(context: Context, appContext: AppContext) : ExpoView(
     } else {
       onPoiTap(poiTapPayload(event.geoObject, selection))
       true
+    }
+  }
+
+  // Whether indoor plans (floor levels) are shown. Stored so a value set before the map exists is
+  // applied on map creation, like nightMode. `activeIndoorPlan` is the focused plan, so
+  // setIndoorLevel() can change its floor.
+  private var indoorEnabled = false
+  private var activeIndoorPlan: IndoorPlan? = null
+  private val indoorStateListener = object : IndoorStateListener {
+    override fun onActivePlanFocused(activePlan: IndoorPlan) {
+      activeIndoorPlan = activePlan
+      onIndoorPlanFocused(
+        mapOf(
+          "activeLevelId" to activePlan.activeLevelId,
+          "levels" to activePlan.levels.map {
+            mapOf("id" to it.id, "name" to it.name, "isUnderground" to it.isUnderground)
+          }
+        )
+      )
+    }
+
+    override fun onActivePlanLeft() {
+      activeIndoorPlan = null
+      onIndoorPlanLeft(emptyMap())
+    }
+
+    override fun onActiveLevelChanged(activeLevelId: String) {
+      onIndoorLevelChanged(mapOf("activeLevelId" to activeLevelId))
     }
   }
 
@@ -735,6 +768,17 @@ class ExpoYandexMapKitView(context: Context, appContext: AppContext) : ExpoView(
     mapView?.mapWindow?.map?.deselectGeoObject()
   }
 
+  internal fun setIndoorEnabled(value: Boolean) {
+    indoorEnabled = value
+    mapView?.mapWindow?.map?.isIndoorEnabled = value
+  }
+
+  // Set the active floor of the focused indoor plan. No-op until a plan is focused
+  // (onIndoorPlanFocused) — pass one of the level ids from that event.
+  internal fun setIndoorLevel(levelId: String) {
+    activeIndoorPlan?.activeLevelId = levelId
+  }
+
   internal fun currentCameraPosition(): Map<String, Any>? {
     val map = mapView?.mapWindow?.map ?: return null
     return cameraPositionPayload(map.cameraPosition)
@@ -980,6 +1024,8 @@ class ExpoYandexMapKitView(context: Context, appContext: AppContext) : ExpoView(
     map.addInputListener(WeakReference(inputListener))
     map.addTapListener(WeakReference(geoObjectTapListener))
     map.setMapLoadedListener(WeakReference(mapLoadedListener))
+    map.addIndoorStateListener(WeakReference(indoorStateListener))
+    map.isIndoorEnabled = indoorEnabled
     map.isNightModeEnabled = nightMode
     applyGestureState()
     map.isFastTapEnabled = fastTapEnabled

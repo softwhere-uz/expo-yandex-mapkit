@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **Indoor plans + floor picker** (beyond parity — [#2](https://github.com/softwhere-uz/expo-yandex-mapkit/issues/2)).
+  An `indoorEnabled` prop shows MapKit's indoor building plans; `onIndoorPlanFocused`
+  (`{ levels: IndoorLevel[], activeLevelId }`, floors bottom-to-top), `onIndoorPlanLeft`, and
+  `onIndoorLevelChanged` surface the floors so you can build your own floor picker, and the
+  `setIndoorLevel(id)` map-ref method switches floors (via `YMKIndoorStateListener` /
+  `IndoorStateListener` + `IndoorPlan.activeLevelId`). No other Yandex-maps RN wrapper exposes it.
+  _⚠️ Draft: CI-compiled against the real MapKit SDK on both platforms, but not yet runtime-validated
+  on a device (over an indoor-mapped building) — validate before production use._
+
 ## [2.20.0] - 2026-07-29
 
 ### Added

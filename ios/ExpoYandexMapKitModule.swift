@@ -73,10 +73,15 @@ public class ExpoYandexMapKitModule: Module {
     View(ExpoYandexMapKitView.self) {
       Events(
         "onMapReady", "onCameraPositionChanged", "onMapPress", "onMapLongPress", "onMapLoaded",
-        "onTrafficChanged", "onUserLocationChange", "onPoiTap")
+        "onTrafficChanged", "onUserLocationChange", "onPoiTap",
+        "onIndoorPlanFocused", "onIndoorPlanLeft", "onIndoorLevelChanged")
 
       Prop("cameraPosition") { (view: ExpoYandexMapKitView, cameraPosition: CameraPositionRecord) in
         view.setCameraPosition(cameraPosition)
+      }
+
+      Prop("indoorEnabled") { (view: ExpoYandexMapKitView, enabled: Bool) in
+        view.setIndoorEnabled(enabled)
       }
 
       Prop("animated") { (view: ExpoYandexMapKitView, animated: Bool) in
@@ -222,6 +227,11 @@ public class ExpoYandexMapKitModule: Module {
 
       AsyncFunction("deselectGeoObject") { (view: ExpoYandexMapKitView) in
         view.deselectGeoObject()
+      }.runOnQueue(.main)
+
+      // Changing the active indoor floor mutates map state — run on the main queue.
+      AsyncFunction("setIndoorLevel") { (view: ExpoYandexMapKitView, levelId: String) in
+        view.setIndoorLevel(levelId)
       }.runOnQueue(.main)
     }
 
