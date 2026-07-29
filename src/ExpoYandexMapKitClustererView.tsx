@@ -67,8 +67,7 @@ export function Clusterer({
       {...props}
       clusterColor={processColor(clusterColor)}
       clusterTextColor={processColor(clusterTextColor)}
-      clusterIcon={clusterIconUri}
-    >
+      clusterIcon={clusterIconUri}>
       {/* The badge template: a single off-screen host the native side snapshots. It must be the
           only non-<Marker> child, and collapsable={false} keeps Android from view-flattening it so
           it retains a real view to snapshot. It renders nothing on-screen (the clusterer is not in
