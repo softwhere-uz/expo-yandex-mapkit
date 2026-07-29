@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **`<MarkerView>` component** (beyond parity — [#2](https://github.com/softwhere-uz/expo-yandex-mapkit/issues/2)).
+  A **live, interactive** React view positioned at a world coordinate — the @rnmapbox `MarkerView`
+  convention. Unlike `<Marker>` (which snapshots its React children to a static bitmap placemark
+  icon), `<MarkerView>` is a real React Native view that stays interactive and updates every render;
+  it projects `point` to a screen position and repositions on every camera movement. Props: `point`,
+  `anchor` (default center), `offset`, `onPress`, `pointerEvents`, `style`. Pure JS (shares the
+  `<Callout>` overlay pipeline). Use `<Marker>` for large static sets, `<MarkerView>` for a few
+  live/interactive ones.
+
 ## [2.17.0] - 2026-07-29
 
 ### Added

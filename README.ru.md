@@ -30,6 +30,7 @@
 - 〰️ `<Polyline>` (штрихи + обводка), `<Polygon>` (дырки через `innerRings`), `<Circle>`, `<Geojson>` (разворачивает объект GeoJSON в объекты карты)
 - 🔵 `<Clusterer>` — декларативная кластеризация, где ваши собственные `<Marker>` служат render-пропом; настраиваемый бейдж (цвет / размер / **иконка**), `excludeFromCluster`, тап-для-подгонки, настраиваемые радиус / minZoom
 - 💬 `<Callout>` — **React-балун**, привязанный к мировой координате (у MapKit нет нативного callout); любой RN-контент, сам перепозиционируется при движении камеры
+- 🪧 `<MarkerView>` — **живая интерактивная** React-вью в роли маркера (соглашение @rnmapbox); настоящий RN-контент, а не статичный bitmap-снимок
 - 📡 Слой геопозиции пользователя (кастомная иконка точки + стилизация круга точности, координаты через `onUserLocationChange`) и живой 🚦 слой пробок
 
 **Модули flavor `full`** — задайте `flavor: 'full'` ([lite и full](#lite-и-full))
@@ -574,6 +575,26 @@ import { YandexMapView, Marker, Callout } from 'expo-yandex-mapkit';
 | `style` | `StyleProp<ViewStyle>` | — | Стиль абсолютно спозиционированного контейнера. |
 
 Ни одна другая RN-обёртка для Яндекс-карт не поставляет компонент callout ([yamap#144](https://github.com/volga-volga/react-native-yamap/issues/144)). На вебе (карты нет) рендерит пустоту.
+
+### `<MarkerView />`
+
+**Живая интерактивная** React-вью в точке с мировой координатой — соглашение [@rnmapbox `MarkerView`](https://github.com/rnmapbox/maps). В отличие от `<Marker>` (который снимает свои React-дети в bitmap-иконку плейсмарка — статичную, неинтерактивную), `<MarkerView>` — это настоящая React Native-вью: она остаётся интерактивной (кнопки, поля, живые данные) и обновляется на каждом рендере. Проецирует `point` в экранную позицию и перепозиционируется при каждом движении камеры.
+
+```tsx
+import { YandexMapView, MarkerView } from 'expo-yandex-mapkit';
+
+<YandexMapView style={StyleSheet.absoluteFill} cameraPosition={{ latitude: 41.31, longitude: 69.24, zoom: 13 }}>
+  <MarkerView point={car.point} anchor={{ x: 0.5, y: 0.5 }}>
+    <Pressable onPress={() => select(car)} style={styles.badge}>
+      <Text>{car.etaMinutes} мин</Text>
+    </Pressable>
+  </MarkerView>
+</YandexMapView>;
+```
+
+Пропсы: `point`, `anchor` (по умолчанию центр `{ x: 0.5, y: 0.5 }`), `offset`, `onPress`, `pointerEvents` (по умолчанию `'box-none'`), `style`.
+
+**Что когда использовать:** `<Marker>` — для больших статичных наборов (нативные плейсмарки, дешевле всего); `<MarkerView>` — для нескольких живых/интерактивных вью. MarkerView позиционируется в JS (мир→экран на каждый кадр камеры), поэтому при большом числе или тяжёлом контенте может отставать от нативного плейсмарка на быстрых жестах. На вебе (карты нет) рендерит пустоту.
 
 ### `<Clusterer />`
 

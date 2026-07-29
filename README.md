@@ -30,6 +30,7 @@ A complete Yandex Maps SDK for Expo — full feature parity with the most capabl
 - 〰️ `<Polyline>` (dash + outline), `<Polygon>` (holes via `innerRings`), `<Circle>`, `<Geojson>` (expands a GeoJSON object into map objects)
 - 🔵 `<Clusterer>` — declarative clustering where your own `<Marker>`s are the render-prop; custom badge (color / size / **icon**), `excludeFromCluster`, tap-to-fit, configurable radius / minZoom
 - 💬 `<Callout>` — a **React balloon** anchored to a world coordinate (MapKit has no native callout); any RN content, repositions itself as the camera moves
+- 🪧 `<MarkerView>` — a **live, interactive** React view as a marker (the @rnmapbox convention); real RN content, not a static bitmap snapshot
 - 📡 User-location layer (custom dot icon + accuracy-circle styling, `onUserLocationChange` coordinates) and a live 🚦 traffic layer
 
 **Full-flavor modules** — set `flavor: 'full'` ([lite vs full](#lite-vs-full))
@@ -585,6 +586,26 @@ import { YandexMapView, Marker, Callout } from 'expo-yandex-mapkit';
 | `style` | `StyleProp<ViewStyle>` | — | Style for the absolutely-positioned container. |
 
 No other Yandex-maps RN wrapper ships a callout component ([yamap#144](https://github.com/volga-volga/react-native-yamap/issues/144)). On web (no map) it renders nothing.
+
+### `<MarkerView />`
+
+A **live, interactive** React view positioned at a world coordinate — the [@rnmapbox `MarkerView`](https://github.com/rnmapbox/maps) convention. Unlike `<Marker>` (which snapshots its React children to a bitmap placemark icon — static, non-interactive), `<MarkerView>` is a real React Native view: it stays interactive (buttons, inputs, live data) and updates every render. It projects `point` to a screen position and repositions on every camera movement.
+
+```tsx
+import { YandexMapView, MarkerView } from 'expo-yandex-mapkit';
+
+<YandexMapView style={StyleSheet.absoluteFill} cameraPosition={{ latitude: 41.31, longitude: 69.24, zoom: 13 }}>
+  <MarkerView point={car.point} anchor={{ x: 0.5, y: 0.5 }}>
+    <Pressable onPress={() => select(car)} style={styles.badge}>
+      <Text>{car.etaMinutes} min</Text>
+    </Pressable>
+  </MarkerView>
+</YandexMapView>;
+```
+
+Props: `point`, `anchor` (default center `{ x: 0.5, y: 0.5 }`), `offset`, `onPress`, `pointerEvents` (default `'box-none'`), `style`.
+
+**When to use which:** `<Marker>` for large, static sets (native placemarks, cheapest); `<MarkerView>` for a handful of live/interactive views. MarkerView positions in JS (world→screen per camera frame), so many of them or heavy content can lag a native placemark during fast gestures. On web (no map) it renders nothing.
 
 ### `<Clusterer />`
 
