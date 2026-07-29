@@ -51,19 +51,19 @@ public class ExpoYandexOfflineModule: Module {
     }.runOnQueue(.main)
 
     AsyncFunction("startDownload") { (regionId: Int, promise: Promise) in
-      Self.control(regionId, promise) { $0.startDownload(withRegionId: $1) }
+      Self.runRegionCommand(regionId, "start", promise)
     }.runOnQueue(.main)
 
     AsyncFunction("stopDownload") { (regionId: Int, promise: Promise) in
-      Self.control(regionId, promise) { $0.stopDownload(withRegionId: $1) }
+      Self.runRegionCommand(regionId, "stop", promise)
     }.runOnQueue(.main)
 
     AsyncFunction("pauseDownload") { (regionId: Int, promise: Promise) in
-      Self.control(regionId, promise) { $0.pauseDownload(withRegionId: $1) }
+      Self.runRegionCommand(regionId, "pause", promise)
     }.runOnQueue(.main)
 
     AsyncFunction("dropRegion") { (regionId: Int, promise: Promise) in
-      Self.control(regionId, promise) { $0.drop(withRegionId: $1) }
+      Self.runRegionCommand(regionId, "drop", promise)
     }.runOnQueue(.main)
 
     AsyncFunction("allowUseCellularNetwork") { (allow: Bool, promise: Promise) in
@@ -90,15 +90,27 @@ public class ExpoYandexOfflineModule: Module {
     "expo-yandex-mapkit: offline maps require the MapKit full flavor AND a paid Yandex MapKit "
     + "license that permits offline caching. Set flavor: 'full' in the config plugin (and rebuild)."
 
-  #if YANDEX_MAPS_FULL
-    // Run a region-id-based command on the cache manager (start / stop / pause / drop).
-    private static func control(
-      _ regionId: Int, _ promise: Promise, _ command: (YMKOfflineCacheManager, UInt) -> Void
-    ) {
-      command(YMKMapKit.sharedInstance().offlineCacheManager, UInt(regionId))
+  // Run a region-id-based command on the cache manager (start / stop / pause / drop). Defined for
+  // both flavors so the flavor-agnostic call sites in `definition()` compile either way; on lite it
+  // rejects.
+  private static func runRegionCommand(_ regionId: Int, _ command: String, _ promise: Promise) {
+    #if YANDEX_MAPS_FULL
+      let manager = YMKMapKit.sharedInstance().offlineCacheManager
+      let id = UInt(regionId)
+      switch command {
+      case "start": manager.startDownload(withRegionId: id)
+      case "stop": manager.stopDownload(withRegionId: id)
+      case "pause": manager.pauseDownload(withRegionId: id)
+      case "drop": manager.drop(withRegionId: id)
+      default: break
+      }
       promise.resolve(nil)
-    }
+    #else
+      promise.reject("E_FULL_REQUIRED", Self.fullRequiredMessage)
+    #endif
+  }
 
+  #if YANDEX_MAPS_FULL
     private static func stateName(_ state: YMKOfflineCacheRegionState) -> String {
       switch state {
       case .available: return "available"
@@ -110,12 +122,6 @@ public class ExpoYandexOfflineModule: Module {
       case .needUpdate: return "needUpdate"
       @unknown default: return "unsupported"
       }
-    }
-  #else
-    private static func control(
-      _ regionId: Int, _ promise: Promise, _ command: (Int) -> Void
-    ) {
-      promise.reject("E_FULL_REQUIRED", Self.fullRequiredMessage)
     }
   #endif
 }
