@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **Typedoc API-docs generation** (`npm run docs`; [#2](https://github.com/softwhere-uz/expo-yandex-mapkit/issues/2),
+  Section D). A [Typedoc](https://typedoc.org/) config (`typedoc.json`) + `docs` script generate a full
+  API reference site from the TypeScript types + JSDoc into `docs/api/` — every exported component,
+  function, and type, documented from the source so it never drifts. English is the unowned niche
+  (the lineage is Russian-only); the Russian narrative docs remain in `README.ru.md`, linked from the
+  generated site's navigation. The generated output is git/npm-ignored (build on demand).
+
 ## [2.19.0] - 2026-07-29
 
 ### Added
