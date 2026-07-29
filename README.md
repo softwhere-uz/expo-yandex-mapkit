@@ -28,7 +28,7 @@ A complete Yandex Maps SDK for Expo — full feature parity with the most capabl
 **Map objects** (declarative children of the map)
 - 📍 `<Marker>` — image **or React-children** icons (reliable, with a `tracksViewChanges` re-snapshot pipeline), `onPress` with an identifying payload, `draggable` + drag events, `animatedMoveTo` / `animatedRotateTo` / `animateAlong`
 - 〰️ `<Polyline>` (dash + outline), `<Polygon>` (holes via `innerRings`), `<Circle>`, `<Geojson>` (expands a GeoJSON object into map objects)
-- 🔵 `<Clusterer>` — declarative clustering where your own `<Marker>`s are the render-prop; custom badge (color / size / **icon**), `excludeFromCluster`, tap-to-fit, configurable radius / minZoom
+- 🔵 `<Clusterer>` — declarative clustering where your own `<Marker>`s are the render-prop; custom badge (color / size / **icon** / **React `renderCluster`**), `excludeFromCluster`, tap-to-fit, configurable radius / minZoom
 - 💬 `<Callout>` — a **React balloon** anchored to a world coordinate (MapKit has no native callout); any RN content, repositions itself as the camera moves
 - 🪧 `<MarkerView>` — a **live, interactive** React view as a marker (the @rnmapbox convention); real RN content, not a static bitmap snapshot
 - 📡 User-location layer (custom dot icon + accuracy-circle styling, `onUserLocationChange` coordinates) and a live 🚦 traffic layer
@@ -643,9 +643,25 @@ There is no separate "clustered marker" API and no `renderMarker` render-prop �
 | `clusterTextSize` | `number` | Cluster badge count-text size (points). Default `13`. |
 | `clusterSize` | `number` | Cluster badge diameter (points); grows for 3+ digit counts. Default `36`. Ignored when `clusterIcon` is set. |
 | `clusterIcon` | `ImageSourcePropType` | Custom badge image — `require('./cluster.png')` or `{ uri }`. Replaces the drawn color disc; the count is still drawn on top (honoring `clusterTextColor`/`clusterTextSize`/`clusterTextOffset`), at the image's own size. Unset draws the default disc. |
-| `clusterTextOffset` | `{ x: number; y: number }` | Nudge the count text within the badge, in points (positive `x` → right, `y` → down). Default centered. Applies to both the disc and a `clusterIcon` badge. |
+| `clusterTextOffset` | `{ x: number; y: number }` | Nudge the count text within the badge, in points (positive `x` → right, `y` → down). Default centered. Applies to the disc, a `clusterIcon` badge, and a `renderCluster` badge. |
 | `fitClusterOnPress` | `boolean` | Animate the camera to fit a tapped cluster's markers. Default `true`. |
+| `renderCluster` | `() => ReactNode` | Render a **custom React badge**. The returned element is snapshotted to an image used for every cluster, with the count drawn on top (honoring `clusterTextColor`/`clusterTextSize`/`clusterTextOffset`). One shared template serves all cluster sizes; it does not receive the count. Takes precedence over `clusterIcon`. |
+| `clusterTracksViewChanges` | `boolean` | Whether the `renderCluster` template is re-snapshotted as its content changes (live/animated badges). Default `false` (snapshot once after first layout). Set `true` while the content animates, then back to `false` once it settles to stop the per-frame work (the react-native-maps convention). |
 | `onClusterPress` | `(event) => void` | `event.nativeEvent` is `{ size, point }`. |
+
+For a fully custom badge, pass `renderCluster` — the returned React element is snapshotted natively and used for every cluster, with the count composited on top:
+
+```tsx
+<Clusterer
+  renderCluster={() => (
+    <View style={{ padding: 8, borderRadius: 20, backgroundColor: '#2E7D32' }}>
+      <Image source={require('./pin.png')} style={{ width: 20, height: 20 }} />
+    </View>
+  )}
+>
+  {markers}
+</Clusterer>
+```
 
 Keep a marker out of clustering with the `<Marker>` `excludeFromCluster` prop — it stays a standalone placemark at every zoom (handy for a "you are here" pin among clustered data points).
 

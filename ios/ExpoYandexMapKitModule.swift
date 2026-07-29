@@ -333,6 +333,9 @@ public class ExpoYandexMapKitModule: Module {
       Prop("fitClusterOnPress") { (view: ExpoYandexMapKitClustererView, fit: Bool) in
         view.setFitOnPress(fit)
       }
+      Prop("clusterTracksViewChanges") { (view: ExpoYandexMapKitClustererView, tracks: Bool) in
+        view.setClusterTracksViewChanges(tracks)
+      }
     }
 
     // The <Polyline> child view. Colors arrive as processColor()'d values (Expo → UIColor).

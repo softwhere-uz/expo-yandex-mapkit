@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added (draft — awaiting on-device validation)
+
+- **Custom cluster rendering via `renderCluster`** ([#2](https://github.com/softwhere-uz/expo-yandex-mapkit/issues/2),
+  Section B). `<Clusterer renderCluster={() => <Badge />}>` renders a custom React badge: the element is
+  snapshotted natively (manual bitmap, not `ViewProvider` — which crashes on Fabric) and used as every
+  cluster's badge, with the count composited on top (honoring `clusterTextColor`/`clusterTextSize`/
+  `clusterTextOffset`). One shared template serves all cluster sizes; it takes precedence over
+  `clusterIcon`. New `clusterTracksViewChanges` prop (default `false`) re-snapshots the template as its
+  content changes for live/animated badges — the react-native-maps convention. Compile-verified on both
+  platforms (Swift/Kotlin vs the real MapKit SDK in CI); **opened as a draft PR** for on-device
+  validation of the off-screen snapshot before release.
+
 ## [2.20.0] - 2026-07-29
 
 ### Added

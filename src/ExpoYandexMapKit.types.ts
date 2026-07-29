@@ -276,6 +276,15 @@ export type ClustererProps = {
   clusterTextOffset?: { x: number; y: number };
   // Whether tapping a cluster animates the camera to fit its markers. Default true.
   fitClusterOnPress?: boolean;
+  // Renders a custom React badge for clusters. The returned element is snapshotted to an image used
+  // as every cluster's badge, with the count still drawn on top (honoring clusterTextColor/Size/
+  // Offset) — so one template serves all cluster sizes. Takes precedence over `clusterIcon`. The
+  // template is one shared design; it does not receive the count (that is composited natively).
+  renderCluster?: () => ReactNode;
+  // Whether the `renderCluster` template is re-snapshotted as its content changes (live badges).
+  // Default false: it is snapshotted once after its first layout. Set true for animated/live badge
+  // content, then back to false once it settles to stop the per-frame work (rn-maps convention).
+  clusterTracksViewChanges?: boolean;
   // Fires when a cluster badge is tapped, with the cluster's size and center.
   onClusterPress?: (event: { nativeEvent: ClusterPressEvent }) => void;
   // The `<Marker>` children to cluster. Each marker keeps all its usual features (image or

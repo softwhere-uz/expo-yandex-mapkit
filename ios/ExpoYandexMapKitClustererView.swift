@@ -58,6 +58,19 @@ class ExpoYandexMapKitClustererView: ExpoView, MapObjectChild {
   private var clusterIconImage: UIImage?
   private var clusterTextOffset = CGPoint.zero
 
+  // Custom badge from a React view (the `renderCluster` template). One non-<Marker> child of the
+  // clusterer is snapshotted to a UIImage and used as the badge for every cluster, with the count
+  // still composited on top (like `clusterIcon`, but the source is live React content). Takes
+  // precedence over `clusterIcon`. Snapshot is manual (layer.render) rather than YRTViewProvider —
+  // the count must be drawn onto the resulting image, and the clusterer view is off-screen. The
+  // display link waits for the child's first laid-out frame, then re-renders while tracking so live
+  // content stays in sync (the react-native-maps convention); default is a single settle-snapshot.
+  private var templateView: UIView?
+  private var templateImage: UIImage?
+  private var templateDisplayLink: CADisplayLink?
+  private var tracksTemplate = false
+  private var hasRenderedTemplate = false
+
   // Child <Marker> views in mount order. Managed through Fabric's child hooks (like the map view's
   // own children) — they are not added to the view hierarchy; each drives a clustered placemark. A
   // marker mounted before this clusterer attaches stays here un-attached, wired up in attachToMap.
@@ -104,7 +117,16 @@ class ExpoYandexMapKitClustererView: ExpoView, MapObjectChild {
 
   override func mountChildComponentView(_ childComponentView: UIView, index: Int) {
     guard childComponentView is MapObjectChild else {
+      // A non-<Marker> child is the `renderCluster` badge template. Keep it in the hierarchy (via
+      // super) so Fabric lays it out — the clusterer view is itself off-screen, so it never shows —
+      // and snapshot it into the badge image once it has a size.
       super.mountChildComponentView(childComponentView, index: index)
+      if templateView == nil {
+        templateView = childComponentView
+        childComponentView.isOpaque = false
+        hasRenderedTemplate = false
+        updateTemplateTracking()
+      }
       return
     }
     let safeIndex = min(max(index, 0), childMarkers.count)
@@ -115,6 +137,15 @@ class ExpoYandexMapKitClustererView: ExpoView, MapObjectChild {
 
   override func unmountChildComponentView(_ childComponentView: UIView, index: Int) {
     guard childComponentView is MapObjectChild else {
+      if childComponentView === templateView {
+        // The template went away — drop it and its snapshot, then recluster so badges revert to the
+        // `clusterIcon` image or the drawn disc.
+        stopTemplateTracking()
+        templateView = nil
+        templateImage = nil
+        hasRenderedTemplate = false
+        scheduleRecluster()
+      }
       super.unmountChildComponentView(childComponentView, index: index)
       return
     }
@@ -253,6 +284,63 @@ class ExpoYandexMapKitClustererView: ExpoView, MapObjectChild {
     }
   }
 
+  // MARK: - React-view badge template (renderCluster)
+
+  // When true, the template is re-snapshotted every frame so live content stays in sync; when it
+  // settles, set false to snapshot once and stop the per-frame work (the react-native-maps
+  // convention). Default false — a single snapshot after the first layout.
+  func setClusterTracksViewChanges(_ value: Bool) {
+    tracksTemplate = value
+    updateTemplateTracking()
+  }
+
+  // Snapshot the template view to a UIImage and use it as the badge (count composited on top).
+  // Returns whether a snapshot was actually taken (false until the child has a real laid-out size).
+  @discardableResult
+  private func refreshTemplateSnapshot() -> Bool {
+    guard let view = templateView, view.bounds.width > 0, view.bounds.height > 0 else {
+      return false
+    }
+    let renderer = UIGraphicsImageRenderer(bounds: view.bounds)
+    // layer.render works off-screen (the clusterer is not in the on-screen hierarchy), unlike
+    // drawHierarchy(afterScreenUpdates:), which would blank for an off-screen view.
+    templateImage = renderer.image { context in
+      view.layer.render(in: context.cgContext)
+    }
+    hasRenderedTemplate = true
+    scheduleRecluster()
+    return true
+  }
+
+  // Drive the snapshot from a display link: it fires each frame and waits for the template's first
+  // laid-out frame. After the first render it stops unless `tracksTemplate` keeps live content going.
+  private func updateTemplateTracking() {
+    let shouldTrack = templateView != nil && (tracksTemplate || !hasRenderedTemplate)
+    if shouldTrack {
+      if templateDisplayLink == nil {
+        let link = CADisplayLink(target: self, selector: #selector(onTemplateDisplayLink))
+        link.preferredFramesPerSecond = 15
+        link.add(to: .main, forMode: .common)
+        templateDisplayLink = link
+      }
+    } else {
+      stopTemplateTracking()
+    }
+  }
+
+  private func stopTemplateTracking() {
+    templateDisplayLink?.invalidate()
+    templateDisplayLink = nil
+  }
+
+  @objc private func onTemplateDisplayLink() {
+    let didRender = refreshTemplateSnapshot()
+    // Stop once a settled template has been captured — keep going only for live (tracked) content.
+    if didRender && !tracksTemplate {
+      stopTemplateTracking()
+    }
+  }
+
   // MARK: - Cluster callbacks (invoked by the listener objects below)
 
   fileprivate func handleClusterAdded(_ cluster: YMKCluster) {
@@ -286,7 +374,8 @@ class ExpoYandexMapKitClustererView: ExpoView, MapObjectChild {
   // rasterizes at the screen scale automatically.
   private func renderClusterBadge(count: Int) -> UIImage {
     let label = String(count)
-    if let icon = clusterIconImage {
+    // The `renderCluster` template snapshot wins over a `clusterIcon` image; both draw the count on top.
+    if let icon = templateImage ?? clusterIconImage {
       let renderer = UIGraphicsImageRenderer(size: icon.size)
       return renderer.image { _ in
         icon.draw(in: CGRect(origin: .zero, size: icon.size))

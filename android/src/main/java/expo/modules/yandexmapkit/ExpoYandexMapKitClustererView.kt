@@ -78,6 +78,24 @@ class ExpoYandexMapKitClustererView(context: Context, appContext: AppContext) :
   private var clusterTextOffsetX = 0f
   private var clusterTextOffsetY = 0f
 
+  // Custom badge from a React view (the `renderCluster` template). One non-<Marker> child of the
+  // clusterer is snapshotted to a Bitmap and used as the badge for every cluster, with the count
+  // still drawn on top (like `clusterIcon`, but the source is live React content). Takes precedence
+  // over `clusterIcon`. The child is drawn by hand (child.draw) rather than through MapKit's
+  // ViewProvider — the count must be drawn onto the resulting bitmap, and ViewProvider re-measures
+  // the view with UNSPECIFIED specs, which a Fabric ReactViewGroup rejects (crashes on new arch).
+  private var templateView: View? = null
+  private var templateBitmap: Bitmap? = null
+  private var tracksTemplate = false
+  private var hasRenderedTemplate = false
+  // Re-snapshot the template when it is (re)laid out: always on the first successful render, and
+  // thereafter only while tracksTemplate is on (so a settled template is snapshotted once).
+  private val templateLayoutListener = View.OnLayoutChangeListener { view, _, _, _, _, _, _, _, _ ->
+    if (view.width > 0 && view.height > 0 && (tracksTemplate || !hasRenderedTemplate)) {
+      refreshTemplateSnapshot()
+    }
+  }
+
   // Child <Marker> views, in mount order. Managed via the module's GroupView actions (like the map
   // view's own children). A marker mounted before this clusterer attaches stays here un-attached and
   // is wired to the cluster collection in attachToMap.
@@ -105,22 +123,49 @@ class ExpoYandexMapKitClustererView(context: Context, appContext: AppContext) :
 
   internal fun addChildView(child: View, index: Int) {
     childViews.add(index.coerceIn(0, childViews.size), child)
-    attachMarker(child)
+    if (child is ExpoYandexMapKitMarkerView) {
+      attachMarker(child)
+    } else if (templateView == null) {
+      // A non-<Marker> child is the `renderCluster` badge template. Add it to this (off-screen)
+      // view so Fabric lays it out, then snapshot it once it has a size.
+      templateView = child
+      hasRenderedTemplate = false
+      addView(child)
+      child.addOnLayoutChangeListener(templateLayoutListener)
+    }
     scheduleRecluster()
   }
 
   internal fun removeChildViewAt(index: Int) {
     val child = childViews.getOrNull(index) ?: return
     childViews.removeAt(index)
-    detachMarker(child)
+    if (child === templateView) {
+      clearTemplate()
+    } else {
+      detachMarker(child)
+    }
     scheduleRecluster()
   }
 
   internal fun removeChildView(child: View) {
     if (childViews.remove(child)) {
-      detachMarker(child)
+      if (child === templateView) {
+        clearTemplate()
+      } else {
+        detachMarker(child)
+      }
       scheduleRecluster()
     }
+  }
+
+  private fun clearTemplate() {
+    templateView?.let {
+      it.removeOnLayoutChangeListener(templateLayoutListener)
+      removeView(it)
+    }
+    templateView = null
+    templateBitmap = null
+    hasRenderedTemplate = false
   }
 
   internal fun childViewCount(): Int = childViews.size
@@ -283,6 +328,33 @@ class ExpoYandexMapKitClustererView(context: Context, appContext: AppContext) :
     }
   }
 
+  // React-view badge template (renderCluster).
+
+  // When true, the template is re-snapshotted whenever it is re-laid-out so live content stays in
+  // sync; when it settles, set false to snapshot once (the react-native-maps convention). Default
+  // false — a single snapshot after the first layout.
+  internal fun setClusterTracksViewChanges(value: Boolean) {
+    tracksTemplate = value
+    if (value) {
+      refreshTemplateSnapshot()
+    }
+  }
+
+  // Snapshot the template view to a bitmap and use it as the badge (count drawn on top). No-op until
+  // the child has a real (laid-out) size. Drawn by hand — NOT via ViewProvider, which re-measures
+  // and crashes a Fabric ReactViewGroup.
+  private fun refreshTemplateSnapshot() {
+    val view = templateView ?: return
+    if (view.width <= 0 || view.height <= 0) {
+      return
+    }
+    val bitmap = Bitmap.createBitmap(view.width, view.height, Bitmap.Config.ARGB_8888)
+    view.draw(Canvas(bitmap))
+    templateBitmap = bitmap
+    hasRenderedTemplate = true
+    scheduleRecluster()
+  }
+
   // ClusterListener: style each cluster's badge and wire its tap listener as MapKit creates it.
 
   override fun onClusterAdded(cluster: Cluster) {
@@ -309,7 +381,8 @@ class ExpoYandexMapKitClustererView(context: Context, appContext: AppContext) :
   private fun renderClusterBadge(count: Int): Bitmap {
     val density = resources.displayMetrics.density
     val label = count.toString()
-    val icon = clusterIconBitmap
+    // The `renderCluster` template snapshot wins over a `clusterIcon` image; both draw the count on top.
+    val icon = templateBitmap ?: clusterIconBitmap
     if (icon != null) {
       // copy() may return null (e.g. OOM); fall through to the drawn disc if so.
       val bitmap = icon.copy(Bitmap.Config.ARGB_8888, true)
