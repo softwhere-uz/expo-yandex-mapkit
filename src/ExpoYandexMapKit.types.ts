@@ -323,6 +323,33 @@ export type ScreenPoint = {
   y: number; // pixels from the top of the map view
 };
 
+// ── <Callout> — a React balloon overlay anchored to a world coordinate ───────────────────────────
+
+// Which point inside the callout box sits on `point`, in 0..1 fractions of its own width/height.
+// Default { x: 0.5, y: 1 } — bottom-center, so the balloon floats above the coordinate like a pin.
+export type CalloutAnchor = {
+  x: number;
+  y: number;
+};
+
+export type CalloutProps = {
+  // The world coordinate the callout is anchored to.
+  point: Point;
+  // The anchor point within the callout box (default bottom-center). See {@link CalloutAnchor}.
+  anchor?: CalloutAnchor;
+  // Extra offset applied after anchoring, in React Native points (x → right, y → down).
+  offset?: ScreenPoint;
+  // The balloon content.
+  children?: ReactNode;
+  // Style for the absolutely-positioned container (e.g. a card background, shadow, maxWidth).
+  style?: StyleProp<ViewStyle>;
+  // Touch handling for the container. Default `'box-none'` — taps pass through the transparent
+  // area to the map, but the balloon's own children stay tappable.
+  pointerEvents?: 'auto' | 'none' | 'box-none' | 'box-only';
+  // Called when the balloon is pressed (wraps the content in a Pressable when set).
+  onPress?: () => void;
+};
+
 export type VisibleRegion = {
   topLeft: Point;
   topRight: Point;

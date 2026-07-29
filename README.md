@@ -29,6 +29,7 @@ A complete Yandex Maps SDK for Expo — full feature parity with the most capabl
 - 📍 `<Marker>` — image **or React-children** icons (reliable, with a `tracksViewChanges` re-snapshot pipeline), `onPress` with an identifying payload, `draggable` + drag events, `animatedMoveTo` / `animatedRotateTo` / `animateAlong`
 - 〰️ `<Polyline>` (dash + outline), `<Polygon>` (holes via `innerRings`), `<Circle>`, `<Geojson>` (expands a GeoJSON object into map objects)
 - 🔵 `<Clusterer>` — declarative clustering where your own `<Marker>`s are the render-prop; custom badge (color / size / **icon**), `excludeFromCluster`, tap-to-fit, configurable radius / minZoom
+- 💬 `<Callout>` — a **React balloon** anchored to a world coordinate (MapKit has no native callout); any RN content, repositions itself as the camera moves
 - 📡 User-location layer (custom dot icon + accuracy-circle styling, `onUserLocationChange` coordinates) and a live 🚦 traffic layer
 
 **Full-flavor modules** — set `flavor: 'full'` ([lite vs full](#lite-vs-full))
@@ -555,6 +556,35 @@ import { YandexMapView, Geojson } from 'expo-yandex-mapkit';
 ```
 
 Accepts a `FeatureCollection`, `Feature`, or bare `Geometry`. `Point`/`MultiPoint` → markers, `LineString`/`MultiLineString` → polylines, `Polygon`/`MultiPolygon` → polygons (first ring outer, the rest holes); `GeometryCollection` expands recursively. Props: `geojson`, `markerSource` / `markerScale`, `strokeColor` / `strokeWidth`, `fillColor`, `zIndex`, `onPress(feature)`. GeoJSON `[lng, lat]` is converted to `{ latitude, longitude }` for you.
+
+### `<Callout />`
+
+A React **balloon/callout** anchored to a world coordinate. MapKit exposes no native callout, so this is a plain overlay view: it projects `point` to a screen position (world→screen) and repositions on every camera movement. Render it as a child of `<YandexMapView>`, alongside your `<Marker>`s — put any React Native content inside:
+
+```tsx
+import { YandexMapView, Marker, Callout } from 'expo-yandex-mapkit';
+
+<YandexMapView style={StyleSheet.absoluteFill} cameraPosition={{ latitude: 41.31, longitude: 69.24, zoom: 14 }}>
+  <Marker point={place} />
+  <Callout point={place} onPress={() => openDetails(place)}>
+    <View style={styles.bubble}>
+      <Text style={styles.title}>{place.name}</Text>
+      <Text>{place.address}</Text>
+    </View>
+  </Callout>
+</YandexMapView>;
+```
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `point` | `Point` | — | The world coordinate the balloon is anchored to. |
+| `anchor` | `{ x: number; y: number }` | `{ x: 0.5, y: 1 }` | Which point inside the balloon (0..1 of its own size) sits on `point`. Default bottom-center, so it floats above the coordinate like a pin. |
+| `offset` | `{ x: number; y: number }` | `undefined` | Extra offset in React Native points, applied after anchoring. |
+| `pointerEvents` | `'auto' \| 'none' \| 'box-none' \| 'box-only'` | `'box-none'` | Taps on the transparent area pass through to the map; the balloon's own children stay tappable. |
+| `onPress` | `() => void` | `undefined` | Wraps the content in a `Pressable`. |
+| `style` | `StyleProp<ViewStyle>` | — | Style for the absolutely-positioned container. |
+
+No other Yandex-maps RN wrapper ships a callout component ([yamap#144](https://github.com/volga-volga/react-native-yamap/issues/144)). On web (no map) it renders nothing.
 
 ### `<Clusterer />`
 
