@@ -88,6 +88,8 @@ An honest comparison, as of July 2026. This library now **matches the incumbents
 | Expo Go | Not supported (native code) — use a [development build](https://docs.expo.dev/develop/development-builds/introduction/). |
 | Bare React Native | Supported via Expo Modules — see [Bare React Native](#bare-react-native). |
 
+> **Coming from `react-native-yamap` / `react-native-yamap-plus`?** See the **[Migration guide](./MIGRATION.md)** — API mapping tables, coordinate/init changes, and the built-in `react-native-maps` aliases.
+
 ## Installation
 
 ```sh

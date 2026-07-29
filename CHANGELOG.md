@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **Migration guide from `react-native-yamap` / `react-native-yamap-plus`** ([MIGRATION.md](./MIGRATION.md);
+  [#2](https://github.com/softwhere-uz/expo-yandex-mapkit/issues/2), Section D). API mapping tables
+  (components, ref methods, events, routing/search/suggest), the coordinate change
+  (`{ lat, lon }` → `{ latitude, longitude }`), config-plugin vs manual-init setup, and the built-in
+  `react-native-maps` aliases. Linked from both READMEs. The mechanical `react-native-maps` renames
+  are already covered by the shipped alias props (`fitToCoordinates` / `onRegionChangeComplete`), so
+  no separate codemod is needed.
+
 ## [2.18.0] - 2026-07-29
 
 ### Added

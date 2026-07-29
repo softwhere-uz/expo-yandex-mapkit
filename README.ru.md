@@ -88,6 +88,8 @@
 | Expo Go | Не поддерживается (нативный код) — нужен [development build](https://docs.expo.dev/develop/development-builds/introduction/). |
 | Bare React Native | Поддерживается через Expo Modules — см. [Bare React Native](#bare-react-native). |
 
+> **Переходите с `react-native-yamap` / `react-native-yamap-plus`?** См. **[руководство по миграции](./MIGRATION.md)** (на английском) — таблицы соответствия API, изменения координат/инициализации и встроенные алиасы `react-native-maps`.
+
 ## Установка
 
 ```sh
