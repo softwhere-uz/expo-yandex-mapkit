@@ -137,7 +137,7 @@ private final class TileUrlProvider: NSObject, YMKTilesUrlProvider {
     self.urlTemplate = urlTemplate
   }
 
-  func formatUrl(with tileId: YMKTileId, version: YMKVersion, features: [String: String]) -> String {
+  func formatUrl(withTileId tileId: YMKTileId, version: YMKVersion, features: [String: String]) -> String {
     return urlTemplate
       .replacingOccurrences(of: "{x}", with: String(tileId.x))
       .replacingOccurrences(of: "{y}", with: String(tileId.y))
@@ -910,10 +910,10 @@ class ExpoYandexMapKitView: ExpoView {
     options.transparent = record.transparent
     let zoomRanges = [YMKZoomRange(zMin: UInt(max(0, record.minZoom)), zMax: UInt(max(0, record.maxZoom)))]
     let layer = map.addTileLayer(withLayerId: record.id, layerOptions: options) { builder in
-      builder.setTileUrlProviderWithUrlProvider(provider)
-      builder.setProjectionWithProjection(YMKProjections.wgs84Mercator())
-      builder.setZoomRangesWithZoomRanges(zoomRanges)
-      builder.setTileFormatWithFormat(.png)
+      builder.setTileUrlProviderWith(provider)
+      builder.setProjectionWith(YMKProjections.wgs84Mercator())
+      builder.setZoomRangesWith(zoomRanges)
+      builder.setTileFormatWith(.png)
     }
     tileLayers[record.id] = layer
   }
