@@ -16,27 +16,30 @@ type PlatformOptions = {
   flavor?: 'lite' | 'full';
   apiKey?: string;
   locale?: string;
-};
-
-export type ExpoYandexMapKitPluginProps = PlatformOptions & {
-  android?: PlatformOptions;
-  ios?: PlatformOptions;
   // Opt-in location permission for the user-location layer (`showUserPosition` / `followUser`).
   // When set to a usage-description string, the plugin writes it to iOS
   // `NSLocationWhenInUseUsageDescription` and adds `ACCESS_FINE_LOCATION` / `ACCESS_COARSE_LOCATION`
   // to the Android manifest. Omit it if your app already requests location itself (e.g. via
   // expo-location) or does not show the user's position — the plugin then declares nothing.
+  // Per-platform overridable (like every other option): word the iOS prompt differently from the
+  // top-level default, or set it under only `ios`/`android` to declare the permission on one platform.
   locationWhenInUsePermission?: string;
 };
 
-// `version`/`flavor` always resolve to a concrete value; `apiKey`/`locale` stay optional.
-// When they are absent the plugin injects nothing — the API key is then supplied at runtime
-// via `initialize(apiKey)` exactly as before.
+export type ExpoYandexMapKitPluginProps = PlatformOptions & {
+  android?: PlatformOptions;
+  ios?: PlatformOptions;
+};
+
+// `version`/`flavor` always resolve to a concrete value; `apiKey`/`locale`/`locationWhenInUsePermission`
+// stay optional. When absent the plugin injects nothing — the API key is then supplied at runtime via
+// `initialize(apiKey)` exactly as before, and no location permission is declared.
 type ResolvedPlatformOptions = {
   version: string;
   flavor: 'lite' | 'full';
   apiKey?: string;
   locale?: string;
+  locationWhenInUsePermission?: string;
 };
 
 // Default MapKit pin — keep in sync with android/build.gradle and ios/ExpoYandexMapKit.podspec.
@@ -111,21 +114,21 @@ function validatePlatformOptions(options: PlatformOptions, scope: string): void 
       `expo-yandex-mapkit config plugin: invalid ${scope}locale "${options.locale}" — expected a MapKit locale like "en_US" or "ru_RU" (language, optionally language_REGION).`
     );
   }
+  // Read as unknown: config-plugin props are untyped JSON, so a caller can pass a non-string.
+  // A present, non-string value is a genuine misconfiguration; an empty/whitespace-only string is
+  // normalized to "not provided" at resolve time (normalizeApiKey-style), so it need not throw here.
+  const permission: unknown = options.locationWhenInUsePermission;
+  if (permission != null && typeof permission !== 'string') {
+    throw new Error(
+      `expo-yandex-mapkit config plugin: invalid ${scope}locationWhenInUsePermission — must be a usage-description string (or omit it to declare no location permission).`
+    );
+  }
 }
 
 function validateProps(props: ExpoYandexMapKitPluginProps): void {
   validatePlatformOptions(props, '');
   validatePlatformOptions(props.android ?? {}, 'android.');
   validatePlatformOptions(props.ios ?? {}, 'ios.');
-  // Read as unknown: config-plugin props are untyped JSON, so a caller can pass a non-string.
-  // A present, non-string value is a genuine misconfiguration; an empty/whitespace-only string is
-  // normalized to "not provided" later (normalizeApiKey-style), so it need not throw here.
-  const permission: unknown = props.locationWhenInUsePermission;
-  if (permission != null && typeof permission !== 'string') {
-    throw new Error(
-      `expo-yandex-mapkit config plugin: invalid locationWhenInUsePermission — must be a usage-description string (or omit it to declare no location permission).`
-    );
-  }
 }
 
 // Trim the key so a whitespace-padded value (e.g. a dashboard copy-paste with a trailing newline)
@@ -148,6 +151,11 @@ function resolvePlatformOptions(
     flavor: override.flavor ?? props.flavor ?? DEFAULT_FLAVOR,
     apiKey: normalizeApiKey(override.apiKey ?? props.apiKey),
     locale: override.locale ?? props.locale,
+    // An empty/whitespace description normalizes to "not provided" (mirrors apiKey) so a
+    // `process.env.X ?? ''` footgun declares no permission rather than a blank usage string.
+    locationWhenInUsePermission: normalizeApiKey(
+      override.locationWhenInUsePermission ?? props.locationWhenInUsePermission
+    ),
   };
 }
 
@@ -367,11 +375,13 @@ const withExpoYandexMapKit: ConfigPlugin<ExpoYandexMapKitPluginProps | undefined
   config = withIosProps(config, ios);
   config = withIosApiKey(config, ios);
   config = withIosDeploymentTarget(config);
-  // An empty/whitespace-only description is treated as "not provided" (a mirror of the apiKey
-  // handling) so a `process.env.X ?? ''` footgun declares no permission rather than a blank string.
-  const locationPermission = props.locationWhenInUsePermission?.trim();
-  if (locationPermission) {
-    config = withIosLocationPermission(config, locationPermission);
+  // Opt-in location permission, resolved per platform (empty/whitespace → not provided). iOS gets the
+  // usage-description string; Android declares the runtime permissions. Because it is per-platform, you
+  // can word the iOS prompt differently or declare the permission on only one platform.
+  if (ios.locationWhenInUsePermission) {
+    config = withIosLocationPermission(config, ios.locationWhenInUsePermission);
+  }
+  if (android.locationWhenInUsePermission) {
     config = withAndroidLocationPermissions(config);
   }
   return config;

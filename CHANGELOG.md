@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.22.0] - 2026-07-30
+
+### Added
+
+- **Per-platform `locationWhenInUsePermission`** ([#2](https://github.com/softwhere-uz/expo-yandex-mapkit/issues/2),
+  Section C — deeper config plugin). The location usage-description is now overridable per platform via
+  the plugin's `ios` / `android` blocks (like `version` / `flavor` / `apiKey` / `locale`): word the iOS
+  `NSLocationWhenInUseUsageDescription` prompt differently from Android, or declare the permission on
+  only one platform (set it under just `ios` or just `android`). Top-level `locationWhenInUsePermission`
+  still applies to both; an empty/whitespace value is treated as "not provided". Verified end-to-end via
+  `expo prebuild` (iOS-only config sets the plist string and leaves Android with no location permission).
+
 ## [2.21.0] - 2026-07-30
 
 Ships the four native beyond-parity features from issue #2 Section B, each opened as a draft PR
