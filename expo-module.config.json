@@ -5,7 +5,8 @@
       "ExpoYandexMapKitModule",
       "ExpoYandexSuggestModule",
       "ExpoYandexSearchModule",
-      "ExpoYandexTransportModule"
+      "ExpoYandexTransportModule",
+      "ExpoYandexOfflineModule"
     ]
   },
   "android": {
@@ -13,7 +14,8 @@
       "expo.modules.yandexmapkit.ExpoYandexMapKitModule",
       "expo.modules.yandexmapkit.ExpoYandexSuggestModule",
       "expo.modules.yandexmapkit.ExpoYandexSearchModule",
-      "expo.modules.yandexmapkit.ExpoYandexTransportModule"
+      "expo.modules.yandexmapkit.ExpoYandexTransportModule",
+      "expo.modules.yandexmapkit.ExpoYandexOfflineModule"
     ]
   }
 }

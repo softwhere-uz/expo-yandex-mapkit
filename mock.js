@@ -71,6 +71,15 @@ const ExpoYandexSearchModule = {
   resolveURI: fn(async () => []),
 };
 const ExpoYandexTransportModule = { findRoutes: fn(async () => []) };
+const ExpoYandexOfflineModule = {
+  getRegions: fn(async () => []),
+  startDownload: fn(async () => {}),
+  stopDownload: fn(async () => {}),
+  pauseDownload: fn(async () => {}),
+  dropRegion: fn(async () => {}),
+  allowUseCellularNetwork: fn(async () => {}),
+  clearCache: fn(async () => {}),
+};
 
 module.exports = {
   YandexMapView,
@@ -89,6 +98,18 @@ module.exports = {
   ExpoYandexSuggestModule,
   ExpoYandexSearchModule,
   ExpoYandexTransportModule,
+  ExpoYandexOfflineModule,
+
+  // Offline maps namespace (full-flavor + paid-license feature; mocked to harmless defaults).
+  offlineMaps: {
+    getRegions: fn(async () => []),
+    startDownload: fn(async () => {}),
+    stopDownload: fn(async () => {}),
+    pauseDownload: fn(async () => {}),
+    dropRegion: fn(async () => {}),
+    allowUseCellularNetwork: fn(async () => {}),
+    clearCache: fn(async () => {}),
+  },
 
   // Geometry helpers (pure — mocked to harmless defaults).
   distanceBetween: fn(() => 0),

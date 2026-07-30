@@ -38,6 +38,7 @@
 - 🔎 **Поиск и геокодинг** — `searchText`, `searchPoint` (обратный), `geocodeAddress` / `geocodePoint`, `resolveURI`; структурные `addressComponents`, рейтинг организаций `rating`, опции орфографии / сниппетов
 - ⌨️ **Саджест** — поиск по мере ввода; координаты читаются **нативно** (без потери `center`)
 - 🧭 **Маршрутизация** — `findRoutes` для авто / общественного транспорта / пешехода / **велосипеда / самоката** (сверх паритета), с разбивкой на участки по секциям (пешком → автобус → пересадка → метро); рисуйте компонентом `<Route>` (цвет по типу участка)
+- 📥 **Офлайн-карты** — `offlineMaps` (скачивание регионов для офлайна) — **нужна платная лицензия Yandex MapKit**
 
 **Установка и DX**
 - 🔑 API-ключ на этапе **сборки** (конфиг-плагин) или в **рантайме** (`initialize`) — без правок `AndroidManifest.xml` / `AppDelegate`; ключ, заданный при сборке, инициализирует MapKit автоматически при старте (без проблемы порядка инициализации)
@@ -761,6 +762,22 @@ const routes = await findRoutes(
 - **Опции автомобильного маршрута** (сверх паритета): `findRoutes(points, 'driving', options)` / `findDrivingRoutes(points, options)` принимают `{ avoidTolls?, avoidUnpaved?, avoidPoorConditions?, avoidHighways?, departureTime?, vehicleType? }` (`vehicleType`: `'default'` / `'taxi'` / `'truck'` / `'moto'`). SDK поддерживает всё это; ни одна RN-обёртка для Яндекс-карт их не пробрасывает.
 
 Каждый `Route` несёт сводку (`time`; `timeWithTraffic` + `distance` для авто; `walkingDistance` + `transfersCount` для общественного транспорта), геометрию `points` и `sections` — маршрут, разбитый на участки. Каждый `RouteSection` — это `{ type, time?, points, transports? }`: `type` — `'car'`, `'walk'`, `'waiting'` или тип транспортного средства (`'bus'`, `'underground'`, …), `transports` сопоставляет каждому типу транспорта названия его линий, а `points` — фрагмент полилинии этого участка. Так маршрут на общественном транспорте читается как «пешком → автобус 42 → пересадка → метро», каждый участок можно отрисовать отдельно. Требует инициализированного MapKit.
+
+### `offlineMaps` — скачивание регионов для офлайна
+
+> **Требует flavor `full` _и_ платную лицензию Yandex MapKit**, разрешающую офлайн-кэширование (бесплатный тариф — нет). На `lite` (или без лицензии) вызовы отклоняются с понятным сообщением.
+
+```tsx
+import { offlineMaps } from 'expo-yandex-mapkit';
+
+const regions = await offlineMaps.getRegions(); // [{ id, name, country, center }]
+const region = regions.find((r) => r.name.includes('Ташкент'));
+if (region) await offlineMaps.startDownload(region.id);
+```
+
+`offlineMaps`: `getRegions()`, `startDownload(id)`, `stopDownload(id)`, `pauseDownload(id)`, `dropRegion(id)`, `allowUseCellularNetwork(allow)`, `clearCache()`. _(Отчёт о состоянии/прогрессе загрузки по регионам — в планах.)_
+
+> ⚠️ Черновик — компилируется в CI против реального (full) MapKit SDK на обеих платформах, но без лицензионного ключа проверить в рантайме нельзя; проверьте на устройстве с лицензией.
 
 ## lite и full
 
