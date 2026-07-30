@@ -2,8 +2,8 @@ import * as React from 'react';
 import { PixelRatio, StyleSheet, View } from 'react-native';
 import TestRenderer, { act } from 'react-test-renderer';
 
-import { MarkerView } from '../ExpoYandexMapKitMarkerViewOverlay';
 import { MapOverlayContext, MapOverlayContextValue } from '../ExpoYandexMapKitMapContext';
+import { MarkerView } from '../ExpoYandexMapKitMarkerViewOverlay';
 
 // <MarkerView> (issue #2, Section B) — a live, interactive React view positioned at a world
 // coordinate (the @rnmapbox MarkerView convention). Like <Callout> it is a pure-JS overlay driven

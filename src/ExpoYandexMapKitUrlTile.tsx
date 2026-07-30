@@ -7,7 +7,14 @@ import { MapOverlayContext } from './ExpoYandexMapKitMapContext';
 // `<YandexMapView>`; it adds a MapKit tile layer whose tiles are fetched from `urlTemplate` (with
 // `{x}`/`{y}`/`{z}` placeholders) and removes it on unmount. It draws nothing itself (the layer lives
 // on the native map). Outside a map (no context) it does nothing.
-export function UrlTile({ id, urlTemplate, minZoom, maxZoom, transparent, cacheable }: UrlTileProps) {
+export function UrlTile({
+  id,
+  urlTemplate,
+  minZoom,
+  maxZoom,
+  transparent,
+  cacheable,
+}: UrlTileProps) {
   const context = React.useContext(MapOverlayContext);
 
   React.useEffect(() => {

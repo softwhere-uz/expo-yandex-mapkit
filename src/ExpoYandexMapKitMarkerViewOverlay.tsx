@@ -40,8 +40,7 @@ export function MarkerView({
     <View
       pointerEvents={pointerEvents ?? 'box-none'}
       onLayout={onLayout}
-      style={[styles.markerView, { left, top }, style]}
-    >
+      style={[styles.markerView, { left, top }, style]}>
       {content}
     </View>
   );

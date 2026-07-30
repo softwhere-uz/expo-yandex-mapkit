@@ -208,11 +208,13 @@ export const offlineMaps = {
   /** List the regions MapKit offers for offline download. */
   getRegions: (): Promise<OfflineRegion[]> => ExpoYandexOfflineModule.getRegions(),
   /** Start (or resume) downloading a region. */
-  startDownload: (regionId: number): Promise<void> => ExpoYandexOfflineModule.startDownload(regionId),
+  startDownload: (regionId: number): Promise<void> =>
+    ExpoYandexOfflineModule.startDownload(regionId),
   /** Stop a region's download (does not delete what was already downloaded). */
   stopDownload: (regionId: number): Promise<void> => ExpoYandexOfflineModule.stopDownload(regionId),
   /** Pause a region's download (resume with `startDownload`). */
-  pauseDownload: (regionId: number): Promise<void> => ExpoYandexOfflineModule.pauseDownload(regionId),
+  pauseDownload: (regionId: number): Promise<void> =>
+    ExpoYandexOfflineModule.pauseDownload(regionId),
   /** Delete a region's downloaded data. */
   dropRegion: (regionId: number): Promise<void> => ExpoYandexOfflineModule.dropRegion(regionId),
   /** Allow (or forbid) downloading over a cellular connection. */

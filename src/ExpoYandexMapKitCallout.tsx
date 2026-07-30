@@ -8,7 +8,15 @@ import { useMapOverlay } from './useMapOverlay';
 // is a plain overlay `View`: it projects `point` to a screen pixel (via the map's `getScreenPoints`)
 // and repositions on every camera movement. Render it as a child of `<YandexMapView>`, alongside
 // your `<Marker>`s. Outside a map (no context) it renders nothing.
-export function Callout({ point, anchor, offset, children, style, pointerEvents, onPress }: CalloutProps) {
+export function Callout({
+  point,
+  anchor,
+  offset,
+  children,
+  style,
+  pointerEvents,
+  onPress,
+}: CalloutProps) {
   const { hasContext, screen, size, onLayout } = useMapOverlay(point);
 
   if (!hasContext || !screen) {
@@ -26,8 +34,7 @@ export function Callout({ point, anchor, offset, children, style, pointerEvents,
     <View
       pointerEvents={pointerEvents ?? 'box-none'}
       onLayout={onLayout}
-      style={[styles.callout, { left, top }, style]}
-    >
+      style={[styles.callout, { left, top }, style]}>
       {content}
     </View>
   );

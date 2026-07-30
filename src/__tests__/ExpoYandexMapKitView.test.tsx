@@ -2,6 +2,10 @@ import * as React from 'react';
 import { processColor } from 'react-native';
 import TestRenderer, { act } from 'react-test-renderer';
 
+import type { YandexMapViewRef } from '../ExpoYandexMapKit.types';
+import { Callout } from '../ExpoYandexMapKitCallout';
+import { YandexMapView } from '../ExpoYandexMapKitView';
+
 // Capture the props the wrapper forwards to the native view. requireNativeView is replaced with a
 // component that records its props, so the tests can assert on what actually reaches the native side.
 const mockNative: { props: any } = { props: null };
@@ -13,13 +17,6 @@ jest.mock('expo', () => ({
     return props.children ?? null;
   },
 }));
-
-// eslint-disable-next-line import/first
-import type { YandexMapViewRef } from '../ExpoYandexMapKit.types';
-// eslint-disable-next-line import/first
-import { YandexMapView } from '../ExpoYandexMapKitView';
-// eslint-disable-next-line import/first
-import { Callout } from '../ExpoYandexMapKitCallout';
 
 function renderMap(props: Record<string, unknown>): any {
   act(() => {

@@ -19,7 +19,7 @@ function makeContext(overrides: Partial<MapOverlayContextValue> = {}): MapOverla
 
 function renderWithContext(context: MapOverlayContextValue, node: React.ReactElement) {
   let renderer!: TestRenderer.ReactTestRenderer;
-  // eslint-disable-next-line @typescript-eslint/no-floating-promises
+
   act(() => {
     renderer = TestRenderer.create(
       <MapOverlayContext.Provider value={context}>{node}</MapOverlayContext.Provider>
