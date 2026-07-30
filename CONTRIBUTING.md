@@ -21,6 +21,11 @@ npx expo prebuild
 EXPO_PUBLIC_YANDEX_MAPKIT_API_KEY=<your-key> npx expo run:android   # or run:ios (macOS)
 ```
 
+Cloud builds go through EAS: the example ships an [`eas.json`](./example/eas.json) with
+`development` / `preview` / `production` profiles. Run `eas init` once to link your own Expo project,
+then `eas build --profile preview --platform android` (or `ios`). EAS runs prebuild too, so the
+config plugin is exercised on the build servers exactly as it is locally.
+
 ### Project layout
 
 ```
