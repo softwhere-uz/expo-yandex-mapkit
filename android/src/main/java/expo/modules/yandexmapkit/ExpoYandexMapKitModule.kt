@@ -249,6 +249,15 @@ class ExpoYandexMapKitModule : Module() {
       AsyncFunction("deselectGeoObject") { view: ExpoYandexMapKitView ->
         view.deselectGeoObject()
       }.runOnQueue(Queues.MAIN)
+
+      // Tile overlays mutate the map's layer stack — run on the main thread.
+      AsyncFunction("addTileOverlay") { view: ExpoYandexMapKitView, options: TileOverlayRecord ->
+        view.addTileOverlay(options)
+      }.runOnQueue(Queues.MAIN)
+
+      AsyncFunction("removeTileOverlay") { view: ExpoYandexMapKitView, id: String ->
+        view.removeTileOverlay(id)
+      }.runOnQueue(Queues.MAIN)
     }
 
     // The <Marker> child view. Named, so it is required as requireNativeView('ExpoYandexMapKit',

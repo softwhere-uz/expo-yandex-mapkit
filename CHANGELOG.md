@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **`<UrlTile>` — custom raster tile layers** (beyond parity — [#2](https://github.com/softwhere-uz/expo-yandex-mapkit/issues/2)).
+  Render a `{z}/{x}/{y}` URL-template tile layer (the react-native-maps `<UrlTile>` convention; e.g.
+  OpenStreetMap) as a child of `<YandexMapView>` — via MapKit's `addTileLayer` + a URL tile data
+  source (iOS `YMKTilesUrlProvider`, Android `UrlProvider`). Props: `urlTemplate`, `id`, `minZoom`,
+  `maxZoom`, `transparent`, `cacheable`; imperative equivalents `addTileOverlay`/`removeTileOverlay`
+  on the map ref. No other Yandex-maps RN wrapper has it.
+  _⚠️ Draft: CI-compiled against the real MapKit SDK on both platforms, but not yet runtime-validated
+  on a device — validate before production use._
+
 ## [2.20.0] - 2026-07-29
 
 ### Added
