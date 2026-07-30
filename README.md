@@ -47,13 +47,14 @@ A complete Yandex Maps SDK for Expo — full feature parity with the most capabl
 
 ## Status
 
-**Stable — feature-complete.** The library reached full parity with [`react-native-yamap-plus`](https://github.com/Qudaeo/react-native-yamap-plus)'s surface (and does several things better) across `1.0.0` → `2.0.0`; the parity checklist ([#1](https://github.com/softwhere-uz/expo-yandex-mapkit/issues/1)) is closed. The entire surface — including the `full`-flavor Search / Suggest / Routing — is **runtime-verified on iOS** and compiles against the real MapKit SDK on both platforms in CI. Follows [semver](https://semver.org/): additive changes bump minor, so upgrading within `2.x` needs no migration.
+**Stable — feature-complete, and beyond parity.** The library reached full parity with [`react-native-yamap-plus`](https://github.com/Qudaeo/react-native-yamap-plus)'s surface (and does several things better) across `1.0.0` → `2.0.0`; the parity checklist ([#1](https://github.com/softwhere-uz/expo-yandex-mapkit/issues/1)) is closed. The `2.x` line adds a large set of beyond-parity features tracked in [#2](https://github.com/softwhere-uz/expo-yandex-mapkit/issues/2) — including `<Callout>`, `<MarkerView>`, `<Route>`, `<UrlTile>`, indoor plans, offline maps, and custom `renderCluster` badges. The entire surface is **runtime-verified on iOS** and compiles against the real MapKit SDK on both platforms in CI; the native beyond-parity features (tiles / indoor / offline / cluster) were additionally validated on an iOS simulator + Android emulator. Follows [semver](https://semver.org/): additive changes bump minor, so upgrading within `2.x` needs no migration.
 
 | Phase | Scope | Status |
 | --- | --- | --- |
 | v0 | MapView, camera + events, night mode, image & React-children markers, imperative ref methods | ✅ **Complete** |
 | v1 | Polylines / polygons / circles, clustering, user location, traffic, JSON styling, locale | ✅ **Complete** (1.0.0) |
 | v2 | `full`-flavor modules: Search + geocoding, Suggest, Routing | ✅ **Complete** (1.1.0 → 2.0.0) |
+| 2.x | Beyond parity ([#2](https://github.com/softwhere-uz/expo-yandex-mapkit/issues/2)): POI taps, draggable markers, `<Callout>` / `<MarkerView>` / `<Route>` / `<UrlTile>`, indoor plans, offline maps, `renderCluster`, bicycle/scooter routing | ✅ **Shipping** (→ 2.21.0) |
 | v3 | [Mappable](https://github.com/mappable-world) dual-brand support; `expo-yandex-mapkit-dom` — a DOM-component fallback so a map can render in Expo Go and on web | Planned |
 
 ## Why
