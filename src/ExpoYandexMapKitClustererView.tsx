@@ -1,6 +1,6 @@
 import { requireNativeView } from 'expo';
 import * as React from 'react';
-import { Image, processColor } from 'react-native';
+import { Image, processColor, StyleSheet, View } from 'react-native';
 
 import { ClustererProps } from './ExpoYandexMapKit.types';
 
@@ -13,7 +13,7 @@ import { ClustererProps } from './ExpoYandexMapKit.types';
 // of the same name directly.
 type NativeClustererProps = Omit<
   ClustererProps,
-  'clusterColor' | 'clusterTextColor' | 'clusterIcon'
+  'clusterColor' | 'clusterTextColor' | 'clusterIcon' | 'renderCluster'
 > & {
   clusterColor?: ReturnType<typeof processColor>;
   clusterTextColor?: ReturnType<typeof processColor>;
@@ -42,11 +42,16 @@ const NativeClustererView: React.ComponentType<NativeClustererProps> = requireNa
  * Markers keep all their usual features (image / React-children icons, `onPress`, `identifier`).
  * Tapping a cluster fits the camera to its markers by default (`fitClusterOnPress`) and reports
  * `onClusterPress`. Only `<Marker>` children are clustered — shapes belong directly under the map.
+ *
+ * For a fully custom badge, pass `renderCluster={() => <YourBadge />}`: the element is snapshotted
+ * to an image used for every cluster, with the count drawn on top.
  */
 export function Clusterer({
   clusterColor,
   clusterTextColor,
   clusterIcon,
+  renderCluster,
+  children,
   ...props
 }: ClustererProps) {
   // Resolve the badge icon (require(...) number or { uri }) to the URI the native side loads;
@@ -62,7 +67,25 @@ export function Clusterer({
       {...props}
       clusterColor={processColor(clusterColor)}
       clusterTextColor={processColor(clusterTextColor)}
-      clusterIcon={clusterIconUri}
-    />
+      clusterIcon={clusterIconUri}>
+      {/* The badge template: a single off-screen host the native side snapshots. It must be the
+          only non-<Marker> child, and collapsable={false} keeps Android from view-flattening it so
+          it retains a real view to snapshot. It renders nothing on-screen (the clusterer is not in
+          the map's view hierarchy). */}
+      {renderCluster ? (
+        <View collapsable={false} style={styles.badgeTemplate}>
+          {renderCluster()}
+        </View>
+      ) : null}
+      {children}
+    </NativeClustererView>
   );
 }
+
+const styles = StyleSheet.create({
+  // `alignSelf: 'flex-start'` shrink-wraps the template to its content (the marker-icon convention),
+  // giving it a stable, content-sized layout to snapshot. `position: 'absolute'` was unstable on
+  // Android Fabric — it intermittently laid the host out full-width / zero-height, so the snapshot
+  // was skipped and the badge fell back to the drawn disc.
+  badgeTemplate: { alignSelf: 'flex-start' },
+});

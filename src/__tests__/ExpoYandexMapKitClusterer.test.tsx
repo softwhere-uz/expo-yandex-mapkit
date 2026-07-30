@@ -61,6 +61,27 @@ describe('Clusterer badge styling props', () => {
   });
 });
 
+// Custom cluster rendering (issue #2, Section B) — a React badge template snapshotted natively and
+// used for every cluster, with the count composited on top. renderCluster is a JS-only concern (the
+// native side sees a hosted child view, not the function), so it must not leak onto native props.
+describe('Clusterer renderCluster template', () => {
+  afterEach(() => {
+    mockNative.props = null;
+  });
+
+  it('invokes renderCluster and does not leak the function onto the native props', () => {
+    const renderCluster = jest.fn(() => null);
+    const props = render(<Clusterer renderCluster={renderCluster} />);
+    expect(renderCluster).toHaveBeenCalled();
+    expect(props.renderCluster).toBeUndefined();
+  });
+
+  it('forwards clusterTracksViewChanges through to the native view', () => {
+    const props = render(<Clusterer clusterTracksViewChanges renderCluster={() => null} />);
+    expect(props.clusterTracksViewChanges).toBe(true);
+  });
+});
+
 describe('Marker excludeFromCluster prop', () => {
   afterEach(() => {
     mockNative.props = null;

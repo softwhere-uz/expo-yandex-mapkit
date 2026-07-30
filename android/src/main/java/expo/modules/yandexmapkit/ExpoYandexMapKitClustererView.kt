@@ -78,6 +78,24 @@ class ExpoYandexMapKitClustererView(context: Context, appContext: AppContext) :
   private var clusterTextOffsetX = 0f
   private var clusterTextOffsetY = 0f
 
+  // Custom badge from a React view (the `renderCluster` template). One non-<Marker> child of the
+  // clusterer is snapshotted to a Bitmap and used as the badge for every cluster, with the count
+  // still drawn on top (like `clusterIcon`, but the source is live React content). Takes precedence
+  // over `clusterIcon`. The child is drawn by hand (child.draw) rather than through MapKit's
+  // ViewProvider — the count must be drawn onto the resulting bitmap, and ViewProvider re-measures
+  // the view with UNSPECIFIED specs, which a Fabric ReactViewGroup rejects (crashes on new arch).
+  private var templateView: View? = null
+  private var templateBitmap: Bitmap? = null
+  private var tracksTemplate = false
+  private var hasRenderedTemplate = false
+  // Re-snapshot the template when it is (re)laid out: always on the first successful render, and
+  // thereafter only while tracksTemplate is on (so a settled template is snapshotted once).
+  private val templateLayoutListener = View.OnLayoutChangeListener { view, _, _, _, _, _, _, _, _ ->
+    if (view.width > 0 && view.height > 0 && (tracksTemplate || !hasRenderedTemplate)) {
+      refreshTemplateSnapshot()
+    }
+  }
+
   // Child <Marker> views, in mount order. Managed via the module's GroupView actions (like the map
   // view's own children). A marker mounted before this clusterer attaches stays here un-attached and
   // is wired to the cluster collection in attachToMap.
@@ -105,22 +123,74 @@ class ExpoYandexMapKitClustererView(context: Context, appContext: AppContext) :
 
   internal fun addChildView(child: View, index: Int) {
     childViews.add(index.coerceIn(0, childViews.size), child)
-    attachMarker(child)
+    if (child is ExpoYandexMapKitMarkerView) {
+      attachMarker(child)
+    } else if (templateView == null) {
+      // A non-<Marker> child is the `renderCluster` badge template. Add it to this (off-screen)
+      // view so Fabric lays it out, then snapshot it once it has a size.
+      templateView = child
+      hasRenderedTemplate = false
+      addView(child)
+      child.addOnLayoutChangeListener(templateLayoutListener)
+      // The layout event can race the listener (or an off-screen view can settle without re-firing
+      // it), so also poll on the main handler until the template has a size, then keep re-snapshotting
+      // over a short settle window to catch async content. Mirrors the iOS display-link approach.
+      scheduleTemplateSnapshotPoll(0)
+    }
     scheduleRecluster()
+  }
+
+  // Re-snapshot the template over a short settle window (not just once): the layout event can race
+  // the listener, and async content inside the template — e.g. an <Image> that decodes after the
+  // first layout — would be missed by a single early snapshot. After the window, stop unless
+  // `tracksTemplate` keeps re-snapshotting live content. No manual measure(): a Fabric ReactViewGroup
+  // rejects UNSPECIFIED specs.
+  private fun scheduleTemplateSnapshotPoll(attempt: Int) {
+    if (templateView == null) {
+      return
+    }
+    mainHandler.postDelayed({
+      if (templateView == null) {
+        return@postDelayed
+      }
+      refreshTemplateSnapshot()
+      // ~2s settle window (15 × 133ms) to catch late-decoding images, then stop.
+      if (tracksTemplate || attempt < 15) {
+        scheduleTemplateSnapshotPoll(attempt + 1)
+      }
+    }, 133)
   }
 
   internal fun removeChildViewAt(index: Int) {
     val child = childViews.getOrNull(index) ?: return
     childViews.removeAt(index)
-    detachMarker(child)
+    if (child === templateView) {
+      clearTemplate()
+    } else {
+      detachMarker(child)
+    }
     scheduleRecluster()
   }
 
   internal fun removeChildView(child: View) {
     if (childViews.remove(child)) {
-      detachMarker(child)
+      if (child === templateView) {
+        clearTemplate()
+      } else {
+        detachMarker(child)
+      }
       scheduleRecluster()
     }
+  }
+
+  private fun clearTemplate() {
+    templateView?.let {
+      it.removeOnLayoutChangeListener(templateLayoutListener)
+      removeView(it)
+    }
+    templateView = null
+    templateBitmap = null
+    hasRenderedTemplate = false
   }
 
   internal fun childViewCount(): Int = childViews.size
@@ -283,6 +353,84 @@ class ExpoYandexMapKitClustererView(context: Context, appContext: AppContext) :
     }
   }
 
+  // React-view badge template (renderCluster).
+
+  // When true, the template is re-snapshotted whenever it is re-laid-out so live content stays in
+  // sync; when it settles, set false to snapshot once (the react-native-maps convention). Default
+  // false — a single snapshot after the first layout.
+  internal fun setClusterTracksViewChanges(value: Boolean) {
+    tracksTemplate = value
+    if (value) {
+      refreshTemplateSnapshot()
+    }
+  }
+
+  // Snapshot the template view to a bitmap and use it as the badge (count drawn on top). No-op until
+  // the child has a real (laid-out) size. Drawn by hand — NOT via ViewProvider, which re-measures
+  // and crashes a Fabric ReactViewGroup.
+  private fun refreshTemplateSnapshot() {
+    val view = templateView ?: return
+    if (view.width <= 0 || view.height <= 0) {
+      return
+    }
+    val full = Bitmap.createBitmap(view.width, view.height, Bitmap.Config.ARGB_8888)
+    view.draw(Canvas(full))
+    hasRenderedTemplate = true
+    // Fabric can lay the host out wider/taller than its content (it sizes against the map, not the
+    // badge), so crop to the tight bounding box of non-transparent pixels. Without this the badge
+    // sits off-center on the cluster point and the natively-composited count lands in empty space.
+    val bitmap = cropToOpaqueBounds(full)
+    if (bitmap == null) {
+      full.recycle()
+      return
+    }
+    if (bitmap !== full) {
+      full.recycle()
+    }
+    // Only redraw the badges when the snapshot actually changed — skips needless reclustering across
+    // the settle window once the content (e.g. a late-decoding image) has stabilized.
+    val previous = templateBitmap
+    if (previous != null && previous.sameAs(bitmap)) {
+      bitmap.recycle()
+      return
+    }
+    templateBitmap = bitmap
+    scheduleRecluster()
+  }
+
+  // Crop a bitmap to the tight rectangle enclosing its non-transparent pixels, or null when fully
+  // transparent. Scans row-by-row (one getPixels per row) — cheap for a badge-sized image.
+  private fun cropToOpaqueBounds(source: Bitmap): Bitmap? {
+    val w = source.width
+    val h = source.height
+    if (w <= 0 || h <= 0) {
+      return null
+    }
+    var minX = w
+    var minY = h
+    var maxX = -1
+    var maxY = -1
+    val row = IntArray(w)
+    for (y in 0 until h) {
+      source.getPixels(row, 0, w, 0, y, w, 1)
+      for (x in 0 until w) {
+        if (row[x] ushr 24 != 0) {
+          if (x < minX) minX = x
+          if (x > maxX) maxX = x
+          if (y < minY) minY = y
+          if (y > maxY) maxY = y
+        }
+      }
+    }
+    if (maxX < minX || maxY < minY) {
+      return null
+    }
+    if (minX == 0 && minY == 0 && maxX == w - 1 && maxY == h - 1) {
+      return source
+    }
+    return Bitmap.createBitmap(source, minX, minY, maxX - minX + 1, maxY - minY + 1)
+  }
+
   // ClusterListener: style each cluster's badge and wire its tap listener as MapKit creates it.
 
   override fun onClusterAdded(cluster: Cluster) {
@@ -309,7 +457,8 @@ class ExpoYandexMapKitClustererView(context: Context, appContext: AppContext) :
   private fun renderClusterBadge(count: Int): Bitmap {
     val density = resources.displayMetrics.density
     val label = count.toString()
-    val icon = clusterIconBitmap
+    // The `renderCluster` template snapshot wins over a `clusterIcon` image; both draw the count on top.
+    val icon = templateBitmap ?: clusterIconBitmap
     if (icon != null) {
       // copy() may return null (e.g. OOM); fall through to the drawn disc if so.
       val bitmap = icon.copy(Bitmap.Config.ARGB_8888, true)
