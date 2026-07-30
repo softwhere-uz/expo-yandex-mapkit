@@ -46,6 +46,24 @@ export type TrafficChangeEvent = {
   color?: 'red' | 'yellow' | 'green'; // the traffic badge color, when available
 };
 
+// A single floor of an indoor plan (a building's level).
+export type IndoorLevel = {
+  id: string; // opaque level id — pass to `setIndoorLevel` to switch floors
+  name: string; // localized display name (e.g. "1", "G", "P2")
+  isUnderground: boolean; // whether the level is below ground
+};
+
+// Payload for onIndoorPlanFocused — the building plan the camera is focused on, bottom-to-top.
+export type IndoorPlanFocusedEvent = {
+  levels: IndoorLevel[]; // all floors, from bottom to top — build a floor picker from these
+  activeLevelId: string; // the currently shown floor's id
+};
+
+// Payload for onIndoorLevelChanged — the newly active floor.
+export type IndoorLevelChangeEvent = {
+  activeLevelId: string;
+};
+
 // Payload for onUserLocationChange — the device's location as MapKit's user-location layer reports it.
 export type UserLocationChangeEvent = {
   point: Point; // the device's current coordinate
@@ -135,6 +153,16 @@ export type YandexMapViewProps = {
   // fire `onMapPress`.
   onPoiTap?: (event: { nativeEvent: PoiTapEvent }) => void;
   onMapLoaded?: (event: { nativeEvent: MapLoadStatistics }) => void; // fires once the map finishes loading, with render stats
+  // Show indoor building plans (floor levels). When enabled and the camera focuses a building with an
+  // indoor plan, `onIndoorPlanFocused` fires with its floors — render your own floor picker and call
+  // the `setIndoorLevel(id)` ref method to switch floors. Default false.
+  indoorEnabled?: boolean;
+  // Fires when the camera focuses a building's indoor plan, with all its floors + the active one.
+  onIndoorPlanFocused?: (event: { nativeEvent: IndoorPlanFocusedEvent }) => void;
+  // Fires when no indoor plan is focused any more (e.g. the camera moved away).
+  onIndoorPlanLeft?: (event: { nativeEvent: Record<string, never> }) => void;
+  // Fires when the active floor changes (via `setIndoorLevel` or a user tap on MapKit's own control).
+  onIndoorLevelChanged?: (event: { nativeEvent: IndoorLevelChangeEvent }) => void;
   // react-native-maps migration alias: fires with a `Region` ({ latitude, longitude, latitudeDelta,
   // longitudeDelta }) after a camera move settles. Computed from the visible region, so it works
   // even though this SDK is zoom-based. Drop-in for react-native-maps / react-native-yamap code.
@@ -383,6 +411,26 @@ export type MarkerViewProps = {
   onPress?: () => void;
 };
 
+// ── Custom raster tile layers (<UrlTile> / addTileOverlay) ───────────────────────────────────────
+
+export type TileOverlayOptions = {
+  // A stable id for the overlay. Pass your own so re-renders replace (not duplicate) the layer;
+  // when omitted, addTileOverlay() generates one and returns it.
+  id?: string;
+  // Tile URL template with `{x}`, `{y}`, `{z}` placeholders — e.g.
+  // `'https://tile.openstreetmap.org/{z}/{x}/{y}.png'`. PNG tiles.
+  urlTemplate: string;
+  // Zoom range the tiles cover. Default 0..19.
+  minZoom?: number;
+  maxZoom?: number;
+  // Whether the layer has transparency (drawn over the base map). Default false.
+  transparent?: boolean;
+  // Whether MapKit may cache fetched tiles. Default true.
+  cacheable?: boolean;
+};
+
+export type UrlTileProps = TileOverlayOptions;
+
 export type VisibleRegion = {
   topLeft: Point;
   topRight: Point;
@@ -440,6 +488,14 @@ export type YandexMapViewRef = {
     coordinates: Point[],
     options?: { edgePadding?: EdgePadding; animated?: boolean }
   ): Promise<void>;
+  // Switch the active floor of the focused indoor plan. Pass a level id from `onIndoorPlanFocused`.
+  // No-op until a plan is focused. Requires `indoorEnabled`.
+  setIndoorLevel(levelId: string): Promise<void>;
+  // Add (or replace, by `id`) a custom raster tile layer. Resolves the overlay's id (the one you
+  // passed, or a generated one). Prefer the declarative `<UrlTile>` for most cases.
+  addTileOverlay(options: TileOverlayOptions): Promise<string>;
+  // Remove a tile overlay previously added with `addTileOverlay` (or rendered by a `<UrlTile>`).
+  removeTileOverlay(id: string): Promise<void>;
 };
 
 // ── Suggest (search-as-you-type) — requires the MapKit `full` flavor ────────────────────────────
@@ -503,6 +559,16 @@ export type RouteMode = 'driving' | 'masstransit' | 'pedestrian' | 'bicycle' | '
 
 // Options for a driving route request (ignored for non-driving modes). The SDK supports all of these;
 // no Yandex-maps RN wrapper forwards them.
+// ── Offline maps — requires the `full` flavor AND a paid Yandex MapKit license ───────────────────
+
+// A downloadable offline map region (a city / area MapKit offers for offline use).
+export type OfflineRegion = {
+  id: number; // region id — pass to startDownload / dropRegion etc.
+  name: string; // localized region name
+  country: string; // localized country name
+  center: Point; // the region's center coordinate
+};
+
 export type DrivingRouteOptions = {
   avoidTolls?: boolean; // avoid toll roads
   avoidUnpaved?: boolean; // avoid unpaved roads

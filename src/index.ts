@@ -2,6 +2,7 @@
 // and on native platforms to ExpoYandexMapKitModule.ts
 import type {
   DrivingRouteOptions,
+  OfflineRegion,
   Point,
   Route,
   RouteMode,
@@ -11,6 +12,7 @@ import type {
   SuggestOptions,
 } from './ExpoYandexMapKit.types';
 import ExpoYandexMapKitModule from './ExpoYandexMapKitModule';
+import ExpoYandexOfflineModule from './ExpoYandexOfflineModule';
 import ExpoYandexSearchModule from './ExpoYandexSearchModule';
 import ExpoYandexSuggestModule from './ExpoYandexSuggestModule';
 import ExpoYandexTransportModule from './ExpoYandexTransportModule';
@@ -31,6 +33,7 @@ export { distanceBetween, pathLength, boundingBox } from './geometry';
 export { Geojson } from './ExpoYandexMapKitGeojson';
 export { Callout } from './ExpoYandexMapKitCallout';
 export { MarkerView } from './ExpoYandexMapKitMarkerViewOverlay';
+export { UrlTile } from './ExpoYandexMapKitUrlTile';
 // eslint-disable-next-line import/export
 export * from './ExpoYandexMapKit.types';
 
@@ -192,3 +195,32 @@ export async function findScooterRoutes(points: Point[]): Promise<Route[]> {
 
 // Escape hatch: the raw Transport (routing) native module.
 export { default as ExpoYandexTransportModule } from './ExpoYandexTransportModule';
+
+/**
+ * Offline maps — download map regions for offline use (via MapKit's `OfflineCacheManager`).
+ *
+ * ⚠️ Requires the MapKit **full** flavor (`flavor: 'full'` in the config plugin) **and a paid Yandex
+ * MapKit license** that permits offline caching — the free tier does not. On `lite` (or without a
+ * license) the calls reject with a clear message. Progress / state are **polled** — call
+ * `getRegions` to refresh the region list, e.g. after `onListUpdated`.
+ */
+export const offlineMaps = {
+  /** List the regions MapKit offers for offline download. */
+  getRegions: (): Promise<OfflineRegion[]> => ExpoYandexOfflineModule.getRegions(),
+  /** Start (or resume) downloading a region. */
+  startDownload: (regionId: number): Promise<void> => ExpoYandexOfflineModule.startDownload(regionId),
+  /** Stop a region's download (does not delete what was already downloaded). */
+  stopDownload: (regionId: number): Promise<void> => ExpoYandexOfflineModule.stopDownload(regionId),
+  /** Pause a region's download (resume with `startDownload`). */
+  pauseDownload: (regionId: number): Promise<void> => ExpoYandexOfflineModule.pauseDownload(regionId),
+  /** Delete a region's downloaded data. */
+  dropRegion: (regionId: number): Promise<void> => ExpoYandexOfflineModule.dropRegion(regionId),
+  /** Allow (or forbid) downloading over a cellular connection. */
+  allowUseCellularNetwork: (allow: boolean): Promise<void> =>
+    ExpoYandexOfflineModule.allowUseCellularNetwork(allow),
+  /** Clear the entire offline cache. */
+  clearCache: (): Promise<void> => ExpoYandexOfflineModule.clearCache(),
+};
+
+// Escape hatch: the raw Offline (cache) native module.
+export { default as ExpoYandexOfflineModule } from './ExpoYandexOfflineModule';

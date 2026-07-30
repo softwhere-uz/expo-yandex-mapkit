@@ -15,6 +15,8 @@ import com.yandex.mapkit.ScreenRect
 import com.yandex.mapkit.geometry.BoundingBox
 import com.yandex.mapkit.geometry.Geometry
 import com.yandex.mapkit.geometry.Point
+import com.yandex.mapkit.indoor.IndoorPlan
+import com.yandex.mapkit.indoor.IndoorStateListener
 import com.yandex.mapkit.layers.GeoObjectTapEvent
 import com.yandex.mapkit.layers.GeoObjectTapListener
 import com.yandex.mapkit.logo.Alignment as LogoAlignment
@@ -28,6 +30,16 @@ import com.yandex.mapkit.map.CircleMapObject
 import com.yandex.mapkit.map.GeoObjectSelectionMetadata
 import com.yandex.mapkit.map.IconStyle
 import com.yandex.mapkit.map.InputListener
+import com.yandex.mapkit.TileId
+import com.yandex.mapkit.Version
+import com.yandex.mapkit.ZoomRange
+import com.yandex.mapkit.tiles.UrlProvider
+import java.util.UUID
+import com.yandex.mapkit.geometry.geo.Projections
+import com.yandex.mapkit.layers.Layer
+import com.yandex.mapkit.layers.LayerOptions
+import com.yandex.mapkit.layers.TileFormat
+import com.yandex.mapkit.map.CreateTileDataSource
 import com.yandex.mapkit.map.Map as YandexMap
 import com.yandex.mapkit.map.MapLoadStatistics
 import com.yandex.mapkit.map.MapLoadedListener
@@ -201,6 +213,28 @@ class CameraMoveOptionsRecord : Record {
   var edgePadding: EdgePaddingRecord? = null
 }
 
+// Options for a custom raster/tile overlay added via addTileOverlay(). `urlTemplate` uses `{x}`,
+// `{y}`, `{z}` placeholders (the react-native-maps `<UrlTile>` convention).
+class TileOverlayRecord : Record {
+  @Field
+  var id: String = ""
+
+  @Field
+  var urlTemplate: String = ""
+
+  @Field
+  var minZoom: Int = 0
+
+  @Field
+  var maxZoom: Int = 19
+
+  @Field
+  var transparent: Boolean = false
+
+  @Field
+  var cacheable: Boolean = true
+}
+
 class ExpoYandexMapKitView(context: Context, appContext: AppContext) : ExpoView(context, appContext) {
   private val onMapReady by EventDispatcher<Map<String, Any>>()
   private val onCameraPositionChanged by EventDispatcher<Map<String, Any>>()
@@ -210,6 +244,9 @@ class ExpoYandexMapKitView(context: Context, appContext: AppContext) : ExpoView(
   private val onTrafficChanged by EventDispatcher<Map<String, Any?>>()
   private val onUserLocationChange by EventDispatcher<Map<String, Any>>()
   private val onPoiTap by EventDispatcher<Map<String, Any?>>()
+  private val onIndoorPlanFocused by EventDispatcher<Map<String, Any?>>()
+  private val onIndoorPlanLeft by EventDispatcher<Map<String, Any?>>()
+  private val onIndoorLevelChanged by EventDispatcher<Map<String, Any?>>()
 
   internal var animated = true
 
@@ -261,6 +298,10 @@ class ExpoYandexMapKitView(context: Context, appContext: AppContext) : ExpoView(
   private var mapPadding: EdgePaddingRecord? = null
   private var pendingCameraPosition: CameraPositionRecord? = null
   private var cameraPositionDirty = false
+  // Custom tile overlays added via addTileOverlay(), by id. `pending` holds any added before the map
+  // existed; they are applied in maybeCreateMapView.
+  private val tileLayers = mutableMapOf<String, Layer>()
+  private val pendingTileOverlays = mutableMapOf<String, TileOverlayRecord>()
 
   // User-location and traffic layers, created lazily on first use (they need the map window).
   private var userLocationLayer: UserLocationLayer? = null
@@ -368,6 +409,34 @@ class ExpoYandexMapKitView(context: Context, appContext: AppContext) : ExpoView(
     } else {
       onPoiTap(poiTapPayload(event.geoObject, selection))
       true
+    }
+  }
+
+  // Whether indoor plans (floor levels) are shown. Stored so a value set before the map exists is
+  // applied on map creation, like nightMode. `activeIndoorPlan` is the focused plan, so
+  // setIndoorLevel() can change its floor.
+  private var indoorEnabled = false
+  private var activeIndoorPlan: IndoorPlan? = null
+  private val indoorStateListener = object : IndoorStateListener {
+    override fun onActivePlanFocused(activePlan: IndoorPlan) {
+      activeIndoorPlan = activePlan
+      onIndoorPlanFocused(
+        mapOf(
+          "activeLevelId" to activePlan.activeLevelId,
+          "levels" to activePlan.levels.map {
+            mapOf("id" to it.id, "name" to it.name, "isUnderground" to it.isUnderground)
+          }
+        )
+      )
+    }
+
+    override fun onActivePlanLeft() {
+      activeIndoorPlan = null
+      onIndoorPlanLeft(emptyMap())
+    }
+
+    override fun onActiveLevelChanged(activeLevelId: String) {
+      onIndoorLevelChanged(mapOf("activeLevelId" to activeLevelId))
     }
   }
 
@@ -735,6 +804,69 @@ class ExpoYandexMapKitView(context: Context, appContext: AppContext) : ExpoView(
     mapView?.mapWindow?.map?.deselectGeoObject()
   }
 
+  // Add (or replace) a custom raster tile layer. Returns the overlay id (the caller's `id`, or a
+  // generated one). Applied immediately if the map exists, else queued until it does.
+  internal fun addTileOverlay(record: TileOverlayRecord): String {
+    val id = record.id.ifEmpty { UUID.randomUUID().toString() }
+    record.id = id
+    removeTileOverlay(id)
+    val map = mapView?.mapWindow?.map
+    if (map != null) {
+      applyTileOverlay(record, map)
+    } else {
+      pendingTileOverlays[id] = record
+    }
+    return id
+  }
+
+  internal fun removeTileOverlay(id: String) {
+    pendingTileOverlays.remove(id)
+    tileLayers.remove(id)?.remove()
+  }
+
+  private fun applyPendingTileOverlays() {
+    val map = mapView?.mapWindow?.map ?: return
+    val pending = pendingTileOverlays.toMap()
+    pendingTileOverlays.clear()
+    pending.values.forEach { applyTileOverlay(it, map) }
+  }
+
+  private fun applyTileOverlay(record: TileOverlayRecord, map: YandexMap) {
+    val urlProvider = UrlProvider { tileId: TileId, _: Version, _: kotlin.collections.Map<String, String> ->
+      record.urlTemplate
+        .replace("{x}", tileId.x.toString())
+        .replace("{y}", tileId.y.toString())
+        .replace("{z}", tileId.z.toString())
+    }
+    val options = LayerOptions()
+      .setActive(true)
+      .setCacheable(record.cacheable)
+      .setTransparent(record.transparent)
+    val zoomRanges = listOf(ZoomRange(record.minZoom.coerceAtLeast(0), record.maxZoom.coerceAtLeast(0)))
+    val layer = map.addTileLayer(
+      record.id,
+      options,
+      CreateTileDataSource { builder ->
+        builder.setTileUrlProvider(urlProvider)
+        builder.setProjection(Projections.getWgs84Mercator())
+        builder.setZoomRanges(zoomRanges)
+        builder.setTileFormat(TileFormat.PNG)
+      }
+    )
+    tileLayers[record.id] = layer
+  }
+
+  internal fun setIndoorEnabled(value: Boolean) {
+    indoorEnabled = value
+    mapView?.mapWindow?.map?.isIndoorEnabled = value
+  }
+
+  // Set the active floor of the focused indoor plan. No-op until a plan is focused
+  // (onIndoorPlanFocused) — pass one of the level ids from that event.
+  internal fun setIndoorLevel(levelId: String) {
+    activeIndoorPlan?.activeLevelId = levelId
+  }
+
   internal fun currentCameraPosition(): Map<String, Any>? {
     val map = mapView?.mapWindow?.map ?: return null
     return cameraPositionPayload(map.cameraPosition)
@@ -980,6 +1112,8 @@ class ExpoYandexMapKitView(context: Context, appContext: AppContext) : ExpoView(
     map.addInputListener(WeakReference(inputListener))
     map.addTapListener(WeakReference(geoObjectTapListener))
     map.setMapLoadedListener(WeakReference(mapLoadedListener))
+    map.addIndoorStateListener(WeakReference(indoorStateListener))
+    map.isIndoorEnabled = indoorEnabled
     map.isNightModeEnabled = nightMode
     applyGestureState()
     map.isFastTapEnabled = fastTapEnabled
@@ -994,6 +1128,8 @@ class ExpoYandexMapKitView(context: Context, appContext: AppContext) : ExpoView(
     applyPendingCameraPosition(allowAnimation = false)
     // Wire up any <Marker> children that mounted before the map existed.
     attachPendingChildren()
+    // Apply any tile overlays added before the map existed.
+    applyPendingTileOverlays()
     // Apply user-location / traffic props set before the map was created.
     if (showUserPosition || followUser) {
       applyUserLocation()

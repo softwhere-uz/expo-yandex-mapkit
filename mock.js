@@ -24,6 +24,9 @@ const mapRef = {
   getVisibleRegion: fn(async () => null),
   getScreenPoints: fn(async () => []),
   getWorldPoints: fn(async () => []),
+  setIndoorLevel: fn(async () => {}),
+  addTileOverlay: fn(async () => 'tile-0'),
+  removeTileOverlay: fn(async () => {}),
 };
 
 const markerRef = {
@@ -52,6 +55,7 @@ const Geojson = mockComponent('Geojson');
 const Route = mockComponent('Route');
 const Callout = mockComponent('Callout');
 const MarkerView = mockComponent('MarkerView');
+const UrlTile = mockComponent('UrlTile');
 
 // The raw native modules (escape hatches) — enough shape that a consumer can spy on them.
 const ExpoYandexMapKitModule = {
@@ -67,6 +71,15 @@ const ExpoYandexSearchModule = {
   resolveURI: fn(async () => []),
 };
 const ExpoYandexTransportModule = { findRoutes: fn(async () => []) };
+const ExpoYandexOfflineModule = {
+  getRegions: fn(async () => []),
+  startDownload: fn(async () => {}),
+  stopDownload: fn(async () => {}),
+  pauseDownload: fn(async () => {}),
+  dropRegion: fn(async () => {}),
+  allowUseCellularNetwork: fn(async () => {}),
+  clearCache: fn(async () => {}),
+};
 
 module.exports = {
   YandexMapView,
@@ -79,11 +92,24 @@ module.exports = {
   Route,
   Callout,
   MarkerView,
+  UrlTile,
 
   ExpoYandexMapKitModule,
   ExpoYandexSuggestModule,
   ExpoYandexSearchModule,
   ExpoYandexTransportModule,
+  ExpoYandexOfflineModule,
+
+  // Offline maps namespace (full-flavor + paid-license feature; mocked to harmless defaults).
+  offlineMaps: {
+    getRegions: fn(async () => []),
+    startDownload: fn(async () => {}),
+    stopDownload: fn(async () => {}),
+    pauseDownload: fn(async () => {}),
+    dropRegion: fn(async () => {}),
+    allowUseCellularNetwork: fn(async () => {}),
+    clearCache: fn(async () => {}),
+  },
 
   // Geometry helpers (pure — mocked to harmless defaults).
   distanceBetween: fn(() => 0),

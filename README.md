@@ -31,12 +31,14 @@ A complete Yandex Maps SDK for Expo — full feature parity with the most capabl
 - 🔵 `<Clusterer>` — declarative clustering where your own `<Marker>`s are the render-prop; custom badge (color / size / **icon** / **React `renderCluster`**), `excludeFromCluster`, tap-to-fit, configurable radius / minZoom
 - 💬 `<Callout>` — a **React balloon** anchored to a world coordinate (MapKit has no native callout); any RN content, repositions itself as the camera moves
 - 🪧 `<MarkerView>` — a **live, interactive** React view as a marker (the @rnmapbox convention); real RN content, not a static bitmap snapshot
+- 🧩 `<UrlTile>` — a **custom raster tile layer** from a `{z}/{x}/{y}` URL template (the react-native-maps convention; e.g. OpenStreetMap)
 - 📡 User-location layer (custom dot icon + accuracy-circle styling, `onUserLocationChange` coordinates) and a live 🚦 traffic layer
 
 **Full-flavor modules** — set `flavor: 'full'` ([lite vs full](#lite-vs-full))
 - 🔎 **Search & geocoding** — `searchText`, `searchPoint` (reverse), `geocodeAddress` / `geocodePoint`, `resolveURI`; structured `addressComponents`, business `rating`, spelling / snippets options
 - ⌨️ **Suggest** — search-as-you-type; coordinates read **natively** (no lost `center`)
 - 🧭 **Routing** — `findRoutes` for driving / masstransit / pedestrian / **bicycle / scooter** (beyond parity), with a per-section leg breakdown (walk → bus → transfer → metro); draw it with the `<Route>` component (colored per leg)
+- 📥 **Offline maps** — `offlineMaps` (download regions for offline use) — **needs a paid Yandex MapKit license**
 
 **Setup & DX**
 - 🔑 API key at **build time** (config plugin) or **runtime** (`initialize`) — no `AndroidManifest.xml` / `AppDelegate` edits; a build-time key auto-initializes at startup (no init-order footgun)
@@ -611,6 +613,64 @@ Props: `point`, `anchor` (default center `{ x: 0.5, y: 0.5 }`), `offset`, `onPre
 
 **When to use which:** `<Marker>` for large, static sets (native placemarks, cheapest); `<MarkerView>` for a handful of live/interactive views. MarkerView positions in JS (world→screen per camera frame), so many of them or heavy content can lag a native placemark during fast gestures. On web (no map) it renders nothing.
 
+### Indoor plans (floor picker)
+
+Set `indoorEnabled` to show MapKit's indoor building plans. When the camera focuses a building that has an indoor plan, `onIndoorPlanFocused` fires with all its floors — render your own floor-picker UI and call the `setIndoorLevel(id)` ref method to switch floors:
+
+```tsx
+const mapRef = useRef<YandexMapViewRef>(null);
+const [floors, setFloors] = useState<IndoorLevel[]>([]);
+const [activeId, setActiveId] = useState<string>();
+
+<YandexMapView
+  ref={mapRef}
+  indoorEnabled
+  cameraPosition={{ latitude: 41.31, longitude: 69.24, zoom: 18 }}
+  onIndoorPlanFocused={(e) => { setFloors(e.nativeEvent.levels); setActiveId(e.nativeEvent.activeLevelId); }}
+  onIndoorPlanLeft={() => setFloors([])}
+  onIndoorLevelChanged={(e) => setActiveId(e.nativeEvent.activeLevelId)}
+  style={StyleSheet.absoluteFill}
+/>;
+
+// Your floor picker:
+{floors.map((f) => (
+  <Button key={f.id} title={f.name} onPress={() => mapRef.current?.setIndoorLevel(f.id)} />
+))}
+```
+
+| API | Notes |
+| --- | --- |
+| `indoorEnabled` prop | Show indoor plans (default `false`). |
+| `onIndoorPlanFocused` | `{ levels: IndoorLevel[], activeLevelId }` — floors bottom-to-top; `IndoorLevel` is `{ id, name, isUnderground }`. |
+| `onIndoorPlanLeft` | No indoor plan is focused any more. |
+| `onIndoorLevelChanged` | `{ activeLevelId }` — active floor changed. |
+| `setIndoorLevel(id)` ref | Switch the active floor. No-op until a plan is focused. |
+
+> ⚠️ Draft — this native feature is CI-compiled against the real MapKit SDK on both platforms, but validate it on a device (over an indoor-mapped building) before relying on it.
+### `<UrlTile />`
+
+A **custom raster tile layer** from a `{z}/{x}/{y}` URL template — the react-native-maps `<UrlTile>` convention. Render it as a child of `<YandexMapView>`; it adds a MapKit tile layer (fetched from your template) and removes it on unmount.
+
+```tsx
+import { YandexMapView, UrlTile } from 'expo-yandex-mapkit';
+
+<YandexMapView style={StyleSheet.absoluteFill} cameraPosition={{ latitude: 41.31, longitude: 69.24, zoom: 11 }}>
+  <UrlTile urlTemplate="https://tile.openstreetmap.org/{z}/{x}/{y}.png" maxZoom={19} />
+</YandexMapView>;
+```
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `urlTemplate` | `string` | — | Tile URL with `{x}` / `{y}` / `{z}` placeholders. PNG tiles. |
+| `id` | `string` | auto | A stable id so re-renders replace (not duplicate) the layer. |
+| `minZoom` / `maxZoom` | `number` | `0` / `19` | Zoom range the tiles cover. |
+| `transparent` | `boolean` | `false` | Set for overlay tiles drawn over the base map. |
+| `cacheable` | `boolean` | `true` | Whether MapKit may cache fetched tiles. |
+
+Imperative equivalents are on the map ref: `addTileOverlay(options) → id` and `removeTileOverlay(id)`. Precedent: react-native-maps `UrlTile`, @rnmapbox `RasterSource` — no other Yandex-maps RN wrapper has it. On web (no map) it renders nothing.
+
+> ⚠️ Draft — this native feature is CI-compiled against the real MapKit SDK on both platforms, but validate it on a device before relying on it in production.
+
 ### `<Clusterer />`
 
 Group `<Marker>` children into clusters. Wrap the markers to cluster in a `<Clusterer>` — each marker keeps all its usual features (image or React-children icon, `onPress`, `identifier`):
@@ -734,6 +794,22 @@ const routes = await findRoutes(
 - **Driving route options** (beyond parity): `findRoutes(points, 'driving', options)` / `findDrivingRoutes(points, options)` accept `{ avoidTolls?, avoidUnpaved?, avoidPoorConditions?, avoidHighways?, departureTime?, vehicleType? }` (`vehicleType`: `'default'` / `'taxi'` / `'truck'` / `'moto'`). The SDK supports all of these; no Yandex-maps RN wrapper forwards them.
 
 Each `Route` carries a summary (`time`; `timeWithTraffic` + `distance` for driving; `walkingDistance` + `transfersCount` for masstransit), its `points` geometry, and `sections` — the route split into legs. Each `RouteSection` is `{ type, time?, points, transports? }`: `type` is `'car'`, `'walk'`, `'waiting'`, or a transit vehicle type (`'bus'`, `'underground'`, …), `transports` maps each vehicle type to its line names, and `points` is that leg's own polyline fragment. So a masstransit route reads as "walk → bus 42 → transfer → metro", each leg drawable on its own. Requires MapKit to be initialized.
+
+### `offlineMaps` — download regions for offline use
+
+> **Requires the MapKit `full` flavor _and_ a paid Yandex MapKit license** that permits offline caching (the free tier does not). On `lite` (or without a license) the calls reject with a clear message.
+
+```tsx
+import { offlineMaps } from 'expo-yandex-mapkit';
+
+const regions = await offlineMaps.getRegions(); // [{ id, name, country, center }]
+const tashkent = regions.find((r) => r.name.includes('Tashkent'));
+if (tashkent) await offlineMaps.startDownload(tashkent.id);
+```
+
+`offlineMaps`: `getRegions()`, `startDownload(id)`, `stopDownload(id)`, `pauseDownload(id)`, `dropRegion(id)`, `allowUseCellularNetwork(allow)`, `clearCache()`. Real demand in the lineage ([yamap#311](https://github.com/volga-volga/react-native-yamap/issues/311), [#210](https://github.com/volga-volga/react-native-yamap/issues/210)); no wrapper ships it. _(Live per-region download state/progress reporting is a follow-up.)_
+
+> ⚠️ Draft — this native feature is CI-compiled against the real (full-flavor) MapKit SDK on both platforms, but it cannot be runtime-tested without a licensed key; validate on a device with a license before relying on it.
 
 ## lite vs full
 

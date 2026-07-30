@@ -20,6 +20,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   snapshot poll with a short settle window, and an opaque-bounds crop so the badge is tight and the
   count centers on it. An `<Image>` inside the template renders on iOS but not Android (off-screen
   snapshot) — use shapes/text, or `clusterIcon` for a plain image badge.
+- **Offline maps** (`full` flavor + paid license; beyond parity — [#2](https://github.com/softwhere-uz/expo-yandex-mapkit/issues/2)).
+  An `offlineMaps` namespace to download map regions for offline use via MapKit's
+  `OfflineCacheManager`: `getRegions`, `getRegionState`, `getRegionProgress`, `startDownload`,
+  `stopDownload`, `pauseDownload`, `dropRegion`, `allowUseCellularNetwork`, `clearCache` (progress /
+  state are polled). Gated to the full flavor (lite rejects with a clear message) and additionally
+  requires a **paid Yandex MapKit license** that permits offline caching. Real demand in the lineage
+  ([yamap#311](https://github.com/volga-volga/react-native-yamap/issues/311), [#210](https://github.com/volga-volga/react-native-yamap/issues/210)); no wrapper ships it.
+  _⚠️ Draft: CI-compiled against the real full-flavor MapKit SDK on both platforms, but it cannot be
+  runtime-tested without a licensed key — validate on a device with a license before production use._
+- **Indoor plans + floor picker** (beyond parity — [#2](https://github.com/softwhere-uz/expo-yandex-mapkit/issues/2)).
+  An `indoorEnabled` prop shows MapKit's indoor building plans; `onIndoorPlanFocused`
+  (`{ levels: IndoorLevel[], activeLevelId }`, floors bottom-to-top), `onIndoorPlanLeft`, and
+  `onIndoorLevelChanged` surface the floors so you can build your own floor picker, and the
+  `setIndoorLevel(id)` map-ref method switches floors (via `YMKIndoorStateListener` /
+  `IndoorStateListener` + `IndoorPlan.activeLevelId`). No other Yandex-maps RN wrapper exposes it.
+  _⚠️ Draft: CI-compiled against the real MapKit SDK on both platforms, but not yet runtime-validated
+  on a device (over an indoor-mapped building) — validate before production use._
+- **`<UrlTile>` — custom raster tile layers** (beyond parity — [#2](https://github.com/softwhere-uz/expo-yandex-mapkit/issues/2)).
+  Render a `{z}/{x}/{y}` URL-template tile layer (the react-native-maps `<UrlTile>` convention; e.g.
+  OpenStreetMap) as a child of `<YandexMapView>` — via MapKit's `addTileLayer` + a URL tile data
+  source (iOS `YMKTilesUrlProvider`, Android `UrlProvider`). Props: `urlTemplate`, `id`, `minZoom`,
+  `maxZoom`, `transparent`, `cacheable`; imperative equivalents `addTileOverlay`/`removeTileOverlay`
+  on the map ref. No other Yandex-maps RN wrapper has it.
+  _⚠️ Draft: CI-compiled against the real MapKit SDK on both platforms, but not yet runtime-validated
+  on a device — validate before production use._
 
 ## [2.20.0] - 2026-07-29
 

@@ -117,6 +117,34 @@ internal struct CameraMoveOptionsRecord: Record {
   @Field var edgePadding: EdgePaddingRecord?
 }
 
+// Options for a custom raster/tile overlay added via addTileOverlay(). `urlTemplate` uses `{x}`,
+// `{y}`, `{z}` placeholders (the react-native-maps `<UrlTile>` convention).
+internal struct TileOverlayRecord: Record {
+  @Field var id: String = ""
+  @Field var urlTemplate: String = ""
+  @Field var minZoom: Int = 0
+  @Field var maxZoom: Int = 19
+  @Field var transparent: Bool = false
+  @Field var cacheable: Bool = true
+}
+
+// Formats a tile URL from a `{x}`/`{y}`/`{z}` template. MapKit holds the provider while the layer
+// lives; it carries no map back-reference, so there is no retain cycle.
+private final class TileUrlProvider: NSObject, YMKTilesUrlProvider {
+  private let urlTemplate: String
+
+  init(urlTemplate: String) {
+    self.urlTemplate = urlTemplate
+  }
+
+  func formatUrl(with tileId: YMKTileId, version: YMKVersion, features: [String: String]) -> String {
+    return urlTemplate
+      .replacingOccurrences(of: "{x}", with: String(tileId.x))
+      .replacingOccurrences(of: "{y}", with: String(tileId.y))
+      .replacingOccurrences(of: "{z}", with: String(tileId.z))
+  }
+}
+
 // This view will be used as a native component. Make sure to inherit from `ExpoView`
 // to apply the proper styling (e.g. border radius and shadows).
 class ExpoYandexMapKitView: ExpoView {
@@ -144,6 +172,9 @@ class ExpoYandexMapKitView: ExpoView {
   let onTrafficChanged = EventDispatcher()
   let onUserLocationChange = EventDispatcher()
   let onPoiTap = EventDispatcher()
+  let onIndoorPlanFocused = EventDispatcher()
+  let onIndoorPlanLeft = EventDispatcher()
+  let onIndoorLevelChanged = EventDispatcher()
 
   var animated = true
 
@@ -154,7 +185,17 @@ class ExpoYandexMapKitView: ExpoView {
   private var inputListener: InputListener?
   private var mapLoadedListener: MapLoadedListener?
   private var geoObjectTapListener: GeoObjectTapListener?
+  private var indoorStateListener: IndoorStateListener?
+  // Whether indoor plans (floor levels) are shown. Stored so a value set before the map exists is
+  // applied on map creation, like nightMode.
+  private var indoorEnabled = false
+  // The active indoor plan (from onActivePlanFocused), so setIndoorLevel() can change its floor.
+  private weak var activeIndoorPlan: YMKIndoorPlan?
   private var pendingCameraPosition: CameraPositionRecord?
+  // Custom tile overlays added via addTileOverlay(), by id. `pending` holds any added before the map
+  // existed; they are applied in createMapViewIfReady.
+  private var tileLayers: [String: YMKLayer] = [:]
+  private var pendingTileOverlays: [String: TileOverlayRecord] = [:]
   private var nightMode = false
   // Gesture toggles default to MapKit's own defaults (all enabled). Stored so a
   // value set before the map exists is applied on map creation, mirroring nightMode.
@@ -836,6 +877,56 @@ class ExpoYandexMapKitView: ExpoView {
     return "data:image/png;base64," + data.base64EncodedString()
   }
 
+  // MARK: - Custom tile overlays
+
+  // Add (or replace) a custom raster tile layer. Returns the overlay id (the caller's `id`, or a
+  // generated one). Applied immediately if the map exists, else queued until it does.
+  func addTileOverlay(_ record: TileOverlayRecord) -> String {
+    let id = record.id.isEmpty ? UUID().uuidString : record.id
+    var record = record
+    record.id = id
+    removeTileOverlay(id)
+    if let map = mapView?.mapWindow.map {
+      applyTileOverlay(record, on: map)
+    } else {
+      pendingTileOverlays[id] = record
+    }
+    return id
+  }
+
+  // Remove a tile overlay previously added with addTileOverlay().
+  func removeTileOverlay(_ id: String) {
+    pendingTileOverlays.removeValue(forKey: id)
+    if let layer = tileLayers.removeValue(forKey: id) {
+      layer.remove()
+    }
+  }
+
+  private func applyPendingTileOverlays() {
+    guard let map = mapView?.mapWindow.map else {
+      return
+    }
+    let pending = pendingTileOverlays
+    pendingTileOverlays.removeAll()
+    pending.values.forEach { applyTileOverlay($0, on: map) }
+  }
+
+  private func applyTileOverlay(_ record: TileOverlayRecord, on map: YMKMap) {
+    let provider = TileUrlProvider(urlTemplate: record.urlTemplate)
+    let options = YMKLayerOptions()
+    options.active = true
+    options.cacheable = record.cacheable
+    options.transparent = record.transparent
+    let zoomRanges = [YMKZoomRange(zMin: UInt(max(0, record.minZoom)), zMax: UInt(max(0, record.maxZoom)))]
+    let layer = map.addTileLayer(withLayerId: record.id, layerOptions: options) { builder in
+      builder.setTileUrlProviderWith(provider)
+      builder.setProjectionWith(YMKProjections.wgs84Mercator())
+      builder.setZoomRangesWith(zoomRanges)
+      builder.setTileFormatWith(.png)
+    }
+    tileLayers[record.id] = layer
+  }
+
   // Draw MapKit's selection highlight around the POI/geo-object identified by `selection` (from an
   // onPoiTap event). Reconstructs the selection metadata from the opaque ids. No-op until the map is
   // ready.
@@ -854,6 +945,38 @@ class ExpoYandexMapKitView: ExpoView {
 
   func deselectGeoObject() {
     mapView?.mapWindow.map.deselectGeoObject()
+  }
+
+  // MARK: - Indoor
+
+  func setIndoorEnabled(_ value: Bool) {
+    indoorEnabled = value
+    mapView?.mapWindow.map.isIndoorEnabled = value
+  }
+
+  // Set the active floor of the focused indoor plan. No-op until a plan is focused
+  // (onIndoorPlanFocused) — pass one of the level ids from that event.
+  func setIndoorLevel(_ levelId: String) {
+    activeIndoorPlan?.activeLevelId = levelId
+  }
+
+  fileprivate func handleIndoorPlanFocused(_ plan: YMKIndoorPlan) {
+    activeIndoorPlan = plan
+    onIndoorPlanFocused([
+      "activeLevelId": plan.activeLevelId,
+      "levels": plan.levels.map {
+        ["id": $0.id, "name": $0.name, "isUnderground": $0.isUnderground]
+      },
+    ])
+  }
+
+  fileprivate func handleIndoorPlanLeft() {
+    activeIndoorPlan = nil
+    onIndoorPlanLeft([:])
+  }
+
+  fileprivate func handleIndoorLevelChanged(_ levelId: String) {
+    onIndoorLevelChanged(["activeLevelId": levelId])
   }
 
   private func coordinatePayload(_ point: YMKPoint) -> [String: Any] {
@@ -908,6 +1031,10 @@ class ExpoYandexMapKitView: ExpoView {
     map.addInputListener(with: inputListener)
     map.setMapLoadedListenerWith(mapLoadedListener)
     map.addTapListener(with: geoObjectTapListener)
+    let indoorStateListener = IndoorStateListener(view: self)
+    self.indoorStateListener = indoorStateListener
+    map.addIndoorStateListener(with: indoorStateListener)
+    map.isIndoorEnabled = indoorEnabled
 
     map.isNightModeEnabled = nightMode
     applyGestureState()
@@ -925,6 +1052,8 @@ class ExpoYandexMapKitView: ExpoView {
     applyPendingCameraPosition(allowAnimation: false)
     // Wire up any <Marker> children that mounted before the map existed.
     attachPendingChildren()
+    // Apply any tile overlays added before the map existed.
+    applyPendingTileOverlays()
     // Apply user-location / traffic props set before the map was created.
     if showUserPosition || followUser {
       applyUserLocation()
@@ -1095,6 +1224,26 @@ private final class CameraListener: NSObject, YMKMapCameraListener {
     finished: Bool
   ) {
     view?.dispatchCameraPositionChanged(cameraPosition, reason: cameraUpdateReason, finished: finished)
+  }
+}
+
+private final class IndoorStateListener: NSObject, YMKIndoorStateListener {
+  private weak var view: ExpoYandexMapKitView?
+
+  init(view: ExpoYandexMapKitView) {
+    self.view = view
+  }
+
+  func onActivePlanFocused(withActivePlan activePlan: YMKIndoorPlan) {
+    view?.handleIndoorPlanFocused(activePlan)
+  }
+
+  func onActivePlanLeft() {
+    view?.handleIndoorPlanLeft()
+  }
+
+  func onActiveLevelChanged(withActiveLevelId activeLevelId: String) {
+    view?.handleIndoorLevelChanged(activeLevelId)
   }
 }
 
