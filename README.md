@@ -31,6 +31,7 @@ A complete Yandex Maps SDK for Expo — full feature parity with the most capabl
 - 🔵 `<Clusterer>` — declarative clustering where your own `<Marker>`s are the render-prop; custom badge (color / size / **icon**), `excludeFromCluster`, tap-to-fit, configurable radius / minZoom
 - 💬 `<Callout>` — a **React balloon** anchored to a world coordinate (MapKit has no native callout); any RN content, repositions itself as the camera moves
 - 🪧 `<MarkerView>` — a **live, interactive** React view as a marker (the @rnmapbox convention); real RN content, not a static bitmap snapshot
+- 🧩 `<UrlTile>` — a **custom raster tile layer** from a `{z}/{x}/{y}` URL template (the react-native-maps convention; e.g. OpenStreetMap)
 - 📡 User-location layer (custom dot icon + accuracy-circle styling, `onUserLocationChange` coordinates) and a live 🚦 traffic layer
 
 **Full-flavor modules** — set `flavor: 'full'` ([lite vs full](#lite-vs-full))
@@ -645,6 +646,29 @@ const [activeId, setActiveId] = useState<string>();
 | `setIndoorLevel(id)` ref | Switch the active floor. No-op until a plan is focused. |
 
 > ⚠️ Draft — this native feature is CI-compiled against the real MapKit SDK on both platforms, but validate it on a device (over an indoor-mapped building) before relying on it.
+### `<UrlTile />`
+
+A **custom raster tile layer** from a `{z}/{x}/{y}` URL template — the react-native-maps `<UrlTile>` convention. Render it as a child of `<YandexMapView>`; it adds a MapKit tile layer (fetched from your template) and removes it on unmount.
+
+```tsx
+import { YandexMapView, UrlTile } from 'expo-yandex-mapkit';
+
+<YandexMapView style={StyleSheet.absoluteFill} cameraPosition={{ latitude: 41.31, longitude: 69.24, zoom: 11 }}>
+  <UrlTile urlTemplate="https://tile.openstreetmap.org/{z}/{x}/{y}.png" maxZoom={19} />
+</YandexMapView>;
+```
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `urlTemplate` | `string` | — | Tile URL with `{x}` / `{y}` / `{z}` placeholders. PNG tiles. |
+| `id` | `string` | auto | A stable id so re-renders replace (not duplicate) the layer. |
+| `minZoom` / `maxZoom` | `number` | `0` / `19` | Zoom range the tiles cover. |
+| `transparent` | `boolean` | `false` | Set for overlay tiles drawn over the base map. |
+| `cacheable` | `boolean` | `true` | Whether MapKit may cache fetched tiles. |
+
+Imperative equivalents are on the map ref: `addTileOverlay(options) → id` and `removeTileOverlay(id)`. Precedent: react-native-maps `UrlTile`, @rnmapbox `RasterSource` — no other Yandex-maps RN wrapper has it. On web (no map) it renders nothing.
+
+> ⚠️ Draft — this native feature is CI-compiled against the real MapKit SDK on both platforms, but validate it on a device before relying on it in production.
 
 ### `<Clusterer />`
 

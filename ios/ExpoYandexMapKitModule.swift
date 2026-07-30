@@ -229,6 +229,15 @@ public class ExpoYandexMapKitModule: Module {
         view.deselectGeoObject()
       }.runOnQueue(.main)
 
+      // Tile overlays mutate the map's layer stack — run on the main queue.
+      AsyncFunction("addTileOverlay") { (view: ExpoYandexMapKitView, options: TileOverlayRecord) -> String in
+        view.addTileOverlay(options)
+      }.runOnQueue(.main)
+
+      AsyncFunction("removeTileOverlay") { (view: ExpoYandexMapKitView, id: String) in
+        view.removeTileOverlay(id)
+      }.runOnQueue(.main)
+
       // Changing the active indoor floor mutates map state — run on the main queue.
       AsyncFunction("setIndoorLevel") { (view: ExpoYandexMapKitView, levelId: String) in
         view.setIndoorLevel(levelId)

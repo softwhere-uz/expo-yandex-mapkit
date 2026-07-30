@@ -25,6 +25,8 @@ export const YandexMapView = React.forwardRef<YandexMapViewRef, YandexMapViewPro
         deselectGeoObject: unsupported,
         fitToCoordinates: unsupported,
         setIndoorLevel: unsupported,
+        addTileOverlay: unsupported,
+        removeTileOverlay: unsupported,
       };
     }, []);
     return null;

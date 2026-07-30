@@ -12,6 +12,7 @@ import {
   Point,
   Region,
   ScreenPoint,
+  TileOverlayOptions,
   VisibleRegion,
   YandexMapViewProps,
   YandexMapViewRef,
@@ -94,6 +95,10 @@ export const YandexMapView = React.forwardRef<YandexMapViewRef, YandexMapViewPro
         getScreenPoints: (points: Point[]) =>
           nativeRef.current?.getScreenPoints(points) ?? Promise.resolve([]),
         subscribeCameraChange,
+        addTileOverlay: (options: TileOverlayOptions) =>
+          nativeRef.current?.addTileOverlay(options) ?? Promise.resolve(''),
+        removeTileOverlay: (id: string) =>
+          nativeRef.current?.removeTileOverlay(id) ?? Promise.resolve(),
       }),
       [subscribeCameraChange]
     );
@@ -142,6 +147,10 @@ export const YandexMapView = React.forwardRef<YandexMapViewRef, YandexMapViewPro
           }) ?? Promise.resolve(),
         setIndoorLevel: (levelId: string) =>
           nativeRef.current?.setIndoorLevel(levelId) ?? Promise.resolve(),
+        addTileOverlay: (options: TileOverlayOptions) =>
+          nativeRef.current?.addTileOverlay(options) ?? Promise.resolve(''),
+        removeTileOverlay: (id: string) =>
+          nativeRef.current?.removeTileOverlay(id) ?? Promise.resolve(),
       }),
       []
     );

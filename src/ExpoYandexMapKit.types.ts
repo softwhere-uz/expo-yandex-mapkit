@@ -399,6 +399,26 @@ export type MarkerViewProps = {
   onPress?: () => void;
 };
 
+// ── Custom raster tile layers (<UrlTile> / addTileOverlay) ───────────────────────────────────────
+
+export type TileOverlayOptions = {
+  // A stable id for the overlay. Pass your own so re-renders replace (not duplicate) the layer;
+  // when omitted, addTileOverlay() generates one and returns it.
+  id?: string;
+  // Tile URL template with `{x}`, `{y}`, `{z}` placeholders — e.g.
+  // `'https://tile.openstreetmap.org/{z}/{x}/{y}.png'`. PNG tiles.
+  urlTemplate: string;
+  // Zoom range the tiles cover. Default 0..19.
+  minZoom?: number;
+  maxZoom?: number;
+  // Whether the layer has transparency (drawn over the base map). Default false.
+  transparent?: boolean;
+  // Whether MapKit may cache fetched tiles. Default true.
+  cacheable?: boolean;
+};
+
+export type UrlTileProps = TileOverlayOptions;
+
 export type VisibleRegion = {
   topLeft: Point;
   topRight: Point;
@@ -459,6 +479,11 @@ export type YandexMapViewRef = {
   // Switch the active floor of the focused indoor plan. Pass a level id from `onIndoorPlanFocused`.
   // No-op until a plan is focused. Requires `indoorEnabled`.
   setIndoorLevel(levelId: string): Promise<void>;
+  // Add (or replace, by `id`) a custom raster tile layer. Resolves the overlay's id (the one you
+  // passed, or a generated one). Prefer the declarative `<UrlTile>` for most cases.
+  addTileOverlay(options: TileOverlayOptions): Promise<string>;
+  // Remove a tile overlay previously added with `addTileOverlay` (or rendered by a `<UrlTile>`).
+  removeTileOverlay(id: string): Promise<void>;
 };
 
 // ── Suggest (search-as-you-type) — requires the MapKit `full` flavor ────────────────────────────
