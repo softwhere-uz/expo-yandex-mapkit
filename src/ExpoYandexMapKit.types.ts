@@ -280,6 +280,9 @@ export type ClustererProps = {
   // as every cluster's badge, with the count still drawn on top (honoring clusterTextColor/Size/
   // Offset) — so one template serves all cluster sizes. Takes precedence over `clusterIcon`. The
   // template is one shared design; it does not receive the count (that is composited natively).
+  // Use shapes / text / borders / colors — the count is drawn natively. Note: an `<Image>` *inside*
+  // the template renders on iOS but not on Android (the template is snapshotted off-screen, where an
+  // Android ImageView does not decode its source). For a plain image badge use `clusterIcon` instead.
   renderCluster?: () => ReactNode;
   // Whether the `renderCluster` template is re-snapshotted as its content changes (live badges).
   // Default false: it is snapshotted once after its first layout. Set true for animated/live badge

@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added (draft — awaiting on-device validation)
+### Added
 
 - **Custom cluster rendering via `renderCluster`** ([#2](https://github.com/softwhere-uz/expo-yandex-mapkit/issues/2),
   Section B). `<Clusterer renderCluster={() => <Badge />}>` renders a custom React badge: the element is
@@ -15,9 +15,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   cluster's badge, with the count composited on top (honoring `clusterTextColor`/`clusterTextSize`/
   `clusterTextOffset`). One shared template serves all cluster sizes; it takes precedence over
   `clusterIcon`. New `clusterTracksViewChanges` prop (default `false`) re-snapshots the template as its
-  content changes for live/animated badges — the react-native-maps convention. Compile-verified on both
-  platforms (Swift/Kotlin vs the real MapKit SDK in CI); **opened as a draft PR** for on-device
-  validation of the off-screen snapshot before release.
+  content changes for live/animated badges — the react-native-maps convention. **Validated on-device**
+  (iOS simulator + Android emulator); the Android path uses `alignSelf` content-sizing, a main-handler
+  snapshot poll with a short settle window, and an opaque-bounds crop so the badge is tight and the
+  count centers on it. An `<Image>` inside the template renders on iOS but not Android (off-screen
+  snapshot) — use shapes/text, or `clusterIcon` for a plain image badge.
 
 ## [2.20.0] - 2026-07-29
 

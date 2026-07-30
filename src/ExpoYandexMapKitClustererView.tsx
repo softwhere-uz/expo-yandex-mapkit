@@ -83,6 +83,9 @@ export function Clusterer({
 }
 
 const styles = StyleSheet.create({
-  // Absolute so the template shrink-wraps its content and does not affect any layout.
-  badgeTemplate: { position: 'absolute' },
+  // `alignSelf: 'flex-start'` shrink-wraps the template to its content (the marker-icon convention),
+  // giving it a stable, content-sized layout to snapshot. `position: 'absolute'` was unstable on
+  // Android Fabric — it intermittently laid the host out full-width / zero-height, so the snapshot
+  // was skipped and the badge fell back to the drawn disc.
+  badgeTemplate: { alignSelf: 'flex-start' },
 });

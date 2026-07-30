@@ -132,8 +132,33 @@ class ExpoYandexMapKitClustererView(context: Context, appContext: AppContext) :
       hasRenderedTemplate = false
       addView(child)
       child.addOnLayoutChangeListener(templateLayoutListener)
+      // The layout event can race the listener (or an off-screen view can settle without re-firing
+      // it), so also poll on the main handler until the template has a size, then keep re-snapshotting
+      // over a short settle window to catch async content. Mirrors the iOS display-link approach.
+      scheduleTemplateSnapshotPoll(0)
     }
     scheduleRecluster()
+  }
+
+  // Re-snapshot the template over a short settle window (not just once): the layout event can race
+  // the listener, and async content inside the template — e.g. an <Image> that decodes after the
+  // first layout — would be missed by a single early snapshot. After the window, stop unless
+  // `tracksTemplate` keeps re-snapshotting live content. No manual measure(): a Fabric ReactViewGroup
+  // rejects UNSPECIFIED specs.
+  private fun scheduleTemplateSnapshotPoll(attempt: Int) {
+    if (templateView == null) {
+      return
+    }
+    mainHandler.postDelayed({
+      if (templateView == null) {
+        return@postDelayed
+      }
+      refreshTemplateSnapshot()
+      // ~2s settle window (15 × 133ms) to catch late-decoding images, then stop.
+      if (tracksTemplate || attempt < 15) {
+        scheduleTemplateSnapshotPoll(attempt + 1)
+      }
+    }, 133)
   }
 
   internal fun removeChildViewAt(index: Int) {
@@ -348,11 +373,62 @@ class ExpoYandexMapKitClustererView(context: Context, appContext: AppContext) :
     if (view.width <= 0 || view.height <= 0) {
       return
     }
-    val bitmap = Bitmap.createBitmap(view.width, view.height, Bitmap.Config.ARGB_8888)
-    view.draw(Canvas(bitmap))
-    templateBitmap = bitmap
+    val full = Bitmap.createBitmap(view.width, view.height, Bitmap.Config.ARGB_8888)
+    view.draw(Canvas(full))
     hasRenderedTemplate = true
+    // Fabric can lay the host out wider/taller than its content (it sizes against the map, not the
+    // badge), so crop to the tight bounding box of non-transparent pixels. Without this the badge
+    // sits off-center on the cluster point and the natively-composited count lands in empty space.
+    val bitmap = cropToOpaqueBounds(full)
+    if (bitmap == null) {
+      full.recycle()
+      return
+    }
+    if (bitmap !== full) {
+      full.recycle()
+    }
+    // Only redraw the badges when the snapshot actually changed — skips needless reclustering across
+    // the settle window once the content (e.g. a late-decoding image) has stabilized.
+    val previous = templateBitmap
+    if (previous != null && previous.sameAs(bitmap)) {
+      bitmap.recycle()
+      return
+    }
+    templateBitmap = bitmap
     scheduleRecluster()
+  }
+
+  // Crop a bitmap to the tight rectangle enclosing its non-transparent pixels, or null when fully
+  // transparent. Scans row-by-row (one getPixels per row) — cheap for a badge-sized image.
+  private fun cropToOpaqueBounds(source: Bitmap): Bitmap? {
+    val w = source.width
+    val h = source.height
+    if (w <= 0 || h <= 0) {
+      return null
+    }
+    var minX = w
+    var minY = h
+    var maxX = -1
+    var maxY = -1
+    val row = IntArray(w)
+    for (y in 0 until h) {
+      source.getPixels(row, 0, w, 0, y, w, 1)
+      for (x in 0 until w) {
+        if (row[x] ushr 24 != 0) {
+          if (x < minX) minX = x
+          if (x > maxX) maxX = x
+          if (y < minY) minY = y
+          if (y > maxY) maxY = y
+        }
+      }
+    }
+    if (maxX < minX || maxY < minY) {
+      return null
+    }
+    if (minX == 0 && minY == 0 && maxX == w - 1 && maxY == h - 1) {
+      return source
+    }
+    return Bitmap.createBitmap(source, minX, minY, maxX - minX + 1, maxY - minY + 1)
   }
 
   // ClusterListener: style each cluster's badge and wire its tap listener as MapKit creates it.
