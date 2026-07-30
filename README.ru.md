@@ -31,6 +31,7 @@
 - 🔵 `<Clusterer>` — декларативная кластеризация, где ваши собственные `<Marker>` служат render-пропом; настраиваемый бейдж (цвет / размер / **иконка**), `excludeFromCluster`, тап-для-подгонки, настраиваемые радиус / minZoom
 - 💬 `<Callout>` — **React-балун**, привязанный к мировой координате (у MapKit нет нативного callout); любой RN-контент, сам перепозиционируется при движении камеры
 - 🪧 `<MarkerView>` — **живая интерактивная** React-вью в роли маркера (соглашение @rnmapbox); настоящий RN-контент, а не статичный bitmap-снимок
+- 🧩 `<UrlTile>` — **свой растровый слой тайлов** из URL-шаблона `{z}/{x}/{y}` (соглашение react-native-maps; напр. OpenStreetMap)
 - 📡 Слой геопозиции пользователя (кастомная иконка точки + стилизация круга точности, координаты через `onUserLocationChange`) и живой 🚦 слой пробок
 
 **Модули flavor `full`** — задайте `flavor: 'full'` ([lite и full](#lite-и-full))
@@ -598,6 +599,61 @@ import { YandexMapView, MarkerView } from 'expo-yandex-mapkit';
 Пропсы: `point`, `anchor` (по умолчанию центр `{ x: 0.5, y: 0.5 }`), `offset`, `onPress`, `pointerEvents` (по умолчанию `'box-none'`), `style`.
 
 **Что когда использовать:** `<Marker>` — для больших статичных наборов (нативные плейсмарки, дешевле всего); `<MarkerView>` — для нескольких живых/интерактивных вью. MarkerView позиционируется в JS (мир→экран на каждый кадр камеры), поэтому при большом числе или тяжёлом контенте может отставать от нативного плейсмарка на быстрых жестах. На вебе (карты нет) рендерит пустоту.
+
+### Планы помещений (выбор этажа)
+
+Задайте `indoorEnabled`, чтобы показать планы помещений MapKit. Когда камера фокусируется на здании с планом, срабатывает `onIndoorPlanFocused` со всеми его этажами — нарисуйте свой UI выбора этажа и вызывайте ref-метод `setIndoorLevel(id)` для переключения:
+
+```tsx
+const mapRef = useRef<YandexMapViewRef>(null);
+const [floors, setFloors] = useState<IndoorLevel[]>([]);
+
+<YandexMapView
+  ref={mapRef}
+  indoorEnabled
+  cameraPosition={{ latitude: 41.31, longitude: 69.24, zoom: 18 }}
+  onIndoorPlanFocused={(e) => setFloors(e.nativeEvent.levels)}
+  onIndoorPlanLeft={() => setFloors([])}
+  style={StyleSheet.absoluteFill}
+/>;
+
+{floors.map((f) => (
+  <Button key={f.id} title={f.name} onPress={() => mapRef.current?.setIndoorLevel(f.id)} />
+))}
+```
+
+| API | Примечание |
+| --- | --- |
+| проп `indoorEnabled` | Показывать планы помещений (по умолчанию `false`). |
+| `onIndoorPlanFocused` | `{ levels: IndoorLevel[], activeLevelId }` — этажи снизу вверх; `IndoorLevel` = `{ id, name, isUnderground }`. |
+| `onIndoorPlanLeft` | План помещения больше не в фокусе. |
+| `onIndoorLevelChanged` | `{ activeLevelId }` — активный этаж изменился. |
+| ref `setIndoorLevel(id)` | Переключить активный этаж. No-op, пока план не в фокусе. |
+
+> ⚠️ Черновик — эта нативная фича компилируется в CI против реального MapKit SDK на обеих платформах, но проверьте её на устройстве (на здании с планом помещений) перед использованием.
+### `<UrlTile />`
+
+**Свой растровый слой тайлов** из URL-шаблона `{z}/{x}/{y}` — соглашение react-native-maps `<UrlTile>`. Рендерите как дочерний элемент `<YandexMapView>`; он добавляет слой тайлов MapKit (загружаемых по вашему шаблону) и убирает его при размонтировании.
+
+```tsx
+import { YandexMapView, UrlTile } from 'expo-yandex-mapkit';
+
+<YandexMapView style={StyleSheet.absoluteFill} cameraPosition={{ latitude: 41.31, longitude: 69.24, zoom: 11 }}>
+  <UrlTile urlTemplate="https://tile.openstreetmap.org/{z}/{x}/{y}.png" maxZoom={19} />
+</YandexMapView>;
+```
+
+| Пропс | Тип | По умолчанию | Примечание |
+| --- | --- | --- | --- |
+| `urlTemplate` | `string` | — | URL тайла с плейсхолдерами `{x}` / `{y}` / `{z}`. PNG-тайлы. |
+| `id` | `string` | авто | Стабильный id, чтобы ре-рендер заменял (а не дублировал) слой. |
+| `minZoom` / `maxZoom` | `number` | `0` / `19` | Диапазон зумов, который покрывают тайлы. |
+| `transparent` | `boolean` | `false` | Для наложенных тайлов поверх базовой карты. |
+| `cacheable` | `boolean` | `true` | Может ли MapKit кэшировать загруженные тайлы. |
+
+Императивные аналоги — на ref карты: `addTileOverlay(options) → id` и `removeTileOverlay(id)`. Прецедент: react-native-maps `UrlTile`, @rnmapbox `RasterSource` — ни одна другая RN-обёртка для Яндекс-карт этого не имеет. На вебе (карты нет) рендерит пустоту.
+
+> ⚠️ Черновик — эта нативная фича компилируется в CI против реального MapKit SDK на обеих платформах, но проверьте её на устройстве перед использованием в продакшене.
 
 ### `<Clusterer />`
 

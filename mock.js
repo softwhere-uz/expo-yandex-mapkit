@@ -24,6 +24,9 @@ const mapRef = {
   getVisibleRegion: fn(async () => null),
   getScreenPoints: fn(async () => []),
   getWorldPoints: fn(async () => []),
+  setIndoorLevel: fn(async () => {}),
+  addTileOverlay: fn(async () => 'tile-0'),
+  removeTileOverlay: fn(async () => {}),
 };
 
 const markerRef = {
@@ -52,6 +55,7 @@ const Geojson = mockComponent('Geojson');
 const Route = mockComponent('Route');
 const Callout = mockComponent('Callout');
 const MarkerView = mockComponent('MarkerView');
+const UrlTile = mockComponent('UrlTile');
 
 // The raw native modules (escape hatches) — enough shape that a consumer can spy on them.
 const ExpoYandexMapKitModule = {
@@ -88,6 +92,7 @@ module.exports = {
   Route,
   Callout,
   MarkerView,
+  UrlTile,
 
   ExpoYandexMapKitModule,
   ExpoYandexSuggestModule,

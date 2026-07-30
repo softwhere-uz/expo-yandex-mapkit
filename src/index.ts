@@ -33,6 +33,7 @@ export { distanceBetween, pathLength, boundingBox } from './geometry';
 export { Geojson } from './ExpoYandexMapKitGeojson';
 export { Callout } from './ExpoYandexMapKitCallout';
 export { MarkerView } from './ExpoYandexMapKitMarkerViewOverlay';
+export { UrlTile } from './ExpoYandexMapKitUrlTile';
 // eslint-disable-next-line import/export
 export * from './ExpoYandexMapKit.types';
 
