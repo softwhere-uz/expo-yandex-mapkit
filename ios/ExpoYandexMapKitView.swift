@@ -172,6 +172,9 @@ class ExpoYandexMapKitView: ExpoView {
   let onTrafficChanged = EventDispatcher()
   let onUserLocationChange = EventDispatcher()
   let onPoiTap = EventDispatcher()
+  let onIndoorPlanFocused = EventDispatcher()
+  let onIndoorPlanLeft = EventDispatcher()
+  let onIndoorLevelChanged = EventDispatcher()
 
   var animated = true
 
@@ -182,6 +185,12 @@ class ExpoYandexMapKitView: ExpoView {
   private var inputListener: InputListener?
   private var mapLoadedListener: MapLoadedListener?
   private var geoObjectTapListener: GeoObjectTapListener?
+  private var indoorStateListener: IndoorStateListener?
+  // Whether indoor plans (floor levels) are shown. Stored so a value set before the map exists is
+  // applied on map creation, like nightMode.
+  private var indoorEnabled = false
+  // The active indoor plan (from onActivePlanFocused), so setIndoorLevel() can change its floor.
+  private weak var activeIndoorPlan: YMKIndoorPlan?
   private var pendingCameraPosition: CameraPositionRecord?
   // Custom tile overlays added via addTileOverlay(), by id. `pending` holds any added before the map
   // existed; they are applied in createMapViewIfReady.
@@ -938,6 +947,38 @@ class ExpoYandexMapKitView: ExpoView {
     mapView?.mapWindow.map.deselectGeoObject()
   }
 
+  // MARK: - Indoor
+
+  func setIndoorEnabled(_ value: Bool) {
+    indoorEnabled = value
+    mapView?.mapWindow.map.isIndoorEnabled = value
+  }
+
+  // Set the active floor of the focused indoor plan. No-op until a plan is focused
+  // (onIndoorPlanFocused) — pass one of the level ids from that event.
+  func setIndoorLevel(_ levelId: String) {
+    activeIndoorPlan?.activeLevelId = levelId
+  }
+
+  fileprivate func handleIndoorPlanFocused(_ plan: YMKIndoorPlan) {
+    activeIndoorPlan = plan
+    onIndoorPlanFocused([
+      "activeLevelId": plan.activeLevelId,
+      "levels": plan.levels.map {
+        ["id": $0.id, "name": $0.name, "isUnderground": $0.isUnderground]
+      },
+    ])
+  }
+
+  fileprivate func handleIndoorPlanLeft() {
+    activeIndoorPlan = nil
+    onIndoorPlanLeft([:])
+  }
+
+  fileprivate func handleIndoorLevelChanged(_ levelId: String) {
+    onIndoorLevelChanged(["activeLevelId": levelId])
+  }
+
   private func coordinatePayload(_ point: YMKPoint) -> [String: Any] {
     return ["latitude": point.latitude, "longitude": point.longitude]
   }
@@ -990,6 +1031,10 @@ class ExpoYandexMapKitView: ExpoView {
     map.addInputListener(with: inputListener)
     map.setMapLoadedListenerWith(mapLoadedListener)
     map.addTapListener(with: geoObjectTapListener)
+    let indoorStateListener = IndoorStateListener(view: self)
+    self.indoorStateListener = indoorStateListener
+    map.addIndoorStateListener(with: indoorStateListener)
+    map.isIndoorEnabled = indoorEnabled
 
     map.isNightModeEnabled = nightMode
     applyGestureState()
@@ -1179,6 +1224,26 @@ private final class CameraListener: NSObject, YMKMapCameraListener {
     finished: Bool
   ) {
     view?.dispatchCameraPositionChanged(cameraPosition, reason: cameraUpdateReason, finished: finished)
+  }
+}
+
+private final class IndoorStateListener: NSObject, YMKIndoorStateListener {
+  private weak var view: ExpoYandexMapKitView?
+
+  init(view: ExpoYandexMapKitView) {
+    self.view = view
+  }
+
+  func onActivePlanFocused(withActivePlan activePlan: YMKIndoorPlan) {
+    view?.handleIndoorPlanFocused(activePlan)
+  }
+
+  func onActivePlanLeft() {
+    view?.handleIndoorPlanLeft()
+  }
+
+  func onActiveLevelChanged(withActiveLevelId activeLevelId: String) {
+    view?.handleIndoorLevelChanged(activeLevelId)
   }
 }
 

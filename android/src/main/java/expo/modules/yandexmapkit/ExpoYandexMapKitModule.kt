@@ -86,7 +86,10 @@ class ExpoYandexMapKitModule : Module() {
         "onMapReady", "onCameraPositionChanged", "onMapPress", "onMapLongPress", "onMapLoaded",
         "onTrafficChanged",
         "onUserLocationChange",
-        "onPoiTap"
+        "onPoiTap",
+        "onIndoorPlanFocused",
+        "onIndoorPlanLeft",
+        "onIndoorLevelChanged"
       )
 
       // <Marker> children are managed here, not through the Android view hierarchy — each drives a
@@ -109,6 +112,10 @@ class ExpoYandexMapKitModule : Module() {
 
       Prop("animated") { view: ExpoYandexMapKitView, animated: Boolean ->
         view.animated = animated
+      }
+
+      Prop("indoorEnabled") { view: ExpoYandexMapKitView, enabled: Boolean ->
+        view.setIndoorEnabled(enabled)
       }
 
       Prop("nightMode") { view: ExpoYandexMapKitView, nightMode: Boolean ->
@@ -257,6 +264,11 @@ class ExpoYandexMapKitModule : Module() {
 
       AsyncFunction("removeTileOverlay") { view: ExpoYandexMapKitView, id: String ->
         view.removeTileOverlay(id)
+      }.runOnQueue(Queues.MAIN)
+
+      // Changing the active indoor floor mutates map state — run on the main thread.
+      AsyncFunction("setIndoorLevel") { view: ExpoYandexMapKitView, levelId: String ->
+        view.setIndoorLevel(levelId)
       }.runOnQueue(Queues.MAIN)
     }
 

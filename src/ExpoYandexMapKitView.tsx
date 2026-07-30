@@ -145,6 +145,8 @@ export const YandexMapView = React.forwardRef<YandexMapViewRef, YandexMapViewPro
             edgePadding: options?.edgePadding,
             durationSeconds: options?.animated === false ? 0 : undefined,
           }) ?? Promise.resolve(),
+        setIndoorLevel: (levelId: string) =>
+          nativeRef.current?.setIndoorLevel(levelId) ?? Promise.resolve(),
         addTileOverlay: (options: TileOverlayOptions) =>
           nativeRef.current?.addTileOverlay(options) ?? Promise.resolve(''),
         removeTileOverlay: (id: string) =>

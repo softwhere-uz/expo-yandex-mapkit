@@ -24,6 +24,7 @@ const mapRef = {
   getVisibleRegion: fn(async () => null),
   getScreenPoints: fn(async () => []),
   getWorldPoints: fn(async () => []),
+  setIndoorLevel: fn(async () => {}),
   addTileOverlay: fn(async () => 'tile-0'),
   removeTileOverlay: fn(async () => {}),
 };

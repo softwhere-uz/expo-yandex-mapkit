@@ -46,6 +46,24 @@ export type TrafficChangeEvent = {
   color?: 'red' | 'yellow' | 'green'; // the traffic badge color, when available
 };
 
+// A single floor of an indoor plan (a building's level).
+export type IndoorLevel = {
+  id: string; // opaque level id — pass to `setIndoorLevel` to switch floors
+  name: string; // localized display name (e.g. "1", "G", "P2")
+  isUnderground: boolean; // whether the level is below ground
+};
+
+// Payload for onIndoorPlanFocused — the building plan the camera is focused on, bottom-to-top.
+export type IndoorPlanFocusedEvent = {
+  levels: IndoorLevel[]; // all floors, from bottom to top — build a floor picker from these
+  activeLevelId: string; // the currently shown floor's id
+};
+
+// Payload for onIndoorLevelChanged — the newly active floor.
+export type IndoorLevelChangeEvent = {
+  activeLevelId: string;
+};
+
 // Payload for onUserLocationChange — the device's location as MapKit's user-location layer reports it.
 export type UserLocationChangeEvent = {
   point: Point; // the device's current coordinate
@@ -135,6 +153,16 @@ export type YandexMapViewProps = {
   // fire `onMapPress`.
   onPoiTap?: (event: { nativeEvent: PoiTapEvent }) => void;
   onMapLoaded?: (event: { nativeEvent: MapLoadStatistics }) => void; // fires once the map finishes loading, with render stats
+  // Show indoor building plans (floor levels). When enabled and the camera focuses a building with an
+  // indoor plan, `onIndoorPlanFocused` fires with its floors — render your own floor picker and call
+  // the `setIndoorLevel(id)` ref method to switch floors. Default false.
+  indoorEnabled?: boolean;
+  // Fires when the camera focuses a building's indoor plan, with all its floors + the active one.
+  onIndoorPlanFocused?: (event: { nativeEvent: IndoorPlanFocusedEvent }) => void;
+  // Fires when no indoor plan is focused any more (e.g. the camera moved away).
+  onIndoorPlanLeft?: (event: { nativeEvent: Record<string, never> }) => void;
+  // Fires when the active floor changes (via `setIndoorLevel` or a user tap on MapKit's own control).
+  onIndoorLevelChanged?: (event: { nativeEvent: IndoorLevelChangeEvent }) => void;
   // react-native-maps migration alias: fires with a `Region` ({ latitude, longitude, latitudeDelta,
   // longitudeDelta }) after a camera move settles. Computed from the visible region, so it works
   // even though this SDK is zoom-based. Drop-in for react-native-maps / react-native-yamap code.
@@ -448,6 +476,9 @@ export type YandexMapViewRef = {
     coordinates: Point[],
     options?: { edgePadding?: EdgePadding; animated?: boolean }
   ): Promise<void>;
+  // Switch the active floor of the focused indoor plan. Pass a level id from `onIndoorPlanFocused`.
+  // No-op until a plan is focused. Requires `indoorEnabled`.
+  setIndoorLevel(levelId: string): Promise<void>;
   // Add (or replace, by `id`) a custom raster tile layer. Resolves the overlay's id (the one you
   // passed, or a generated one). Prefer the declarative `<UrlTile>` for most cases.
   addTileOverlay(options: TileOverlayOptions): Promise<string>;

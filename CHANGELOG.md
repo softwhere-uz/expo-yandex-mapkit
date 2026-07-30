@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Indoor plans + floor picker** (beyond parity — [#2](https://github.com/softwhere-uz/expo-yandex-mapkit/issues/2)).
+  An `indoorEnabled` prop shows MapKit's indoor building plans; `onIndoorPlanFocused`
+  (`{ levels: IndoorLevel[], activeLevelId }`, floors bottom-to-top), `onIndoorPlanLeft`, and
+  `onIndoorLevelChanged` surface the floors so you can build your own floor picker, and the
+  `setIndoorLevel(id)` map-ref method switches floors (via `YMKIndoorStateListener` /
+  `IndoorStateListener` + `IndoorPlan.activeLevelId`). No other Yandex-maps RN wrapper exposes it.
+  _⚠️ Draft: CI-compiled against the real MapKit SDK on both platforms, but not yet runtime-validated
+  on a device (over an indoor-mapped building) — validate before production use._
 - **`<UrlTile>` — custom raster tile layers** (beyond parity — [#2](https://github.com/softwhere-uz/expo-yandex-mapkit/issues/2)).
   Render a `{z}/{x}/{y}` URL-template tile layer (the react-native-maps `<UrlTile>` convention; e.g.
   OpenStreetMap) as a child of `<YandexMapView>` — via MapKit's `addTileLayer` + a URL tile data

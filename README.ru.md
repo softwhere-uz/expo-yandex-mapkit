@@ -599,6 +599,37 @@ import { YandexMapView, MarkerView } from 'expo-yandex-mapkit';
 
 **Что когда использовать:** `<Marker>` — для больших статичных наборов (нативные плейсмарки, дешевле всего); `<MarkerView>` — для нескольких живых/интерактивных вью. MarkerView позиционируется в JS (мир→экран на каждый кадр камеры), поэтому при большом числе или тяжёлом контенте может отставать от нативного плейсмарка на быстрых жестах. На вебе (карты нет) рендерит пустоту.
 
+### Планы помещений (выбор этажа)
+
+Задайте `indoorEnabled`, чтобы показать планы помещений MapKit. Когда камера фокусируется на здании с планом, срабатывает `onIndoorPlanFocused` со всеми его этажами — нарисуйте свой UI выбора этажа и вызывайте ref-метод `setIndoorLevel(id)` для переключения:
+
+```tsx
+const mapRef = useRef<YandexMapViewRef>(null);
+const [floors, setFloors] = useState<IndoorLevel[]>([]);
+
+<YandexMapView
+  ref={mapRef}
+  indoorEnabled
+  cameraPosition={{ latitude: 41.31, longitude: 69.24, zoom: 18 }}
+  onIndoorPlanFocused={(e) => setFloors(e.nativeEvent.levels)}
+  onIndoorPlanLeft={() => setFloors([])}
+  style={StyleSheet.absoluteFill}
+/>;
+
+{floors.map((f) => (
+  <Button key={f.id} title={f.name} onPress={() => mapRef.current?.setIndoorLevel(f.id)} />
+))}
+```
+
+| API | Примечание |
+| --- | --- |
+| проп `indoorEnabled` | Показывать планы помещений (по умолчанию `false`). |
+| `onIndoorPlanFocused` | `{ levels: IndoorLevel[], activeLevelId }` — этажи снизу вверх; `IndoorLevel` = `{ id, name, isUnderground }`. |
+| `onIndoorPlanLeft` | План помещения больше не в фокусе. |
+| `onIndoorLevelChanged` | `{ activeLevelId }` — активный этаж изменился. |
+| ref `setIndoorLevel(id)` | Переключить активный этаж. No-op, пока план не в фокусе. |
+
+> ⚠️ Черновик — эта нативная фича компилируется в CI против реального MapKit SDK на обеих платформах, но проверьте её на устройстве (на здании с планом помещений) перед использованием.
 ### `<UrlTile />`
 
 **Свой растровый слой тайлов** из URL-шаблона `{z}/{x}/{y}` — соглашение react-native-maps `<UrlTile>`. Рендерите как дочерний элемент `<YandexMapView>`; он добавляет слой тайлов MapKit (загружаемых по вашему шаблону) и убирает его при размонтировании.
