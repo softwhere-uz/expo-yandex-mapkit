@@ -1,7 +1,7 @@
 {
   "name": "@softwhere-uz/expo-yandex-mapkit",
   "version": "2.0.1",
-  "description": "Official scoped alias of expo-yandex-mapkit",
+  "description": "Official scoped alias of expo-yandex-mapkit — Yandex Maps (MapKit) for Expo: Expo Modules API, config plugin, New Architecture",
   "main": "index.js",
   "keywords": [
     "yandex",
@@ -16,6 +16,14 @@
     "yamap",
     "react-native-yamap",
     "geocoder",
+    "expo-module",
+    "config-plugin",
+    "new-architecture",
+    "fabric",
+    "clustering",
+    "geocoding",
+    "routing",
+    "offline-maps",
     "яндекс",
     "карты"
   ],

@@ -9,8 +9,13 @@
 Яндекс Карты (MapKit) для Expo — на базе Expo Modules API, настройка через конфиг-плагин, с поддержкой Новой архитектуры.
 
 [![npm version](https://img.shields.io/npm/v/expo-yandex-mapkit.svg)](https://www.npmjs.com/package/expo-yandex-mapkit)
+[![npm downloads](https://img.shields.io/npm/dm/expo-yandex-mapkit.svg)](https://www.npmjs.com/package/expo-yandex-mapkit)
+[![TypeScript types](https://img.shields.io/npm/types/expo-yandex-mapkit.svg)](https://www.npmjs.com/package/expo-yandex-mapkit)
+[![платформы: ios | android](https://img.shields.io/badge/платформы-ios%20%7C%20android-blue.svg)](#возможности)
+[![работает с Expo](https://img.shields.io/badge/работает%20с-Expo-4630EB.svg?logo=expo&logoColor=white)](https://expo.dev/)
 [![license](https://img.shields.io/npm/l/expo-yandex-mapkit.svg)](./LICENSE)
 [![CI](https://github.com/softwhere-uz/expo-yandex-mapkit/actions/workflows/ci.yaml/badge.svg)](https://github.com/softwhere-uz/expo-yandex-mapkit/actions/workflows/ci.yaml)
+[![GitHub stars](https://img.shields.io/github/stars/softwhere-uz/expo-yandex-mapkit.svg?style=social)](https://github.com/softwhere-uz/expo-yandex-mapkit/stargazers)
 
 📝 **Статья:** [Яндекс.Карты в Expo в 2026: поддерживаемый нативный SDK](https://habr.com/ru/articles/1063014/)
 

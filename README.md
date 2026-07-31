@@ -9,8 +9,13 @@
 Yandex Maps (MapKit) for Expo — built on the Expo Modules API, configured by a config plugin, New Architecture ready.
 
 [![npm version](https://img.shields.io/npm/v/expo-yandex-mapkit.svg)](https://www.npmjs.com/package/expo-yandex-mapkit)
+[![npm downloads](https://img.shields.io/npm/dm/expo-yandex-mapkit.svg)](https://www.npmjs.com/package/expo-yandex-mapkit)
+[![TypeScript types](https://img.shields.io/npm/types/expo-yandex-mapkit.svg)](https://www.npmjs.com/package/expo-yandex-mapkit)
+[![platforms: ios | android](https://img.shields.io/badge/platforms-ios%20%7C%20android-blue.svg)](#features)
+[![runs with Expo](https://img.shields.io/badge/runs%20with-Expo-4630EB.svg?logo=expo&logoColor=white)](https://expo.dev/)
 [![license](https://img.shields.io/npm/l/expo-yandex-mapkit.svg)](./LICENSE)
 [![CI](https://github.com/softwhere-uz/expo-yandex-mapkit/actions/workflows/ci.yaml/badge.svg)](https://github.com/softwhere-uz/expo-yandex-mapkit/actions/workflows/ci.yaml)
+[![GitHub stars](https://img.shields.io/github/stars/softwhere-uz/expo-yandex-mapkit.svg?style=social)](https://github.com/softwhere-uz/expo-yandex-mapkit/stargazers)
 
 📝 **Writeup:** [Yandex Maps in Expo, in 2026 — a maintained, native SDK](https://medium.com/@kamuranbek1998/yandex-maps-in-expo-in-2026-a-maintained-native-sdk-e7e3d8e25165)
 
