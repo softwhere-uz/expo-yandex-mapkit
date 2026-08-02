@@ -52,15 +52,15 @@ A complete Yandex Maps SDK for Expo — full feature parity with the most capabl
 
 ## Status
 
-**Stable — feature-complete, and beyond parity.** The library reached full parity with [`react-native-yamap-plus`](https://github.com/Qudaeo/react-native-yamap-plus)'s surface (and does several things better) across `1.0.0` → `2.0.0`; the parity checklist ([#1](https://github.com/softwhere-uz/expo-yandex-mapkit/issues/1)) is closed. The `2.x` line adds a large set of beyond-parity features tracked in [#2](https://github.com/softwhere-uz/expo-yandex-mapkit/issues/2) — including `<Callout>`, `<MarkerView>`, `<Route>`, `<UrlTile>`, indoor plans, offline maps, and custom `renderCluster` badges. The entire surface is **runtime-verified on iOS** and compiles against the real MapKit SDK on both platforms in CI; the native beyond-parity features (tiles / indoor / offline / cluster) were additionally validated on an iOS simulator + Android emulator. Follows [semver](https://semver.org/): additive changes bump minor, so upgrading within `2.x` needs no migration.
+**Stable — feature-complete, and beyond parity.** The library reached full parity with [`react-native-yamap-plus`](https://github.com/Qudaeo/react-native-yamap-plus)'s surface (and does several things better) across `1.0.0` → `2.0.0`; the parity checklist ([#1](https://github.com/softwhere-uz/expo-yandex-mapkit/issues/1)) is closed. The `2.x` line added a large set of beyond-parity features tracked in [#2](https://github.com/softwhere-uz/expo-yandex-mapkit/issues/2) (**closed as complete**) — including `<Callout>`, `<MarkerView>`, `<Route>`, `<UrlTile>`, indoor plans, offline maps, and custom `renderCluster` badges. What's next lives in the [v3 roadmap (#66)](https://github.com/softwhere-uz/expo-yandex-mapkit/issues/66). The entire surface is **runtime-verified on iOS** and compiles against the real MapKit SDK on both platforms in CI; the native beyond-parity features (tiles / indoor / offline / cluster) were additionally validated on an iOS simulator + Android emulator. Follows [semver](https://semver.org/): additive changes bump minor, so upgrading within `2.x` needs no migration.
 
 | Phase | Scope | Status |
 | --- | --- | --- |
 | v0 | MapView, camera + events, night mode, image & React-children markers, imperative ref methods | ✅ **Complete** |
 | v1 | Polylines / polygons / circles, clustering, user location, traffic, JSON styling, locale | ✅ **Complete** (1.0.0) |
 | v2 | `full`-flavor modules: Search + geocoding, Suggest, Routing | ✅ **Complete** (1.1.0 → 2.0.0) |
-| 2.x | Beyond parity ([#2](https://github.com/softwhere-uz/expo-yandex-mapkit/issues/2)): POI taps, draggable markers, `<Callout>` / `<MarkerView>` / `<Route>` / `<UrlTile>`, indoor plans, offline maps, `renderCluster`, bicycle/scooter routing | ✅ **Shipping** (→ 2.21.0) |
-| v3 | [Mappable](https://github.com/mappable-world) dual-brand support; `expo-yandex-mapkit-dom` — a DOM-component fallback so a map can render in Expo Go and on web | Planned |
+| 2.x | Beyond parity ([#2](https://github.com/softwhere-uz/expo-yandex-mapkit/issues/2)): POI taps, draggable markers, `<Callout>` / `<MarkerView>` / `<Route>` / `<UrlTile>`, indoor plans, offline maps, `renderCluster`, bicycle/scooter routing | ✅ **Complete** (2.1.0 → 2.22.x) |
+| v3 | [Roadmap #66](https://github.com/softwhere-uz/expo-yandex-mapkit/issues/66): [Mappable](https://github.com/mappable-world) dual-brand support; `expo-yandex-mapkit-dom` — a DOM-component fallback so a map can render in Expo Go and on web | Planned |
 
 ## Why
 
@@ -652,7 +652,8 @@ const [activeId, setActiveId] = useState<string>();
 | `onIndoorLevelChanged` | `{ activeLevelId }` — active floor changed. |
 | `setIndoorLevel(id)` ref | Switch the active floor. No-op until a plan is focused. |
 
-> ⚠️ Draft — this native feature is CI-compiled against the real MapKit SDK on both platforms, but validate it on a device (over an indoor-mapped building) before relying on it.
+> ℹ️ Indoor plans exist mainly for large public buildings (malls, airports, stations) and only at high zoom — the events stay silent until the camera focuses such a building.
+
 ### `<UrlTile />`
 
 A **custom raster tile layer** from a `{z}/{x}/{y}` URL template — the react-native-maps `<UrlTile>` convention. Render it as a child of `<YandexMapView>`; it adds a MapKit tile layer (fetched from your template) and removes it on unmount.
@@ -674,8 +675,6 @@ import { YandexMapView, UrlTile } from 'expo-yandex-mapkit';
 | `cacheable` | `boolean` | `true` | Whether MapKit may cache fetched tiles. |
 
 Imperative equivalents are on the map ref: `addTileOverlay(options) → id` and `removeTileOverlay(id)`. Precedent: react-native-maps `UrlTile`, @rnmapbox `RasterSource` — no other Yandex-maps RN wrapper has it. On web (no map) it renders nothing.
-
-> ⚠️ Draft — this native feature is CI-compiled against the real MapKit SDK on both platforms, but validate it on a device before relying on it in production.
 
 ### `<Clusterer />`
 
@@ -815,7 +814,7 @@ if (tashkent) await offlineMaps.startDownload(tashkent.id);
 
 `offlineMaps`: `getRegions()`, `startDownload(id)`, `stopDownload(id)`, `pauseDownload(id)`, `dropRegion(id)`, `allowUseCellularNetwork(allow)`, `clearCache()`. Real demand in the lineage ([yamap#311](https://github.com/volga-volga/react-native-yamap/issues/311), [#210](https://github.com/volga-volga/react-native-yamap/issues/210)); no wrapper ships it. _(Live per-region download state/progress reporting is a follow-up.)_
 
-> ⚠️ Draft — this native feature is CI-compiled against the real (full-flavor) MapKit SDK on both platforms, but it cannot be runtime-tested without a licensed key; validate on a device with a license before relying on it.
+> ⚠️ The download path itself cannot be exercised without a paid license (module load, region listing, and the lite-flavor rejection are verified) — validate with your licensed key before relying on it in production, and consider reporting back in [#66](https://github.com/softwhere-uz/expo-yandex-mapkit/issues/66), where per-region state/progress reporting is also tracked.
 
 ## lite vs full
 
@@ -838,7 +837,7 @@ Offline maps exist in both flavors but require a paid MapKit license. For usage 
 The two usual causes: `initialize(apiKey)` was never called (or rejected — attach a `.catch` and look at the message) and no build-time `apiKey` was set on the config plugin, or the API key is invalid / not enabled for the MapKit Mobile SDK. Check the native logs for MapKit errors: `adb logcat | grep -i -E 'mapkit|yandex'` on Android, the Xcode console on iOS. A view mounted before `initialize` resolves recovers automatically once it does.
 
 **"…does not run in Expo Go" / crashes in Expo Go.**
-Expected — native modules cannot load in Expo Go. Use `npx expo run:android|ios` or an EAS development build. A DOM-component fallback for Expo Go is on the roadmap (v3).
+Expected — native modules cannot load in Expo Go. Use `npx expo run:android|ios` or an EAS development build. A DOM-component fallback for Expo Go is on the roadmap ([#66](https://github.com/softwhere-uz/expo-yandex-mapkit/issues/66)).
 
 **Android build fails with a manifest-merger / minSdkVersion error.**
 MapKit requires Android API 26. The config plugin raises `android.minSdkVersion` automatically — make sure `expo-yandex-mapkit` is actually listed in `app.json` → `plugins` and re-run `npx expo prebuild`.
@@ -853,7 +852,7 @@ By default you get this release's tested version (4.42.0). Yandex recommends sta
 No — the native SDK accepts its key once. A second `initialize` with a different key rejects with `ERR_YANDEX_MAPKIT_REINIT`.
 
 **Does it work on web?**
-Not yet: the web build warns once and renders nothing (deliberately, instead of crashing). A `ymaps3`-based DOM component is planned (v3).
+Not yet: the web build warns once and renders nothing (deliberately, instead of crashing). A `ymaps3`-based DOM component is planned ([#66](https://github.com/softwhere-uz/expo-yandex-mapkit/issues/66)).
 
 ## Testing (Jest mock)
 
@@ -867,7 +866,7 @@ Components (`YandexMapView`, `Marker`, `Polyline`, `Polygon`, `Circle`, `Cluster
 
 ## Migrating from react-native-yamap
 
-Many prospective users come from `react-native-yamap` (no npm release since 2024). Honestly: v0's surface is far smaller — map view, camera, press events, night mode — so there is no complete migration path yet. A proper migration guide with a prop-mapping table is planned once markers and shapes land; where sensible, prop names will mirror `react-native-yamap`'s to keep the move mechanical.
+Coming from `react-native-yamap` or `react-native-yamap-plus`? See the **[Migration guide](./MIGRATION.md)** — component-by-component API mapping tables, the coordinate-order and initialization differences, and what to do about the few APIs that intentionally have no counterpart. The built-in `react-native-maps`-style aliases (`onRegionChangeComplete`, `fitToCoordinates` with `edgePadding`) make most renames mechanical, so no codemod is needed.
 
 ## Contributing
 
