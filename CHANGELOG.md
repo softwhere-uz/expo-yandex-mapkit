@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.22.3] - 2026-08-06
+
+### Fixed
+
+- **Android: custom-view `<Marker>` children no longer drift off their coordinate while zooming**
+  ([#67](https://github.com/softwhere-uz/expo-yandex-mapkit/issues/67)). Fabric re-lays the marker's
+  child wrapper out at the map's full width on commits after the first, so any marker re-render during
+  a camera gesture (the common camera-tracking app pattern) snapshotted a full-width bitmap whose pin
+  content sat far left of the icon's anchor point — rendered as the marker sliding off its point during
+  pinch-zoom and staying displaced afterwards. iOS was unaffected (it hands MapKit a live
+  `YRTViewProvider` instead of bitmaps). The Android snapshot now crops to the tight bounding box of
+  the wrapper's children, `tracksViewChanges={false}` markers are truly snapshotted once (prop updates
+  re-apply only the icon style), unchanged snapshots are deduplicated (`Bitmap.sameAs`) so the icon is
+  never re-set mid-gesture, and each distinct snapshot gets an explicit unique `ImageProvider` image ID
+  to avoid stale-cache collisions. Reproduced and verified on the Android emulator with an
+  image-source control marker at the same coordinate across zoom levels 12–18, animated and gesture
+  zooms.
+
 ## [2.22.0] - 2026-07-30
 
 ### Added

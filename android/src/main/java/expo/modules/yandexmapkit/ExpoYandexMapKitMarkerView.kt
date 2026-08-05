@@ -6,6 +6,7 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.PointF
 import android.view.View
+import android.view.ViewGroup
 import android.view.animation.LinearInterpolator
 import com.yandex.mapkit.geometry.Point
 import com.yandex.mapkit.map.ClusterizedPlacemarkCollection
@@ -82,6 +83,17 @@ class ExpoYandexMapKitMarkerView(context: Context, appContext: AppContext) :
   private var tracksViewChanges = true
   private var childView: View? = null
   private var hasRenderedChild = false
+  // The last bitmap applied as the child icon. Re-setting an icon is NOT a harmless no-op:
+  // MapKit visibly displaces a placemark whose icon is swapped while the camera is moving
+  // (issue #67 — markers drifted off their coordinate during pinch-zoom whenever any prop
+  // update re-ran refreshChildIcon). Kept to skip setIcon when the pixels are unchanged.
+  private var lastChildSnapshot: Bitmap? = null
+  // Serial for explicit ImageProvider image IDs. fromBitmap(bitmap)'s auto-generated ID can
+  // collide across successive snapshots (freed bitmap memory gets reused), making MapKit serve a
+  // stale cached image with the OLD bitmap's dimensions — rendered as the pin pinned to the wrong
+  // screen position after zooming (issue #67). A unique ID per distinct snapshot sidesteps the
+  // collision; the sameAs() dedup above keeps IDs stable while the content is unchanged.
+  private var snapshotSerial = 0
 
   // Set by a <Clusterer> parent while this marker is clustered, so a geometry change re-triggers
   // clustering. Null when the marker is a direct child of the map (un-clustered).
@@ -205,6 +217,7 @@ class ExpoYandexMapKitMarkerView(context: Context, appContext: AppContext) :
     appliedIconSource = null
     hasIcon = false
     hasRenderedChild = false
+    lastChildSnapshot = null
   }
 
   internal fun setTracksViewChanges(value: Boolean) {
@@ -233,6 +246,7 @@ class ExpoYandexMapKitMarkerView(context: Context, appContext: AppContext) :
       child.removeOnLayoutChangeListener(childLayoutListener)
       childView = null
       hasRenderedChild = false
+      lastChildSnapshot = null
       // Fall back to the image `source` now that the custom view is gone. Clear hasIcon so a
       // style-only update doesn't run before the source icon has (re)loaded.
       appliedIconSource = null
@@ -267,7 +281,16 @@ class ExpoYandexMapKitMarkerView(context: Context, appContext: AppContext) :
     // Fabric ReactViewGroup asserts ("must have an explicit width and height") until it has a real
     // measured size. On attach the child has none yet, so constructing it here crashed on mount.
     if (childView != null) {
-      refreshChildIcon()
+      if (tracksViewChanges || !hasRenderedChild) {
+        refreshChildIcon()
+      } else if (hasIcon) {
+        // Snapshot-once marker (tracksViewChanges=false, already rendered): geometry/zIndex were
+        // applied above; re-apply only the style so scale/anchor/visibility changes still land.
+        // Never re-snapshot here — apps that update a marker prop on every camera frame would
+        // otherwise re-set the icon mid-gesture, which MapKit renders as the placemark drifting
+        // off its coordinate while zooming (issue #67).
+        placemark.setIconStyle(buildIconStyle())
+      }
       return
     }
 
@@ -312,9 +335,45 @@ class ExpoYandexMapKitMarkerView(context: Context, appContext: AppContext) :
     if (!placemark.isValid || child.width <= 0 || child.height <= 0) {
       return
     }
-    val bitmap = Bitmap.createBitmap(child.width, child.height, Bitmap.Config.ARGB_8888)
-    child.draw(Canvas(bitmap))
-    placemark.setIcon(ImageProvider.fromBitmap(bitmap))
+    // Snapshot the tight bounding box of the wrapper's children, not the wrapper's own bounds:
+    // Fabric re-lays the marker's child wrapper out at the map's FULL WIDTH on commits after the
+    // first (the pin content stays at its left edge). Snapshotting the stretched wrapper put the
+    // pin far left of the icon's anchor point, which renders as the marker sliding off its
+    // coordinate as soon as anything re-snapshots — the drift reported in issue #67.
+    var cropLeft = 0
+    var cropTop = 0
+    var cropRight = child.width
+    var cropBottom = child.height
+    if (child is ViewGroup && child.childCount > 0) {
+      cropLeft = Int.MAX_VALUE
+      cropTop = Int.MAX_VALUE
+      cropRight = 0
+      cropBottom = 0
+      for (i in 0 until child.childCount) {
+        val inner = child.getChildAt(i)
+        cropLeft = minOf(cropLeft, inner.left)
+        cropTop = minOf(cropTop, inner.top)
+        cropRight = maxOf(cropRight, inner.right)
+        cropBottom = maxOf(cropBottom, inner.bottom)
+      }
+    }
+    val width = cropRight - cropLeft
+    val height = cropBottom - cropTop
+    if (width <= 0 || height <= 0) {
+      return
+    }
+    val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+    val canvas = Canvas(bitmap)
+    canvas.translate(-cropLeft.toFloat(), -cropTop.toFloat())
+    child.draw(canvas)
+    // Only swap the icon when the pixels actually changed (covers tracksViewChanges=true markers
+    // whose props update every camera frame): re-setting even an identical icon makes MapKit
+    // displace the placemark while the camera is moving (issue #67).
+    if (lastChildSnapshot?.sameAs(bitmap) != true) {
+      val imageId = "expo-yandex-marker-${System.identityHashCode(this)}-${snapshotSerial++}"
+      placemark.setIcon(ImageProvider.fromBitmap(bitmap, true, imageId))
+      lastChildSnapshot = bitmap
+    }
     placemark.setIconStyle(buildIconStyle())
     hasIcon = true
     hasRenderedChild = true
