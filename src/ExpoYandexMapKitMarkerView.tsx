@@ -88,6 +88,8 @@ const styles = StyleSheet.create({
   // Wrap the marker's React children so they size to their own content. The native marker view is
   // laid out at the map's full width, and a child with the default `alignItems: stretch` would
   // otherwise fill it — snapshotting a small pin/bubble as a full-width icon. `flex-start` makes the
-  // wrapper hug its content instead.
+  // wrapper hug its content on the FIRST layout pass only — Fabric re-lays it out at the map's full
+  // width on later commits regardless of style (also with `position: 'absolute'`), so the Android
+  // side additionally crops its snapshot to the children's bounding box (#67).
   childWrap: { alignSelf: 'flex-start' },
 });
