@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.22.4] - 2026-08-10
+
+### Fixed
+
+- **Clusterer: tapping a small cluster no longer over-zooms and pushes its markers off-screen**
+  ([#69](https://github.com/softwhere-uz/expo-yandex-mapkit/issues/69)). The cluster-tap camera fit
+  framed the children's raw bounding box with no padding, so the outermost markers sat exactly on the
+  viewport edges (icons sliced in half) — and a tiny 2-marker bounding box demanded a huge zoom
+  (~+7 levels, to house-number level) that left both markers entirely off-screen. The fit now insets
+  the viewport by a default 48 dp/pt edge padding (unless the map's own `mapPadding` is set, which
+  still takes precedence) and caps the fitted zoom at the clusterer's `minZoom + 1` — one level past
+  the split zoom, which is always enough to expand the cluster. Applied identically on Android and
+  iOS. Verified on the Android emulator: a 2-marker cluster tap now moves z11 → z13 with both markers
+  visible and separated (previously z11 → z18.2 with both markers off-screen), and a wide cluster's
+  markers land comfortably inside the viewport edges.
+
 ## [2.22.3] - 2026-08-06
 
 ### Fixed

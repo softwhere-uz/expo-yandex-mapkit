@@ -185,6 +185,10 @@ enum class CameraAnimationOption(val value: String) : Enumerable {
   }
 }
 
+// Default edge inset (dp) for the cluster-tap fit, so the outermost markers render fully inside the
+// viewport instead of being sliced by its edges (#69). Only used when the map has no mapPadding.
+private const val CLUSTER_FIT_PADDING = 48.0
+
 // Edge insets (px) used by fitMarkers / fitAllMarkers to keep content clear of the map edges.
 class EdgePaddingRecord : Record {
   @Field
@@ -721,14 +725,34 @@ class ExpoYandexMapKitView(context: Context, appContext: AppContext) : ExpoView(
 
   // Fit the camera to a tapped cluster's placemarks. Reuses the fit-to-points path with default move
   // options (no edge padding). Called by a child <Clusterer> on a cluster tap.
-  internal fun fitToClusterPoints(points: List<Point>) {
+  // Fit the camera to a tapped cluster's markers. Two guards against the raw bounding-box fit
+  // (#69): a default edge padding (unless the map has its own mapPadding) so the outermost markers
+  // render fully inside the viewport instead of being sliced by its edges, and a zoom cap at the
+  // clusterer's split zoom — a tiny 2-marker bounding box otherwise demands a huge zoom that throws
+  // both markers off-screen entirely.
+  internal fun fitToClusterPoints(points: List<Point>, maxZoom: Float) {
     val map = mapView?.mapWindow?.map ?: return
-    fitToPoints(points, CameraMoveOptionsRecord(), map)
+    val options = CameraMoveOptionsRecord()
+    if (mapPadding == null) {
+      options.edgePadding = EdgePaddingRecord().also {
+        it.top = CLUSTER_FIT_PADDING
+        it.right = CLUSTER_FIT_PADDING
+        it.bottom = CLUSTER_FIT_PADDING
+        it.left = CLUSTER_FIT_PADDING
+      }
+    }
+    fitToPoints(points, options, map, maxZoom)
   }
 
   // Move the camera so every point is visible, optionally inset by options.edgePadding. A single
   // point just recenters at the current zoom (a degenerate bounding box would snap to max zoom).
-  private fun fitToPoints(points: List<Point>, options: CameraMoveOptionsRecord, map: YandexMap) {
+  // maxZoom (when given) caps the fitted zoom while keeping the fit's target point.
+  private fun fitToPoints(
+    points: List<Point>,
+    options: CameraMoveOptionsRecord,
+    map: YandexMap,
+    maxZoom: Float? = null
+  ) {
     if (points.isEmpty()) {
       return
     }
@@ -744,10 +768,15 @@ class ExpoYandexMapKitView(context: Context, appContext: AppContext) : ExpoView(
       // A fit with no edgePadding of its own falls back to the persistent mapPadding, so a fit never
       // silently discards the map's configured inset. An explicit edgePadding overrides it for this fit.
       val focus = focusRect(options.edgePadding ?: mapPadding)
-      if (focus != null) {
+      val fitted = if (focus != null) {
         map.cameraPosition(geometry, focus, current.azimuth, current.tilt)
       } else {
         map.cameraPosition(geometry)
+      }
+      if (maxZoom != null && fitted.zoom > maxZoom) {
+        CameraPosition(fitted.target, maxZoom, fitted.azimuth, fitted.tilt)
+      } else {
+        fitted
       }
     }
     moveCameraTo(target, options, map)
