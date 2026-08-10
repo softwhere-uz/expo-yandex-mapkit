@@ -100,6 +100,10 @@ internal enum CameraAnimationOption: String, Enumerable {
   }
 }
 
+// Default edge inset (points) for the cluster-tap fit, so the outermost markers render fully inside
+// the viewport instead of being sliced by its edges (#69). Only used when the map has no mapPadding.
+private let clusterFitPadding = 48.0
+
 // Options for the imperative setCenter() move.
 // Edge insets (React Native points) used by fitMarkers / fitAllMarkers to keep content clear of the
 // map edges; converted to pixels for the focus rect.
@@ -724,18 +728,33 @@ class ExpoYandexMapKitView: ExpoView {
     fitToPoints(direct + clustered, options: options, on: map)
   }
 
-  // Fit the camera to a tapped cluster's placemarks. Reuses the fit-to-points path with default move
-  // options (no edge padding). Called by a child <Clusterer> on a cluster tap.
-  func fitToClusterPoints(_ points: [YMKPoint]) {
+  // Fit the camera to a tapped cluster's placemarks. Called by a child <Clusterer> on a cluster tap.
+  // Two guards against the raw bounding-box fit (#69): a default edge padding (unless the map has
+  // its own mapPadding) so the outermost markers render fully inside the viewport instead of being
+  // sliced by its edges, and a zoom cap at the clusterer's split zoom — a tiny 2-marker bounding box
+  // otherwise demands a huge zoom that throws both markers off-screen entirely.
+  func fitToClusterPoints(_ points: [YMKPoint], maxZoom: Float) {
     guard let map = mapView?.mapWindow.map else {
       return
     }
-    fitToPoints(points, options: CameraMoveOptionsRecord(), on: map)
+    var options = CameraMoveOptionsRecord()
+    if mapPadding == nil {
+      var padding = EdgePaddingRecord()
+      padding.top = clusterFitPadding
+      padding.right = clusterFitPadding
+      padding.bottom = clusterFitPadding
+      padding.left = clusterFitPadding
+      options.edgePadding = padding
+    }
+    fitToPoints(points, options: options, on: map, maxZoom: maxZoom)
   }
 
   // Move the camera so every point is visible, optionally inset by options.edgePadding. A single
-  // point just recenters at the current zoom.
-  private func fitToPoints(_ points: [YMKPoint], options: CameraMoveOptionsRecord, on map: YMKMap) {
+  // point just recenters at the current zoom. maxZoom (when given) caps the fitted zoom while
+  // keeping the fit's target point.
+  private func fitToPoints(
+    _ points: [YMKPoint], options: CameraMoveOptionsRecord, on map: YMKMap, maxZoom: Float? = nil
+  ) {
     guard !points.isEmpty else {
       return
     }
@@ -765,7 +784,13 @@ class ExpoYandexMapKitView: ExpoView {
         northEast: YMKPoint(latitude: latitudes.max() ?? 0, longitude: longitudes.max() ?? 0)
       )
       let geometry = YMKGeometry(boundingBox: boundingBox)
-      target = map.cameraPosition(with: geometry)
+      let fitted = map.cameraPosition(with: geometry)
+      if let maxZoom = maxZoom, fitted.zoom > maxZoom {
+        target = YMKCameraPosition(
+          target: fitted.target, zoom: maxZoom, azimuth: fitted.azimuth, tilt: fitted.tilt)
+      } else {
+        target = fitted
+      }
     }
     moveCamera(to: target, options: options, on: map)
   }

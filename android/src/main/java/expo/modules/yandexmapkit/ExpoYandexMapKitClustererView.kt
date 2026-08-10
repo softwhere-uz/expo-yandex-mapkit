@@ -447,7 +447,9 @@ class ExpoYandexMapKitClustererView(context: Context, appContext: AppContext) :
       )
     )
     if (fitOnPress) {
-      mapViewRef?.get()?.fitToClusterPoints(cluster.placemarks.map { it.geometry })
+      // Cap the fit at minZoom + 1: clustering only applies at zoom <= minZoom, so one level past it
+      // is guaranteed to split this cluster — no need to zoom any further for a tiny bounding box.
+      mapViewRef?.get()?.fitToClusterPoints(cluster.placemarks.map { it.geometry }, (minZoom + 1).toFloat())
     }
   }
 
