@@ -1,0 +1,69 @@
+diff --git a/node_modules/expo/node_modules/expo-modules-core/android/ExpoModulesCorePlugin.gradle b/node_modules/expo/node_modules/expo-modules-core/android/ExpoModulesCorePlugin.gradle
+index 7910c77..306895e 100644
+--- a/node_modules/expo/node_modules/expo-modules-core/android/ExpoModulesCorePlugin.gradle
++++ b/node_modules/expo/node_modules/expo-modules-core/android/ExpoModulesCorePlugin.gradle
+@@ -66,10 +66,9 @@ ext.useDefaultAndroidSdkVersions = {
+ 
+     defaultConfig {
+       minSdkVersion project.ext.safeExtGet("minSdkVersion", 24)
+-      targetSdkVersion project.ext.safeExtGet("targetSdkVersion", 36)
+     }
+ 
+-    lintOptions {
++    lint {
+       abortOnError false
+     }
+   }
+diff --git a/node_modules/expo/node_modules/expo-modules-core/common/cpp/EventEmitter.cpp b/node_modules/expo/node_modules/expo-modules-core/common/cpp/EventEmitter.cpp
+index a9d97d5..0e0b966 100644
+--- a/node_modules/expo/node_modules/expo-modules-core/common/cpp/EventEmitter.cpp
++++ b/node_modules/expo/node_modules/expo-modules-core/common/cpp/EventEmitter.cpp
+@@ -2,7 +2,11 @@
+ #include "EventEmitter.h"
+ #include "LazyObject.h"
+ 
+-#include <cxxreact/ErrorUtils.h>
++// RN 0.87: <cxxreact/ErrorUtils.h> is a shim to <jserrorhandler/ErrorUtils.h>, which the prefab
++// does not export. Forward-declare the one symbol used instead.
++namespace facebook::react {
++void handleJSError(jsi::Runtime& runtime, const jsi::JSError& error, bool isFatal);
++} // namespace facebook::react
+ 
+ namespace expo::EventEmitter {
+ 
+diff --git a/node_modules/expo/node_modules/expo-modules-core/expo-module-gradle-plugin/build.gradle.kts b/node_modules/expo/node_modules/expo-modules-core/expo-module-gradle-plugin/build.gradle.kts
+index 837bb4f..4812ebe 100644
+--- a/node_modules/expo/node_modules/expo-modules-core/expo-module-gradle-plugin/build.gradle.kts
++++ b/node_modules/expo/node_modules/expo-modules-core/expo-module-gradle-plugin/build.gradle.kts
+@@ -3,7 +3,7 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+ 
+ plugins {
+-  kotlin("jvm") version "2.1.20"
++  kotlin("jvm") version "2.2.20"
+   id("java-gradle-plugin")
+ }
+ 
+diff --git a/node_modules/expo/node_modules/expo-modules-core/expo-module-gradle-plugin/src/main/kotlin/expo/modules/plugin/android/AndroidLibraryExtension.kt b/node_modules/expo/node_modules/expo-modules-core/expo-module-gradle-plugin/src/main/kotlin/expo/modules/plugin/android/AndroidLibraryExtension.kt
+index 9bfae8d..362cfcb 100644
+--- a/node_modules/expo/node_modules/expo-modules-core/expo-module-gradle-plugin/src/main/kotlin/expo/modules/plugin/android/AndroidLibraryExtension.kt
++++ b/node_modules/expo/node_modules/expo-modules-core/expo-module-gradle-plugin/src/main/kotlin/expo/modules/plugin/android/AndroidLibraryExtension.kt
+@@ -4,14 +4,16 @@ import com.android.build.gradle.LibraryExtension
+ 
+ internal fun LibraryExtension.applySDKVersions(compileSdk: Int, minSdk: Int, targetSdk: Int) {
+   this.compileSdk = compileSdk
++  // AGP 9 removed the global `android.defaults.buildfeatures.buildconfig` property; expo modules
++  // declare BuildConfig fields, so the feature must be enabled per module.
++  buildFeatures.buildConfig = true
+   defaultConfig {
+     this@defaultConfig.minSdk = minSdk
+-    this@defaultConfig.targetSdk = targetSdk
+   }
+ }
+ 
+ internal fun LibraryExtension.applyLinterOptions() {
+-  lintOptions.isAbortOnError = false
++  lint { abortOnError = false }
+ }
+ 
+ internal fun LibraryExtension.applyPublishingVariant() {

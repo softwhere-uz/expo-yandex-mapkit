@@ -162,8 +162,8 @@ jobs:
         working-directory: example/android
 
   # The bare jobs consume the library the way a real bare-RN user does: pack the
-  # tarball, install it --no-save into the committed bare-example fixture (a manually
-  # wired RN 0.86 community-template app), and build.
+  # tarball, install it (saved) into the committed bare-example fixture (a manually
+  # wired RN 0.87 community-template app with the SDK 57↔RN 0.87 compat patches in bare-example/patches), and build.
   bare-android:
     name: Bare RN Android build (tarball consumer)
     runs-on: ubuntu-latest
@@ -192,7 +192,7 @@ jobs:
       - run: npm ci
         working-directory: bare-example
       - name: Install the packed library
-        run: npm install --no-save "$(ls ../expo-yandex-mapkit-*.tgz)"
+        run: npm install "$(ls ../expo-yandex-mapkit-*.tgz)" # saved (not --no-save) so expo autolinking, which walks declared dependencies, links the module into the app build
         working-directory: bare-example
       - name: Build the bare app (single ABI)
         run: ./gradlew :app:assembleDebug -PreactNativeArchitectures=arm64-v8a
@@ -221,7 +221,7 @@ jobs:
       - run: npm ci
         working-directory: bare-example
       - name: Install the packed library
-        run: npm install --no-save "$(ls ../expo-yandex-mapkit-*.tgz)"
+        run: npm install "$(ls ../expo-yandex-mapkit-*.tgz)" # saved (not --no-save) so expo autolinking, which walks declared dependencies, links the module into the app build
         working-directory: bare-example
       - run: pod install
         working-directory: bare-example/ios

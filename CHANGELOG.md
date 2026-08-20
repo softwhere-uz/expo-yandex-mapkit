@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.23.0] - 2026-08-20
+
+### Added
+
+- **React Native 0.87 support (bare apps)**. The library's Android build script now uses the modern
+  AGP DSL (`minSdk =` / `lint {}` instead of the `minSdkVersion` / `lintOptions` forms removed in
+  AGP 9, still compatible with AGP 7.1+ so Expo SDK 55/56 consumers are unaffected), and the
+  `bare-example` app is upgraded to **RN 0.87 / AGP 9 / Gradle 9.4.1 / Kotlin 2.2** — build- and
+  runtime-verified on the Android emulator (map renders, no crashes). Expo SDK 57 itself is not
+  AGP 9-ready, so the bare example carries a small documented patch set (via `patch-package`) for
+  `expo-modules-core` / `expo-modules-autolinking` — Kotlin 2.2 for the gradle plugins, AGP 9 DSL
+  removals, per-module `buildConfig`, and an RN 0.87 header gap in `EventEmitter.cpp` — needed only
+  until Expo SDK 58 ships native RN 0.87 support. Expo-managed apps stay on SDK 57 / RN 0.86 (the
+  latest stable pairing). The bare CI jobs now install the packed library as a saved dependency, so
+  expo autolinking links the module into the bare app build (previously compile-only).
+
 ## [2.22.4] - 2026-08-10
 
 ### Fixed
