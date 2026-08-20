@@ -14,11 +14,14 @@ android {
   namespace "expo.modules.yandexmapkit"
   defaultConfig {
     // Yandex MapKit requires API 26 — fail the manifest merger loudly if the app stays below it.
-    minSdkVersion 26
+    // Property form (not the `minSdkVersion 26` method): the method DSL was removed in AGP 9
+    // (React Native 0.87+); the property works on AGP 7.1+ so SDK 55/56 consumers keep building.
+    minSdk = 26
     versionCode 1
     versionName "0.0.1"
   }
-  lintOptions {
+  // `lint` (not `lintOptions`): same AGP 9 removal, same AGP 7.1+ compatibility.
+  lint {
     abortOnError false
   }
 
