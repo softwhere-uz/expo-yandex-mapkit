@@ -90,7 +90,7 @@ An honest comparison, as of July 2026. This library now **matches the incumbents
 | | Requirement |
 | --- | --- |
 | Expo SDK | Built and CI-tested on **SDK 57 (RN 0.86, New Architecture)**. Supports **SDK 55+ (RN 0.83+)** — the floor declared in `peerDependencies`. |
-| React Native 0.87 (bare) | **Works** — build- and runtime-verified (Android emulator) with SDK 57 modules. Expo SDK 57 itself is not AGP 9-ready, so a bare RN 0.87 app needs the small [patch set](./bare-example/patches) (applied via `patch-package`) plus two `gradle.properties` opt-outs — see [bare-example](./bare-example) for the working reference until Expo SDK 58 ships RN 0.87 support natively. |
+| React Native 0.87 (bare) | **Works** — Android build- and runtime-verified (emulator, map renders), iOS simulator build-verified, with SDK 57 modules. Expo SDK 57 itself is not RN 0.87-ready, so a bare RN 0.87 app needs the small [patch set](./bare-example/patches) (applied via `patch-package`), two `gradle.properties` opt-outs, and the two Podfile tweaks (`RCT_USE_PREBUILT_RNCORE=0` + a header-quoting `post_integrate` hook) — see [bare-example](./bare-example) for the working reference until Expo SDK 58 ships RN 0.87 support natively. |
 | Android | minSdk **26** (Android 8.0) — enforced by the config plugin. |
 | iOS | iOS **16.4+** — the config plugin raises the deployment target automatically (SDK 55/56 default lower). CocoaPods only — MapKit ships no SPM package. |
 | MapKit | Defaults to **4.42.0**; override via the [config plugin](#2-add-the-config-plugin). Yandex recommends staying current. |

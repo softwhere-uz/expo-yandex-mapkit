@@ -16,8 +16,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   runtime-verified on the Android emulator (map renders, no crashes). Expo SDK 57 itself is not
   AGP 9-ready, so the bare example carries a small documented patch set (via `patch-package`) for
   `expo-modules-core` / `expo-modules-autolinking` — Kotlin 2.2 for the gradle plugins, AGP 9 DSL
-  removals, per-module `buildConfig`, and an RN 0.87 header gap in `EventEmitter.cpp` — needed only
-  until Expo SDK 58 ships native RN 0.87 support. Expo-managed apps stay on SDK 57 / RN 0.86 (the
+  removals, per-module `buildConfig`, and an RN 0.87 header gap in `EventEmitter.cpp` — plus, on iOS, building React
+  core from source (`RCT_USE_PREBUILT_RNCORE=0`), a `post_integrate` hook re-quoting the
+  space-containing `Swift Compatibility Header` search paths RN 0.87 emits unquoted, and a
+  new-arch-only `ExpoReactNativeFactory` (RN 0.87 removed the legacy-bridge delegate members) —
+  needed only until Expo SDK 58 ships native RN 0.87 support. Bare iOS simulator build verified
+  locally (full 98-pod build against real MapKit). Expo-managed apps stay on SDK 57 / RN 0.86 (the
   latest stable pairing). The bare CI jobs now install the packed library as a saved dependency, so
   expo autolinking links the module into the bare app build (previously compile-only).
 
