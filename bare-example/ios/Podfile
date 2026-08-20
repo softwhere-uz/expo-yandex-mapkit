@@ -7,6 +7,12 @@ require Pod::Executable.execute_command('node', ['-p',
   )', __dir__]).strip
 
 platform :ios, '16.4'
+
+# RN 0.87 defaults to a prebuilt React-Core xcframework whose module map trips
+# -Wnon-modular-include-in-framework-module errors against Expo SDK 57 pods (yoga headers).
+# Build React core from source until Expo SDK 58 aligns with the prebuilt core.
+ENV['RCT_USE_PREBUILT_RNCORE'] = '0'
+
 prepare_react_native_project!
 
 linkage = ENV['USE_FRAMEWORKS']
@@ -49,5 +55,22 @@ target 'BareYandexMapkit' do
       :mac_catalyst_enabled => false,
       # :ccache_enabled => true
     )
+
+  end
+
+  # RN 0.87's pod integration appends the "<Pod>/Swift Compatibility Header" directory to
+  # HEADER_SEARCH_PATHS UNQUOTED; the spaces split it into three bogus paths, so pods that
+  # import <ExpoModulesCore/ExpoModulesCore-Swift.h> fail with "file not found". Re-quote it in
+  # the generated xcconfigs. post_integrate (not post_install) because CocoaPods writes the
+  # support files to disk after post_install. Remove once Expo SDK 58 / RN fix the integration.
+  post_integrate do |installer|
+    Dir.glob(File.join(installer.sandbox.target_support_files_root, '**', '*.xcconfig')).each do |file|
+      contents = File.read(file)
+      fixed = contents.gsub(
+        /(?<!")(\$[({]PODS_CONFIGURATION_BUILD_DIR[)}]\/[A-Za-z0-9_.-]+\/Swift Compatibility Header)(?!")/,
+        '"\1"'
+      )
+      File.write(file, fixed) if fixed != contents
+    end
   end
 end
